@@ -80,7 +80,7 @@ export default function LoginScreen() {
         <div className="auth-wrap">
           <div className="auth-brand">
             <div className="auth-logo">₹</div>
-            <h1>Galla</h1>
+            <h1>ApnaGalla</h1>
             <p>Create, share and track invoices — even without internet.</p>
           </div>
 

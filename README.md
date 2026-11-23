@@ -1,4 +1,4 @@
-# Galla
+# ApnaGalla
 
 Offline-first invoicing for small businesses: an Android app (Capacitor + React + Ionic) and a web app built from the same code, plus a Node/Postgres backend on Railway. No Google Play Services or Firebase on the device.
 
@@ -61,7 +61,7 @@ The APK is written to `app/android/app/build/outputs/apk/debug/app-debug.apk`.
 - Android emulator: use `http://10.0.2.2:3000` to reach a server running on your PC.
 - Real phone: it must be on the same Wi-Fi, and Windows Firewall must allow port 3000.
 
-The Android package ID is **`in.galla.app`** (in `app/capacitor.config.ts` and `app/android/app/build.gradle`). It's permanent once the app is on the Play Store, so never change it.
+The Android package ID is **`in.apnagalla.app`** (in `app/capacitor.config.ts` and `app/android/app/build.gradle`). It's permanent once the app is on the Play Store, so never change it.
 
 ## Deploy the API to Railway
 1. Create a Railway project.

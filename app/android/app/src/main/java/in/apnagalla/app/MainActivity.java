@@ -1,4 +1,4 @@
-package in.galla.app;
+package in.apnagalla.app;
 
 import com.getcapacitor.BridgeActivity;
 

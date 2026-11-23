@@ -1,8 +1,8 @@
 {
-  "name": "galla",
+  "name": "apnagalla",
   "private": true,
   "version": "0.1.0",
-  "description": "Galla: offline-first invoicing app (Capacitor + React) with a Node/Postgres sync backend",
+  "description": "ApnaGalla: offline-first invoicing app (Capacitor + React) with a Node/Postgres sync backend",
   "workspaces": [
     "shared",
     "server",

@@ -1,4 +1,4 @@
-# Galla — Phase 1 Functional Spec
+# ApnaGalla — Phase 1 Functional Spec
 
 Companion to [PLAN.md](PLAN.md). This spec describes **what each part does and how**. Items marked **❓** are open decisions for you.
 

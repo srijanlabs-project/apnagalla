@@ -1,6 +1,6 @@
-# Galla — Phase 1 Plan
+# ApnaGalla — Phase 1 Plan
 
-Status: **approved** (M1 built) · App name: **Galla** · Date: 24 Nov 2026
+Status: **approved** (M1 built) · App name: **ApnaGalla** · Date: 24 Nov 2026
 
 ## 1. Goal
 A simple, offline-first invoicing app for small businesses. The owner and staff use it on several Android phones (and in a browser), and it syncs to the business's own online database. It never needs Google services on the device. Its standout feature: **photograph a handwritten bill → get a draft invoice**.
