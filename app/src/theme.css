@@ -1,0 +1,62 @@
+/* Brand colours (placeholder until the app name/brand is chosen) */
+:root {
+  --ion-color-primary: #3b5bdb;
+  --ion-color-primary-rgb: 59, 91, 219;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #3450c1;
+  --ion-color-primary-tint: #4f6bdf;
+
+  --app-surface: #ffffff;
+  --app-surface-2: #f4f5f8;
+  --app-border: #d7d9e0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-color-primary: #748ffc;
+    --ion-color-primary-rgb: 116, 143, 252;
+    --ion-color-primary-shade: #6680e0;
+    --ion-color-primary-tint: #829afc;
+    --app-surface: #1e1f24;
+    --app-surface-2: #121316;
+    --app-border: #3a3c44;
+  }
+}
+
+.center-fill {
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.greeting {
+  margin: 4px 4px 8px;
+  font-weight: 700;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.stat-card {
+  margin: 6px;
+}
+.stat-card ion-card-title {
+  font-size: 1.4rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--ion-color-medium);
+}
+.empty-state ion-icon {
+  font-size: 56px;
+}
+.empty-state h2 {
+  color: var(--ion-text-color);
+  font-size: 1.15rem;
+  margin: 12px 0 4px;
+}

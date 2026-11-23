@@ -1,0 +1,119 @@
+import { z } from 'zod';
+import { normalizeIndianMobile } from './phone';
+
+export const ROLES = ['owner', 'staff'] as const;
+export type Role = (typeof ROLES)[number];
+
+export const OTP_LENGTH = 6;
+
+const phoneField = z
+  .string()
+  .trim()
+  .transform((v, ctx) => {
+    const n = normalizeIndianMobile(v);
+    if (!n) {
+      ctx.addIssue({ code: 'custom', message: 'Enter a valid 10-digit Indian mobile number' });
+      return z.NEVER;
+    }
+    return n;
+  });
+
+/* ---------- Auth ---------- */
+
+export const otpRequestBody = z.object({ phone: phoneField });
+export type OtpRequestBody = z.input<typeof otpRequestBody>;
+
+export const otpVerifyBody = z.object({
+  phone: phoneField,
+  code: z.string().trim().regex(new RegExp(`^\\d{${OTP_LENGTH}}$`), `Enter the ${OTP_LENGTH}-digit code`),
+  deviceName: z.string().trim().max(100).optional(),
+});
+export type OtpVerifyBody = z.input<typeof otpVerifyBody>;
+
+export const refreshBody = z.object({ refreshToken: z.string().min(20) });
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  /** seconds until accessToken expires */
+  expiresIn: number;
+}
+
+/* ---------- User / business ---------- */
+
+export const updateMeBody = z.object({ name: z.string().trim().min(1, 'Name is required').max(80) });
+
+export const createBusinessBody = z.object({
+  name: z.string().trim().min(1, 'Business name is required').max(120),
+  phone: z.string().trim().max(20).optional(),
+  city: z.string().trim().max(80).optional(),
+  state: z.string().trim().max(80).optional(),
+});
+export type CreateBusinessBody = z.input<typeof createBusinessBody>;
+export type CreateBusinessInput = z.output<typeof createBusinessBody>;
+
+export const createInviteBody = z.object({
+  phone: phoneField,
+  role: z.enum(['staff']).default('staff'),
+});
+export type CreateInviteBody = z.input<typeof createInviteBody>;
+
+export interface UserDto {
+  id: string;
+  phone: string;
+  name: string | null;
+}
+
+export interface MembershipDto {
+  businessId: string;
+  businessName: string;
+  role: Role;
+}
+
+export interface InviteDto {
+  id: string;
+  businessId: string;
+  businessName: string;
+  phone: string;
+  role: Role;
+  invitedByName: string | null;
+  createdAt: string;
+}
+
+export interface MeResponse {
+  user: UserDto;
+  memberships: MembershipDto[];
+  /** Pending invites addressed to this user's phone number */
+  invites: InviteDto[];
+}
+
+export interface BusinessDto {
+  id: string;
+  name: string;
+  phone: string | null;
+  city: string | null;
+  state: string | null;
+  createdAt: string;
+}
+
+export interface MemberDto {
+  userId: string;
+  name: string | null;
+  phone: string;
+  role: Role;
+  joinedAt: string;
+}
+
+export interface TeamResponse {
+  members: MemberDto[];
+  invites: InviteDto[];
+}
+
+export interface VerifyOtpResponse extends AuthTokens {
+  me: MeResponse;
+}
+
+export interface ApiErrorBody {
+  error: string;
+  message: string;
+}

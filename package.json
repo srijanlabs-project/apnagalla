@@ -1,0 +1,23 @@
+{
+  "name": "galla",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Galla: offline-first invoicing app (Capacitor + React) with a Node/Postgres sync backend",
+  "workspaces": [
+    "shared",
+    "server",
+    "app"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev -w server",
+    "dev:app": "npm run dev -w app",
+    "build": "npm run build -w server && npm run build -w app",
+    "build:server": "npm run build -w server",
+    "start:server": "npm run start -w server",
+    "test": "npm run test -w shared && npm run test -w server",
+    "typecheck": "npm run typecheck -w shared && npm run typecheck -w server && npm run typecheck -w app"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
