@@ -115,7 +115,7 @@ Built in this order; each step is tested and committed before the next.
 | R1.2 Sync | Push/pull of all store records (latest edit wins per record; server enforces owner-only settings, staff/web limits on saved invoices), server-allocated numbers per store and series (online: one at a time; offline: block of 10), sync on open / reconnect / after save / every 3 min, sync status chip | Done |
 | R1.3 GST billing | Store GST type (regular / composition / unregistered), GST and non-GST bills with their own series, HSN, CGST+SGST / IGST from place of supply (shipping address), credit notes, number pattern | Done |
 | R1.4 Counter | Quick-sale screen, camera barcode, sq ft / running ft billing, dated part-payments with modes and split, on-screen UPI QR, returns, delivery date + day-before alert | Done |
-| R1.5 Catalogue | Category tree, item barcode / HSN / purchase price / MRP, Excel import of items and customers, GSTIN check via the client's GST API | Done (GSTZen response mapping to confirm with a real call) |
+| R1.5 Catalogue | Category tree, item barcode / HSN / purchase price / MRP, Excel import of items and customers, GSTIN check via the client's GST API | Done |
 | R1.6 Print and languages | Bluetooth thermal printing (2" / 3"), English / Hindi / Gujarati / Punjabi | |
 | R1.7 Admin and security | Admin panel (create / suspend stores), app PIN, secure token storage, tenant-isolation tests, rate limits, backups, monitoring | |
 
@@ -187,7 +187,9 @@ R1.5 decisions (25 Nov 2026) and gaps:
   (POST https://my.gstzen.in/api/gstin-validator/, headers Token + x-api-version 1.0, body
   {"gstin"}). Its response schema isn't public, so fields are read by name (GSTZen-style and GST
   portal names); if the legal name isn't found, the server logs the response's field names only.
-  Confirm the mapping with the first real call after deploy.
+  Confirmed with a real answer (25 Nov 2026): {valid, profile{gstNumber, legalName, tradeName,
+  address (one line)}}. It reports no active/cancelled status, so a valid GSTIN shows as
+  "Registered"; the one-line address is split into lines, city and PIN.
 
 ## 11. Your action items (can run in parallel with the build)
 - [ ] Start **TRAI DLT registration** with an SMS provider (business entity, sender ID, OTP template). Takes days to weeks; until it's done, OTP runs in test mode.

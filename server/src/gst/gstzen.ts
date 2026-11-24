@@ -81,11 +81,15 @@ export function parseGstzen(gstin: string, body: unknown, warn?: (m: string) => 
     return null;
   }
   // A bare "status" may be the API's own (e.g. 1 / "success"): only words like Active / Cancelled count.
-  const status =
-    str(findField(body, ['gstin_status', 'gstinStatus', 'sts', 'taxpayer_status', 'registration_status', 'status'], (v) => typeof v === 'string' && /^(active|cancel|suspend|inactive|provision)/i.test(v))) ?? 'Unknown';
+  // GSTZen's validator reports no status at all: valid + registered then shows as "Registered".
+  const reported = str(
+    findField(body, ['gstin_status', 'gstinStatus', 'sts', 'taxpayer_status', 'registration_status', 'status'], (v) => typeof v === 'string' && /^(active|cancel|suspend|inactive|provision)/i.test(v)),
+  );
+  const status = reported ?? 'Registered';
   const addr = findField(body, ['pradr', 'principal_place_of_business', 'principal_address', 'address']);
   const addrObj = (addr && typeof addr === 'object' ? ((findField(addr, ['addr']) as Json | undefined) ?? (addr as Json)) : {}) as Json;
   const addrText = typeof addr === 'string' ? addr.trim() : undefined;
+  const oneLine = addrText ? splitAddress(addrText, legalName, stateName(gstin.slice(0, 2))) : undefined;
   const parts = (keys: string[]) => keys.map((k) => str(findField(addrObj, [k]))).filter(Boolean).join(', ') || undefined;
   const stateCode = gstin.slice(0, 2);
   return {
@@ -93,18 +97,39 @@ export function parseGstzen(gstin: string, body: unknown, warn?: (m: string) => 
     legalName,
     tradeName: str(findField(body, ['trade_name', 'tradeName', 'tradeNam', 'trade_name_of_business'])),
     status,
-    active: /^act/i.test(status),
+    active: reported ? /^act|^provision/i.test(reported) : true,
     taxpayerType: str(findField(body, ['taxpayer_type', 'taxpayerType', 'dty', 'constitution_of_business', 'ctb'])),
     registeredOn: isoDate(findField(body, ['registration_date', 'registrationDate', 'rgdt', 'date_of_registration'])),
-    address: {
-      line1: parts(['bno', 'flno', 'bnm']) ?? addrText,
-      line2: parts(['st', 'loc']),
-      city: str(findField(addrObj, ['dst', 'city', 'district'])),
-      state: stateName(stateCode),
-      pin: str(findField(addrObj, ['pncd', 'pincode', 'pin'])) ?? str(findField(body, ['pincode', 'pncd'])),
-    },
+    address: oneLine
+      ? { ...oneLine, state: stateName(stateCode), pin: oneLine.pin ?? str(findField(body, ['pincode', 'pncd'])) }
+      : {
+          line1: parts(['bno', 'flno', 'bnm']),
+          line2: parts(['st', 'loc']),
+          city: str(findField(addrObj, ['dst', 'city', 'district'])),
+          state: stateName(stateCode),
+          pin: str(findField(addrObj, ['pncd', 'pincode', 'pin'])) ?? str(findField(body, ['pincode', 'pncd'])),
+        },
     stateCode,
   };
+}
+
+/**
+ * "INFOSYS LIMITED, 44 AND 97A, 3RD CROSS, ELECTRONIC CITY, BANGALORE, Bengaluru Urban, Karnataka,
+ * 560100" → line1 "44 AND 97A, 3RD CROSS", line2 "ELECTRONIC CITY, BANGALORE", city "Bengaluru
+ * Urban", pin "560100". The business name at the start and the state are dropped.
+ */
+export function splitAddress(text: string, legalName: string, state: string | undefined): { line1?: string; line2?: string; city?: string; pin?: string } {
+  const parts = text
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  let pin: string | undefined;
+  if (parts.length && /^\d{6}$/.test(parts[parts.length - 1]!)) pin = parts.pop();
+  if (parts.length && state && parts[parts.length - 1]!.toLowerCase() === state.toLowerCase()) parts.pop();
+  if (parts.length > 1 && parts[0]!.toLowerCase() === legalName.toLowerCase()) parts.shift();
+  const city = parts.length > 1 ? parts.pop() : undefined;
+  const half = Math.ceil(parts.length / 2);
+  return { line1: parts.slice(0, half).join(', ') || undefined, line2: parts.slice(half).join(', ') || undefined, city, pin };
 }
 
 export function gstzenProvider(o: GstzenOptions): GstProvider {
