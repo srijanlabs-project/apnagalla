@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { db, type BankAccount, type BusinessProfile, type BusinessSettings, type UpiId } from './db';
 import { INDIAN_STATES } from './format';
-import { defaultSettings, ensureBusinessRecords, type Actor } from './repo';
+import { ensureBusinessRecords, withDefaults, type Actor } from './repo';
 import { useSession } from './session';
 import { useSyncTriggers } from './useSync';
 
@@ -48,7 +48,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       isOwner: membership.role === 'owner',
       profile,
       // Merge so settings added in later versions always have a value.
-      settings: { ...defaultSettings(businessId), ...settings, design: { ...defaultSettings(businessId).design, ...settings?.design } },
+      settings: withDefaults(businessId, settings),
       bankAccounts: bankAccounts ?? [],
       upiIds: upiIds ?? [],
     };

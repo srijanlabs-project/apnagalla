@@ -56,7 +56,9 @@ async function setupStore(base: string) {
   const staff = await login(`${base}2`);
   const sH = bearer(staff.accessToken);
   await app.inject({ method: 'POST', url: `/v1/invites/${staff.me.invites[0]!.id}/accept`, headers: sH });
-  return { biz, owner, staff, oH, sH };
+  // The owner's browser login (allowed next to the phone).
+  const wH = bearer((await login(`${base}1`, 'web')).accessToken);
+  return { biz, owner, staff, oH, sH, wH };
 }
 
 function push(bizId: string, h: Record<string, string>, changes: { table: string; id: string; data: Record<string, unknown> }[]) {
@@ -212,5 +214,51 @@ describe('invoice numbers', () => {
     // A phone that numbered invoices before sync existed pushes INV/26-27/0041: the series moves past it.
     await pushOk(biz.id, oH, [{ table: 'invoices', id: 'old41', data: invoice('old41', { number: 'INV/26-27/0041' }) }]);
     expect(await reserve(sH, 1)).toEqual([42]);
+  });
+
+  it('keeps tax invoices, bills and credit notes in separate series, using the series a document names', async () => {
+    const { biz, oH, wH } = await setupStore('960000010');
+    const reserve = async (kind: string, h = oH) =>
+      app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/numbers/reserve`, headers: h, payload: { kind, period: '26-27', count: 1 } });
+    expect((await reserve('invoice')).json()).toEqual({ numbers: [1] });
+    expect((await reserve('bill')).json()).toEqual({ numbers: [1] });
+    expect((await reserve('credit')).json()).toEqual({ numbers: [1] });
+    expect((await reserve('bill', wH)).statusCode).toBe(403);
+    expect((await reserve('credit', wH)).statusCode).toBe(403);
+
+    // A custom pattern can't be parsed, so the document says which series and number it used.
+    await pushOk(biz.id, oH, [{ table: 'invoices', id: 'b9', data: invoice('b9', { number: 'BILL-2026-27-009', numberSeries: 'bill:26-27', numberSeq: 9 }) }]);
+    expect((await reserve('bill')).json()).toEqual({ numbers: [10] });
+    expect((await reserve('invoice')).json()).toEqual({ numbers: [2] });
+  });
+});
+
+describe('credit notes', () => {
+  const note = (id: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    status: 'saved',
+    number: 'CN/26-27/0001',
+    numberSeries: 'credit:26-27',
+    numberSeq: 1,
+    invoiceId: 'inv1',
+    lines: [],
+    totals: { grandTotal: 5000 },
+    history: [],
+    createdBy: 'x',
+    updatedAt: at(0),
+    ...extra,
+  });
+
+  it('only the owner makes them, only on the phone, and saved ones are never deleted', async () => {
+    const { biz, oH, sH, wH } = await setupStore('960000011');
+    expect((await pushOk(biz.id, sH, [{ table: 'creditNotes', id: 'cn1', data: note('cn1') }]))[0]).toMatchObject({ status: 'rejected', reason: 'Only the owner can make credit notes' });
+    expect((await pushOk(biz.id, wH, [{ table: 'creditNotes', id: 'cn1', data: note('cn1') }]))[0]).toMatchObject({ status: 'rejected', reason: 'Credit notes are made in the phone app' });
+    expect((await pushOk(biz.id, oH, [{ table: 'creditNotes', id: 'cn1', data: note('cn1') }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, oH, [{ table: 'creditNotes', id: 'cn1', data: note('cn1', { deleted: true, updatedAt: at(1) }) }]))[0]).toMatchObject({
+      status: 'rejected',
+      reason: 'Only drafts can be deleted',
+    });
+    // Staff phones still receive them, so balances agree everywhere.
+    expect((await pull(biz.id, sH)).changes.some((c) => c.table === 'creditNotes' && c.id === 'cn1')).toBe(true);
   });
 });

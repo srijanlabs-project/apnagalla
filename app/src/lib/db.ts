@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { ChargeInput, DiscountInput, InvoiceTotals } from '@invoice/shared';
+import type { ChargeInput, DiscountInput, GstType, InvoiceTotals, TaxMode } from '@invoice/shared';
 
 /**
  * Local offline database (IndexedDB via Dexie). The app reads and writes here first;
@@ -35,6 +35,9 @@ export interface BusinessProfile extends SyncedRecord {
   phone?: string;
   email?: string;
   website?: string;
+  /** GST registration. Missing on stores set up before R1.3: see effectiveGstType(). */
+  gstType?: GstType;
+  /** Label + value of the store's tax ID. For a GST-registered store: "GSTIN" + the GSTIN. */
   taxIdLabel?: string;
   taxIdValue?: string;
   signature?: string; // data URL
@@ -80,8 +83,15 @@ export interface DesignSettings {
 }
 
 export interface BusinessSettings extends SyncedRecord {
+  /** Tax invoices (and every bill of a store not registered for regular GST). */
   invoicePrefix: string;
+  /** Non-GST bills of a regular GST store: a separate series. */
+  billPrefix: string;
   estimatePrefix: string;
+  creditNotePrefix: string;
+  /** e.g. "{PREFIX}/{FY}/{SEQ}" — see formatNumber() in shared/gst.ts. */
+  numberPattern: string;
+  numberDigits: number;
   resetEachFinancialYear: boolean;
   defaultPaymentTermsDays: number; // 0 = due on receipt
   defaultTaxPct: number;
@@ -104,6 +114,7 @@ export interface Customer extends SyncedRecord {
   email?: string;
   billingAddress: Address;
   shippingAddress?: Address | null;
+  /** GSTIN of a registered customer. */
   taxId?: string;
   openingBalance: number; // paise, amount the customer already owed before using the app
 }
@@ -115,6 +126,8 @@ export interface Item extends SyncedRecord {
   rate: number; // paise
   rateIncludesTax: boolean;
   taxPct: number;
+  /** HSN (goods) or SAC (services) code. */
+  hsn?: string;
 }
 
 /* ---------- documents (invoice & estimate share one shape) ---------- */
@@ -130,6 +143,7 @@ export interface DocLine {
   rateIncludesTax: boolean;
   taxPct: number;
   discount?: DiscountInput | null;
+  hsn?: string;
 }
 
 export interface PartySnapshot {
@@ -159,6 +173,13 @@ export interface PaymentInfo {
 export interface DocBase extends SyncedRecord {
   /** Final number; empty for drafts. */
   number: string;
+  /** Series ("bill:26-27") and running number the number came from; the server uses them to never repeat a number. */
+  numberSeries?: string;
+  numberSeq?: number;
+  /** gst = tax invoice; none = bill without GST. Missing on documents from before R1.3 (taxed as entered). */
+  taxMode?: TaxMode;
+  /** GST state code of the place of supply. null/missing = worked out from the addresses. */
+  placeOfSupply?: string | null;
   date: string;
   dueDate?: string;
   paymentTermsDays?: number;
@@ -187,6 +208,18 @@ export interface Invoice extends DocBase {
   /** Business details frozen at save time (SPEC §1 snapshot rule). */
   businessSnapshot?: Omit<BusinessProfile, keyof SyncedRecord> | null;
   fromEstimateId?: string | null;
+  /** Total of saved credit notes against this invoice (paise); kept up to date when a note is saved or cancelled. */
+  credited?: number;
+}
+
+/** Reduces a saved invoice: goods returned or a price cut. Its own number series. */
+export interface CreditNote extends DocBase {
+  status: 'draft' | 'saved' | 'cancelled';
+  invoiceId: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  reason: 'return' | 'price' | 'other';
+  businessSnapshot?: Omit<BusinessProfile, keyof SyncedRecord> | null;
 }
 
 export interface Estimate extends DocBase {
@@ -197,7 +230,7 @@ export interface Estimate extends DocBase {
 
 /* ---------- sync bookkeeping ---------- */
 
-export type SyncedTable = 'profiles' | 'settings' | 'bankAccounts' | 'upiIds' | 'customers' | 'items' | 'invoices' | 'estimates';
+export type SyncedTable = 'profiles' | 'settings' | 'bankAccounts' | 'upiIds' | 'customers' | 'items' | 'invoices' | 'estimates' | 'creditNotes';
 
 export interface OutboxEntry {
   seq?: number;
@@ -222,6 +255,7 @@ export const db = new Dexie('apnagalla') as Dexie & {
   items: EntityTable<Item, 'id'>;
   invoices: EntityTable<Invoice, 'id'>;
   estimates: EntityTable<Estimate, 'id'>;
+  creditNotes: EntityTable<CreditNote, 'id'>;
   outbox: EntityTable<OutboxEntry, 'seq'>;
   meta: EntityTable<MetaEntry, 'key'>;
 };
@@ -239,7 +273,11 @@ db.version(1).stores({
   meta: 'key',
 });
 
-export const ALL_TABLES = [db.profiles, db.settings, db.bankAccounts, db.upiIds, db.customers, db.items, db.invoices, db.estimates, db.outbox, db.meta];
+db.version(2).stores({
+  creditNotes: 'id, businessId, [businessId+date], [businessId+number], invoiceId, billTo.customerId, status, updatedAt',
+});
+
+export const ALL_TABLES = [db.profiles, db.settings, db.bankAccounts, db.upiIds, db.customers, db.items, db.invoices, db.estimates, db.creditNotes, db.outbox, db.meta];
 
 export async function getMeta<T>(key: string): Promise<T | undefined> {
   return (await db.meta.get(key))?.value as T | undefined;

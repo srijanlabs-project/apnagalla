@@ -22,7 +22,8 @@ export default function PaymentModal({
   onClose: () => void;
   onSave: (p: PaymentInfo) => void;
 }) {
-  const total = invoice.totals.grandTotal;
+  // What the customer owes on this invoice: its total less credit notes.
+  const total = Math.max(0, invoice.totals.grandTotal - (invoice.credited ?? 0));
   const [choice, setChoice] = useState<Choice>(invoice.payment.status);
   const [amount, setAmount] = useState<number | null>(invoice.payment.amountPaid || null);
   const [date, setDate] = useState(invoice.payment.date ?? todayISO());
@@ -58,7 +59,7 @@ export default function PaymentModal({
       </IonHeader>
       <IonContent className="ion-padding">
         <p className="section-note">
-          Invoice total <strong>{rupees(total)}</strong>
+          {invoice.credited ? 'Due after credit notes' : 'Invoice total'} <strong>{rupees(total)}</strong>
         </p>
         <IonSegment value={choice} onIonChange={sync((e) => setChoice(e.detail.value as Choice))}>
           <IonSegmentButton value="unpaid">

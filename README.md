@@ -13,6 +13,12 @@ Product docs: `PLAN.md` (phase 1 plan) and `SPEC.md` (functional spec).
 
 ## Milestone status
 Release 1 is in progress; see PLAN.md §10 for the step list.
+- **R1.3 GST billing:**
+  - store GST registration (regular / composition / not registered) with an offline GSTIN check;
+  - tax invoices and bills without GST, each with its own number series; HSN/SAC on items and lines;
+  - place of supply from the shipping or billing address; CGST + SGST within the state, IGST outside;
+  - credit notes against a saved invoice (owner only), which lower what the customer owes;
+  - number pattern and digits in Invoice settings (GST limit: 16 characters).
 - **R1.2 Sync:**
   - every phone and the web share the store's data;
   - sync runs on app open, when the internet returns, 2 s after each save and every 3 minutes;
@@ -60,6 +66,9 @@ npm run dev:app                              # App on http://localhost:5173
 In local dev, OTP SMS is **not** sent:
 - the code is printed in the server log;
 - with `OTP_FIXED_CODE=123456` in `server/.env`, that code always works.
+
+To test phone-only flows (invoices, credit notes) in a browser, start the app with
+`npm run dev -w @invoice/app -- --mode phone` (uses `app/.env.phone`; development builds only).
 
 Tests and type checks:
 
@@ -114,7 +123,7 @@ The Android package ID is **`in.apnagalla.app`** (in `app/capacitor.config.ts` a
 | POST | `/v1/businesses/:id/members/:userId/deactivate` · `/activate` | owner (pause / turn on a staff member) |
 | POST | `/v1/businesses/:id/sync/push` | active member (rules per role / client) |
 | GET | `/v1/businesses/:id/sync/pull?since=N` | active member |
-| POST | `/v1/businesses/:id/numbers/reserve` | active member (no invoice numbers for the web) |
+| POST | `/v1/businesses/:id/numbers/reserve` | active member; series `invoice`, `bill`, `credit`, `estimate` (the web gets estimate numbers only) |
 | POST | `/v1/invites/:id/accept` · `/v1/invites/:id/decline` | the invited phone number |
 
 ### OTP security limits

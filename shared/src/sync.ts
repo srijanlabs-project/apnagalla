@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import { NUMBER_SERIES } from './gst';
 
 /** Every table the phone keeps offline and syncs with the server. */
-export const SYNC_TABLES = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'customers', 'items', 'invoices', 'estimates'] as const;
+export const SYNC_TABLES = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'customers', 'items', 'invoices', 'estimates', 'creditNotes'] as const;
 export type SyncTable = (typeof SYNC_TABLES)[number];
 
-/** Store details only the owner may change. */
-export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds'];
+/** Store details and credit notes: only the owner may change them. */
+export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'creditNotes'];
 
 export const SYNC_PUSH_MAX = 100;
 export const SYNC_PULL_MAX = 500;
@@ -55,12 +56,9 @@ export interface SyncPullResponse {
   more: boolean;
 }
 
-export const DOC_KINDS = ['invoice', 'estimate'] as const;
-export type DocKind = (typeof DOC_KINDS)[number];
-
 /** A number series: kind + financial year label ("26-27"), or "all" when numbering never resets. */
 export const reserveNumbersBody = z.object({
-  kind: z.enum(DOC_KINDS),
+  kind: z.enum(NUMBER_SERIES),
   period: z.string().regex(/^(\d{2}-\d{2}|all)$/, 'Invalid period'),
   count: z.number().int().min(1).max(20),
 });
@@ -71,7 +69,10 @@ export interface ReserveNumbersResponse {
   numbers: number[];
 }
 
-/** Reads the series period and sequence number back out of a formatted number like "INV/26-27/0041". */
+/**
+ * Reads the series period and sequence number back out of a number like "INV/26-27/0041".
+ * Only for documents saved before R1.3; newer ones carry `numberSeries` and `numberSeq`.
+ */
 export function parseDocNumber(number: string): { period: string; seq: number } | null {
   const m = /(?:\/(\d{2}-\d{2}))?\/(\d+)$/.exec(number.trim());
   if (!m) return null;

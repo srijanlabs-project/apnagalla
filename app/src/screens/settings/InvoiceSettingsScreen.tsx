@@ -5,9 +5,9 @@ import { FormSection, SelectField, TextArea, TextField, ToggleRow } from '../../
 import FormPage from '../../components/FormPage';
 import { useBusiness } from '../../lib/business';
 import type { BusinessSettings } from '../../lib/db';
-import { formatDocNumber, putRecord } from '../../lib/repo';
+import { effectiveGstType, formatDocNumber, putRecord } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
-import { todayISO } from '@invoice/shared';
+import { checkNumberPattern, todayISO, type NumberSeries } from '@invoice/shared';
 import { sync } from '../../lib/sync';
 
 export const PAYMENT_TERMS = [
@@ -47,13 +47,34 @@ function ChipList<T extends string | number>(p: { values: T[]; onChange: (v: T[]
   );
 }
 
+const PATTERNS = [
+  { value: '{PREFIX}/{FY}/{SEQ}', label: 'INV/26-27/0001' },
+  { value: '{PREFIX}-{FY}-{SEQ}', label: 'INV-26-27-0001' },
+  { value: '{PREFIX}/{FY4}/{SEQ}', label: 'INV/2026-27/0001' },
+  { value: '{PREFIX}/{SEQ}', label: 'INV/0001 (never restarts)' },
+  { value: '{PREFIX}-{SEQ}', label: 'INV-0001 (never restarts)' },
+];
+
 export default function InvoiceSettingsScreen() {
-  const { settings, actor, isOwner } = useBusiness();
-  const { value: s, patch, save, saving } = useForm<BusinessSettings>(settings);
+  const { settings, profile, actor, isOwner } = useBusiness();
+  const { value: s, patch, setValue, save, saving } = useForm<BusinessSettings>(settings);
+  const [customOpen, setCustomOpen] = useState(false);
   if (!s) return null;
   const ro = !isOwner;
   const labels = [0, 1, 2].map((i) => s.customFieldLabels[i] ?? '');
   const prefixOk = (x: string) => /^[A-Za-z0-9-]{1,10}$/.test(x);
+  const regular = effectiveGstType(profile) === 'regular';
+  const series: { key: NumberSeries; field: 'invoicePrefix' | 'billPrefix' | 'estimatePrefix' | 'creditNotePrefix'; label: string }[] = [
+    { key: 'invoice', field: 'invoicePrefix', label: regular ? 'Tax invoice prefix' : 'Invoice prefix' },
+    ...(regular ? [{ key: 'bill' as const, field: 'billPrefix' as const, label: 'Bill without GST prefix' }] : []),
+    { key: 'credit', field: 'creditNotePrefix', label: 'Credit note prefix' },
+    { key: 'estimate', field: 'estimatePrefix', label: 'Estimate prefix' },
+  ];
+  const prefixes = series.map((x) => s[x.field]);
+  const prefixError = prefixes.every(prefixOk) ? (new Set(prefixes).size < prefixes.length ? 'Each series needs a different prefix' : null) : null;
+  const patternError = checkNumberPattern(s.numberPattern, prefixes.filter(prefixOk), s.numberDigits, s.resetEachFinancialYear);
+  const custom = customOpen || !PATTERNS.some((x) => x.value === s.numberPattern);
+  const today = todayISO();
 
   return (
     <FormPage
@@ -61,30 +82,89 @@ export default function InvoiceSettingsScreen() {
       backHref="/tabs/more"
       onSave={isOwner ? () => save(() => putRecord('settings', actor, { ...s, customFieldLabels: labels.map((l) => l.trim()).filter(Boolean) }), { message: 'Saved', back: true }) : undefined}
       saving={saving}
-      canSave={prefixOk(s.invoicePrefix) && prefixOk(s.estimatePrefix)}
+      canSave={prefixes.every(prefixOk) && !prefixError && !patternError}
     >
       {ro && <p className="section-note">Only the owner can change these settings.</p>}
 
-      <FormSection title="Numbering" note={`Next invoice looks like ${formatDocNumber(s.invoicePrefix || 'INV', todayISO(), 1, s.resetEachFinancialYear)}`}>
+      <FormSection title="Numbering" note="GST allows at most 16 characters: letters, digits, - and /. Numbers are never reused.">
         <div className="field-row">
-          <TextField
-            label="Invoice prefix"
-            value={s.invoicePrefix}
-            onChange={(v) => patch({ invoicePrefix: v.toUpperCase() })}
+          {series.slice(0, 2).map((x) => (
+            <TextField
+              key={x.key}
+              label={x.label}
+              value={s[x.field]}
+              onChange={(v) => patch({ [x.field]: v.toUpperCase() })}
+              disabled={ro}
+              maxlength={10}
+              error={prefixOk(s[x.field]) ? null : 'Letters, digits or -'}
+            />
+          ))}
+        </div>
+        <div className="field-row">
+          {series.slice(2).map((x) => (
+            <TextField
+              key={x.key}
+              label={x.label}
+              value={s[x.field]}
+              onChange={(v) => patch({ [x.field]: v.toUpperCase() })}
+              disabled={ro}
+              maxlength={10}
+              error={prefixOk(s[x.field]) ? null : 'Letters, digits or -'}
+            />
+          ))}
+        </div>
+        <ToggleRow
+          label="Restart numbering every financial year (1 April)"
+          checked={s.resetEachFinancialYear}
+          onChange={(resetEachFinancialYear) =>
+            setValue((cur) =>
+              cur && {
+                ...cur,
+                resetEachFinancialYear,
+                // Keep the numbers unique: a restarting series needs the year in it.
+                numberPattern: resetEachFinancialYear && !/\{FY4?\}/.test(cur.numberPattern) ? '{PREFIX}/{FY}/{SEQ}' : cur.numberPattern,
+              },
+            )
+          }
+          disabled={ro}
+        />
+        <div className="field-row">
+          <SelectField
+            label="Number style"
+            value={custom ? 'custom' : s.numberPattern}
+            options={[...PATTERNS.filter((x) => !s.resetEachFinancialYear || x.value.includes('{FY')), { value: 'custom', label: 'Custom…' }]}
+            onChange={(v) => {
+              setCustomOpen(v === 'custom');
+              if (v !== 'custom') patch({ numberPattern: v });
+            }}
             disabled={ro}
-            maxlength={10}
-            error={prefixOk(s.invoicePrefix) ? null : 'Letters, digits or -'}
           />
-          <TextField
-            label="Estimate prefix"
-            value={s.estimatePrefix}
-            onChange={(v) => patch({ estimatePrefix: v.toUpperCase() })}
+          <SelectField
+            label="Digits"
+            value={s.numberDigits}
+            options={[3, 4, 5, 6].map((d) => ({ value: d, label: `${d} (${'0'.repeat(d - 1)}1)` }))}
+            onChange={(numberDigits) => patch({ numberDigits })}
             disabled={ro}
-            maxlength={10}
-            error={prefixOk(s.estimatePrefix) ? null : 'Letters, digits or -'}
           />
         </div>
-        <ToggleRow label="Restart numbering every financial year (1 April)" checked={s.resetEachFinancialYear} onChange={(resetEachFinancialYear) => patch({ resetEachFinancialYear })} disabled={ro} />
+        {custom && (
+          <TextField
+            label="Custom pattern"
+            value={s.numberPattern}
+            onChange={(numberPattern) => patch({ numberPattern: numberPattern.trim() })}
+            disabled={ro}
+            maxlength={40}
+            autocapitalize="characters"
+            helper="Use {PREFIX}, {FY} (26-27), {FY4} (2026-27), {YYYY} and {SEQ}"
+          />
+        )}
+        {prefixError || patternError ? (
+          <p className="section-note text-danger">{prefixError ?? patternError}</p>
+        ) : (
+          <p className="section-note">
+            Next numbers look like {series.map((x) => formatDocNumber(s, x.key, today, 1)).join(' · ')}
+          </p>
+        )}
       </FormSection>
 
       <FormSection title="Defaults for new invoices">

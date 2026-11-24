@@ -1,13 +1,15 @@
-import { amountInWords, formatDateIN, formatPaise, roundHalfUp, type InvoiceTotals } from '@invoice/shared';
+import { amountInWords, formatDateIN, formatPaise, roundHalfUp, stateCode, type InvoiceTotals } from '@invoice/shared';
 import type { Content, ContentTable, TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import type { BankAccount, BusinessProfile, DesignSettings, DocBase, SyncedRecord, UpiId } from '../db';
 import { addressLines } from '../format';
+import { gstViewOf, taxRows } from '../gstView';
+import type { DocKind } from '../repo';
 
 export type BusinessInfo = Omit<BusinessProfile, keyof SyncedRecord>;
 
 export interface PdfInput {
-  kind: 'invoice' | 'estimate';
-  doc: DocBase & { status: string; payment?: { amountPaid: number } };
+  kind: DocKind;
+  doc: DocBase & { status: string; payment?: { amountPaid: number }; credited?: number; invoiceNumber?: string; invoiceDate?: string };
   business: BusinessInfo;
   design: DesignSettings;
   bank?: BankAccount | null;
@@ -27,7 +29,7 @@ export function upiLink(upi: UpiId, amountPaise: number, note: string): string {
 function pendingFor(input: PdfInput, totals: InvoiceTotals): number {
   if (input.kind !== 'invoice') return 0;
   if (input.doc.status === 'cancelled') return 0;
-  return Math.max(0, totals.grandTotal - (input.doc.payment?.amountPaid ?? 0));
+  return Math.max(0, totals.grandTotal - (input.doc.credited ?? 0) - (input.doc.payment?.amountPaid ?? 0));
 }
 
 interface Theme {
@@ -88,8 +90,12 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
   const theme = themeFor(design);
   const base = FONT_SIZES[design.fontSize];
   const a5 = design.paper === 'A5';
-  const title = kind === 'invoice' ? 'INVOICE' : 'ESTIMATE';
+  const view = gstViewOf(kind, doc, b, totals);
+  const title = view.title.toUpperCase();
+  const gst = view.mode === 'gst';
+  const registered = view.gstType !== 'unregistered';
   const pending = pendingFor(input, totals);
+  const withCode = (state: string | undefined) => (gst && state && stateCode(state) ? `State: ${state} (${stateCode(state)})` : null);
   const statusStamp = doc.status === 'cancelled' ? 'CANCELLED' : doc.status === 'draft' ? 'DRAFT' : null;
 
   /* ---------- header ---------- */
@@ -99,12 +105,20 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
     ...addressLines(b.address).map((l) => ({ text: l, color: theme.headerText })),
     ...(b.phone || b.email ? [{ text: [b.phone, b.email].filter(Boolean).join(' · '), color: theme.headerText }] : []),
     ...(b.website ? [{ text: b.website, color: theme.headerText }] : []),
-    ...(show.taxId && b.taxIdValue ? [{ text: `${b.taxIdLabel || 'Tax ID'}: ${b.taxIdValue}`, bold: true, color: theme.headerText }] : []),
+    ...(registered && b.taxIdValue
+      ? [{ text: `GSTIN: ${b.taxIdValue}`, bold: true, color: theme.headerText }]
+      : show.taxId && b.taxIdValue && b.taxIdLabel !== 'GSTIN'
+        ? [{ text: `${b.taxIdLabel || 'Tax ID'}: ${b.taxIdValue}`, bold: true, color: theme.headerText }]
+        : []),
+    ...(withCode(b.address?.state) ? [{ text: withCode(b.address?.state)!, color: theme.headerText }] : []),
   ];
 
   const metaRows: [string, string][] = [
-    [`${kind === 'invoice' ? 'Invoice' : 'Estimate'} No.`, doc.number || '—'],
+    [kind === 'credit' ? 'Credit Note No.' : kind === 'estimate' ? 'Estimate No.' : 'Invoice No.', doc.number || '—'],
     ['Date', formatDateIN(doc.date)],
+    ...(kind === 'credit' && doc.invoiceNumber ? ([['Against invoice', doc.invoiceNumber]] as [string, string][]) : []),
+    ...(kind === 'credit' && doc.invoiceDate ? ([['Invoice date', formatDateIN(doc.invoiceDate)]] as [string, string][]) : []),
+    ...(gst && view.posLabel ? ([['Place of supply', view.posLabel]] as [string, string][]) : []),
     ...(kind === 'invoice' && doc.dueDate ? ([['Due date', formatDateIN(doc.dueDate)]] as [string, string][]) : []),
     ...(doc.reference ? ([['Reference', doc.reference]] as [string, string][]) : []),
     ...doc.customFields.filter((f) => f.value.trim()).map((f) => [f.label, f.value] as [string, string]),
@@ -118,6 +132,7 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
         width: 'auto',
         stack: [
           { text: title, style: 'title', color: theme.titleColor, alignment: 'right' },
+          ...(view.declaration ? [{ text: view.declaration, fontSize: base - 2, color: theme.headerText, alignment: 'right' as const, margin: [0, 1, 0, 0] as [number, number, number, number] }] : []),
           ...(statusStamp ? [{ text: statusStamp, color: '#d9480f', bold: true, alignment: 'right' as const, margin: [0, 2, 0, 4] as [number, number, number, number] }] : []),
           {
             table: { body: metaRows.map(([k, v]) => [{ text: k, color: theme.headerText, opacity: 0.8 }, { text: v, bold: true, color: theme.headerText, alignment: 'right' }]) },
@@ -147,24 +162,35 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
       ...addressLines(party?.address).map((l) => ({ text: l })),
       ...(party?.phone ? [{ text: party.phone }] : []),
       ...(party?.email ? [{ text: party.email }] : []),
-      ...(party?.taxId ? [{ text: `Tax ID: ${party.taxId}` }] : []),
+      ...(party?.taxId ? [{ text: `GSTIN: ${party.taxId}`, bold: gst }] : []),
+      ...(withCode(party?.address?.state) && !doc.shipTo ? [{ text: withCode(party?.address?.state)! }] : []),
     ],
   };
   const shipTo: Content | null =
     show.shipTo && doc.shipTo
-      ? { stack: [{ text: 'SHIP TO', style: 'label', color: theme.accent }, { text: party?.name ?? '', bold: true }, ...addressLines(doc.shipTo).map((l) => ({ text: l }))] }
+      ? {
+          stack: [
+            { text: 'SHIP TO', style: 'label', color: theme.accent },
+            { text: party?.name ?? '', bold: true },
+            ...addressLines(doc.shipTo).map((l) => ({ text: l })),
+            ...(withCode(doc.shipTo.state) ? [{ text: withCode(doc.shipTo.state)! }] : []),
+          ],
+        }
       : null;
 
   /* ---------- items table ---------- */
   const hasDiscount = show.discountColumn && totals.lines.some((l) => l.lineDiscount > 0);
+  const hasHsn = gst && doc.lines.some((l) => l.hsn);
+  const showTax = view.mode !== 'none' && (show.taxColumn || gst);
   const cols: { key: string; header: string; width: string | number; align: 'left' | 'right' | 'center' }[] = [
     { key: 'sn', header: '#', width: 16, align: 'center' },
     { key: 'item', header: 'Item', width: '*', align: 'left' },
+    ...(hasHsn ? [{ key: 'hsn', header: 'HSN/SAC', width: 'auto' as const, align: 'left' as const }] : []),
     { key: 'qty', header: 'Qty', width: 'auto', align: 'right' },
     ...(show.unitColumn ? [{ key: 'unit', header: 'Unit', width: 'auto' as const, align: 'left' as const }] : []),
     { key: 'rate', header: 'Rate', width: 'auto', align: 'right' },
     ...(hasDiscount ? [{ key: 'disc', header: 'Disc.', width: 'auto' as const, align: 'right' as const }] : []),
-    ...(show.taxColumn ? [{ key: 'tax', header: 'Tax', width: 'auto' as const, align: 'right' as const }] : []),
+    ...(showTax ? [{ key: 'tax', header: gst ? 'GST' : 'Tax', width: 'auto' as const, align: 'right' as const }] : []),
     { key: 'amt', header: 'Amount', width: 'auto', align: 'right' },
   ];
 
@@ -176,6 +202,7 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
       item: { stack: [{ text: l.name, bold: true }, ...(show.itemDescription && l.description ? [{ text: l.description, color: '#555555', fontSize: base - 1 }] : [])] },
       qty: { text: show.unitColumn ? String(l.qty) : `${l.qty} ${l.unit}`, alignment: 'right' },
       unit: { text: l.unit },
+      hsn: { text: l.hsn ?? '' },
       rate: { text: money(roundHalfUp(r.baseRate)), alignment: 'right' },
       disc: { text: r.lineDiscount ? money(r.lineDiscount) : '', alignment: 'right' },
       tax: { text: `${l.taxPct}%`, alignment: 'right' },
@@ -194,13 +221,15 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
   const sumRows: [string, number, boolean?][] = [['Subtotal', totals.subtotal]];
   if (totals.itemDiscount) sumRows.push(['Item discounts', -totals.itemDiscount]);
   if (totals.overallDiscount) sumRows.push(['Discount', -totals.overallDiscount]);
-  if (totals.itemDiscount || totals.overallDiscount || totals.chargesTotal) sumRows.push(['Taxable amount', totals.taxableAmount]);
+  if (view.mode !== 'none' && (gst || totals.itemDiscount || totals.overallDiscount || totals.chargesTotal)) sumRows.push(['Taxable amount', totals.taxableAmount]);
   for (const c of doc.charges.filter((c) => c.amount)) sumRows.push([c.label || 'Charges', c.amount]);
-  for (const t of totals.taxBreakdown.filter((t) => t.tax)) sumRows.push([`Tax @${t.taxPct}%`, t.tax]);
+  for (const t of taxRows(view, totals)) sumRows.push([t.label, t.amount]);
   if (totals.roundOff) sumRows.push(['Round off', totals.roundOff]);
   sumRows.push(['Total', totals.grandTotal, true]);
-  if (kind === 'invoice' && doc.status === 'saved' && (input.doc.payment?.amountPaid ?? 0) > 0) {
-    sumRows.push(['Paid', -(input.doc.payment!.amountPaid)]);
+  const credited = kind === 'invoice' ? (input.doc.credited ?? 0) : 0;
+  if (kind === 'invoice' && doc.status === 'saved' && ((input.doc.payment?.amountPaid ?? 0) > 0 || credited > 0)) {
+    if (credited) sumRows.push(['Credit notes', -credited]);
+    if (input.doc.payment?.amountPaid) sumRows.push(['Paid', -input.doc.payment.amountPaid]);
     sumRows.push(['Balance due', pending, true]);
   }
 

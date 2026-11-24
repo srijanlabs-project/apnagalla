@@ -113,7 +113,7 @@ Built in this order; each step is tested and committed before the next.
 |---|---|---|
 | R1.1 Accounts and stores | Several stores per owner (up to 10), staff in several stores with a role per store, owner pauses / turns on staff per store, one phone per login (new phone signs the old one out) + web login, device list with remote sign-out, web can't create or edit invoices, store switcher | Done (branch `feat/r1-accounts-stores`) |
 | R1.2 Sync | Push/pull of all store records (latest edit wins per record; server enforces owner-only settings, staff/web limits on saved invoices), server-allocated numbers per store and series (online: one at a time; offline: block of 10), sync on open / reconnect / after save / every 3 min, sync status chip | Done |
-| R1.3 GST billing | Store GST type (regular / composition / unregistered), GST and non-GST bills with their own series, HSN, CGST+SGST / IGST from place of supply (shipping address), credit notes, number pattern | |
+| R1.3 GST billing | Store GST type (regular / composition / unregistered), GST and non-GST bills with their own series, HSN, CGST+SGST / IGST from place of supply (shipping address), credit notes, number pattern | Done |
 | R1.4 Counter | Quick-sale screen, camera barcode, sq ft / running ft billing, dated part-payments with modes and split, on-screen UPI QR, returns, delivery date + day-before alert | |
 | R1.5 Catalogue | Category tree, item barcode / HSN / purchase price / MRP, Excel import of items and customers, GSTIN check via the client's GST API | |
 | R1.6 Print and languages | Bluetooth thermal printing (2" / 3"), English / Hindi / Gujarati / Punjabi | |
@@ -126,6 +126,25 @@ Known gaps after R1.2:
 - Records sync whole: if two phones edit the same customer at the same time, the later save wins
   for every field of that customer.
 - Server data is kept as JSON per record (`sync_records`); typed tables for reports come with R2.
+
+R1.3 decisions and gaps:
+- Store GST type lives in the business profile. A store set up earlier counts as regular only if
+  its tax ID is a valid GSTIN; otherwise it is "not registered" and new bills carry no GST.
+- Regular stores choose per bill: tax invoice (GST) or bill without GST (own series, BILL prefix).
+  Composition and unregistered stores have one series and never charge GST.
+- Place of supply: shipping address state → billing address state → buyer's GSTIN → store's state;
+  it can be changed by hand. Same state = CGST + SGST (UTGST in UTs without a legislature),
+  otherwise IGST. Split per tax rate; CGST takes the odd paisa.
+- GSTIN check is offline (format, state code, check digit). Checking that it is active needs the
+  client's GST API (R1.5).
+- Credit notes: owner only, made from a saved invoice (lines copied, quantities editable), at most
+  the invoice total less earlier notes; they lower what the customer owes. An invoice with credit
+  notes can't be cancelled until they are.
+- Default GST rates for new stores: 0, 3, 5, 18, 40 (GST 2.0 slabs).
+- Not yet: reverse charge, e-invoice (IRN) / e-way bill, debit notes, HSN summary on the PDF.
+- Open issue: online saves take a fresh number from the server while each phone also holds a
+  block of 10 for offline use, so a new series starts at 0011 and every phone's unused block
+  becomes a gap. Needs a decision (use the phone's block first when online?).
 
 ## 11. Your action items (can run in parallel with the build)
 - [ ] Start **TRAI DLT registration** with an SMS provider (business entity, sender ID, OTP template). Takes days to weeks; until it's done, OTP runs in test mode.

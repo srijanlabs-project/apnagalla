@@ -28,7 +28,8 @@ export default function CustomerDetailScreen() {
   if (!c) return null;
 
   const saved = (invoices ?? []).filter((i) => i.status === 'saved');
-  const billed = saved.reduce((a, i) => a + i.totals.grandTotal, 0) + (c.openingBalance ?? 0);
+  // Credit notes reduce what was billed.
+  const billed = saved.reduce((a, i) => a + i.totals.grandTotal - (i.credited ?? 0), 0) + (c.openingBalance ?? 0);
   const paid = saved.reduce((a, i) => a + i.payment.amountPaid, 0);
   const pending = saved.reduce((a, i) => a + pendingAmount(i), 0) + (c.openingBalance ?? 0);
 

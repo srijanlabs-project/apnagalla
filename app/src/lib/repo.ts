@@ -1,4 +1,17 @@
-import { calculateInvoice, financialYearLabel, todayISO, type InvoiceTotals } from '@invoice/shared';
+import {
+  DEFAULT_NUMBER_PATTERN,
+  calculateInvoice,
+  financialYearLabel,
+  formatNumber,
+  gstinState,
+  resolvePlaceOfSupply,
+  stateCode,
+  todayISO,
+  type GstType,
+  type InvoiceTotals,
+  type NumberSeries,
+  type TaxMode,
+} from '@invoice/shared';
 import type { Table } from 'dexie';
 import {
   db,
@@ -7,6 +20,7 @@ import {
   type Address,
   type BusinessProfile,
   type BusinessSettings,
+  type CreditNote,
   type DesignSettings,
   type DocBase,
   type Estimate,
@@ -99,7 +113,11 @@ export function defaultSettings(businessId: string): BusinessSettings {
     updatedAt: EPOCH,
     updatedBy: '',
     invoicePrefix: 'INV',
+    billPrefix: 'BILL',
     estimatePrefix: 'EST',
+    creditNotePrefix: 'CN',
+    numberPattern: DEFAULT_NUMBER_PATTERN,
+    numberDigits: 4,
     resetEachFinancialYear: true,
     defaultPaymentTermsDays: 0,
     defaultTaxPct: 0,
@@ -109,10 +127,53 @@ export function defaultSettings(businessId: string): BusinessSettings {
     otherPaymentInstructions: '',
     customFieldLabels: [],
     units: ['pcs', 'kg', 'g', 'ltr', 'box', 'dozen', 'mtr', 'hr', 'day', 'job'],
-    taxRates: [0, 5, 12, 18, 28],
+    // GST slabs since 22 Sep 2025 (3% is for gold and jewellery).
+    taxRates: [0, 3, 5, 18, 40],
     reminderTemplate: 'Hi {name}, ₹{pending} is pending against invoice {number} dated {date}. Kindly pay at the earliest. – {business}',
     design: DEFAULT_DESIGN,
   };
+}
+
+/**
+ * Stored settings with defaults for fields added in later versions. A store that turned off the
+ * yearly restart before number patterns existed keeps its old "INV/0001" style.
+ */
+export function withDefaults(businessId: string, stored: BusinessSettings | undefined): BusinessSettings {
+  const d = defaultSettings(businessId);
+  if (!stored) return d;
+  const legacyPattern = !stored.numberPattern && stored.resetEachFinancialYear === false ? '{PREFIX}/{SEQ}' : undefined;
+  return { ...d, ...stored, numberPattern: stored.numberPattern || legacyPattern || d.numberPattern, design: { ...d.design, ...stored.design } };
+}
+
+export async function settingsOf(businessId: string): Promise<BusinessSettings> {
+  return withDefaults(businessId, await db.settings.get(businessId));
+}
+
+/* ---------- GST ---------- */
+
+type GstProfile = Pick<BusinessProfile, 'gstType' | 'taxIdValue' | 'address'>;
+
+/** Stores set up before R1.3 have no GST type: one whose tax ID is a valid GSTIN counts as regular. */
+export function effectiveGstType(p: Pick<BusinessProfile, 'gstType' | 'taxIdValue'> | null | undefined): GstType {
+  return p?.gstType ?? (gstinState(p?.taxIdValue) ? 'regular' : 'unregistered');
+}
+
+/** Only a regular GST store charges GST. */
+export const defaultTaxMode = (gstType: GstType): TaxMode => (gstType === 'regular' ? 'gst' : 'none');
+
+/** The store's own state code: from its GSTIN, else its address. */
+export function storeStateCode(p: GstProfile | null | undefined): string | undefined {
+  if (!p) return undefined;
+  return (effectiveGstType(p) !== 'unregistered' ? gstinState(p.taxIdValue) : undefined) ?? stateCode(p.address?.state);
+}
+
+/** Place of supply of a document: chosen by hand, else from ship-to / bill-to / GSTIN, else the store's state. */
+export function placeOfSupplyOf(doc: Pick<DocBase, 'placeOfSupply' | 'shipTo' | 'billTo'>, store: GstProfile | null | undefined): string | undefined {
+  return (
+    doc.placeOfSupply ||
+    resolvePlaceOfSupply({ shipToState: doc.shipTo?.state, billToState: doc.billTo?.address?.state, buyerGstin: doc.billTo?.taxId }) ||
+    storeStateCode(store)
+  );
 }
 
 /**
@@ -137,7 +198,7 @@ export async function ensureBusinessRecords(businessId: string, businessName: st
  * Tests run without a server: then numbers come from a local counter (the M2 behaviour).
  */
 
-export type NumberAllocator = (businessId: string, kind: 'invoice' | 'estimate', period: string) => Promise<number | null>;
+export type NumberAllocator = (businessId: string, series: NumberSeries, period: string) => Promise<number | null>;
 let allocator: NumberAllocator | null = null;
 
 /** The app installs the server allocator at start-up; unit tests leave it unset. */
@@ -147,77 +208,91 @@ export function setNumberAllocator(fn: NumberAllocator | null) {
 
 export class NumberingError extends Error {}
 
+export type DocKind = 'invoice' | 'estimate' | 'credit';
+
 export const seriesPeriod = (date: string, resetEachFY: boolean) => (resetEachFY ? financialYearLabel(date) : 'all');
 
-export const numberPoolKey = (businessId: string, kind: 'invoice' | 'estimate', period: string) => `numpool:${businessId}:${kind}:${period}`;
+export const numberPoolKey = (businessId: string, series: NumberSeries, period: string) => `numpool:${businessId}:${series}:${period}`;
 
-export function numberSeriesKey(kind: 'invoice' | 'estimate', businessId: string, date: string, resetEachFY: boolean) {
-  return `seq:${businessId}:${kind}:${seriesPeriod(date, resetEachFY)}`;
+const localCounterKey = (series: NumberSeries, businessId: string, period: string) => `seq:${businessId}:${series}:${period}`;
+
+/** Which series a document is numbered in. A regular GST store numbers non-GST bills separately. */
+export function seriesOf(kind: DocKind, taxMode: TaxMode | undefined, gstType: GstType): NumberSeries {
+  if (kind !== 'invoice') return kind;
+  return gstType === 'regular' && taxMode === 'none' ? 'bill' : 'invoice';
 }
 
-export function formatDocNumber(prefix: string, date: string, seq: number, resetEachFY: boolean) {
-  const n = String(seq).padStart(4, '0');
-  return resetEachFY ? `${prefix}/${financialYearLabel(date)}/${n}` : `${prefix}/${n}`;
+export function prefixOf(s: BusinessSettings, series: NumberSeries): string {
+  return { invoice: s.invoicePrefix, bill: s.billPrefix, estimate: s.estimatePrefix, credit: s.creditNotePrefix }[series];
+}
+
+export function formatDocNumber(s: BusinessSettings, series: NumberSeries, date: string, seq: number): string {
+  return formatNumber(s.numberPattern, prefixOf(s, series), financialYearLabel(date), date, seq, s.numberDigits);
 }
 
 /** Peek at the number the next saved document will get (shown in the editor; not reserved). */
-export async function previewNextNumber(kind: 'invoice' | 'estimate', businessId: string, date: string): Promise<string> {
-  const s = (await db.settings.get(businessId)) ?? defaultSettings(businessId);
-  const prefix = kind === 'invoice' ? s.invoicePrefix : s.estimatePrefix;
+export async function previewNextNumber(series: NumberSeries, businessId: string, date: string): Promise<string> {
+  const s = await settingsOf(businessId);
+  const period = seriesPeriod(date, s.resetEachFinancialYear);
   if (allocator) {
     // The real number is decided at save time; show the next one this phone holds, if any.
-    const pool = (await getMeta<number[]>(numberPoolKey(businessId, kind, seriesPeriod(date, s.resetEachFinancialYear)))) ?? [];
-    return pool.length ? formatDocNumber(prefix, date, pool[0]!, s.resetEachFinancialYear) : '';
+    const pool = (await getMeta<number[]>(numberPoolKey(businessId, series, period))) ?? [];
+    return pool.length ? formatDocNumber(s, series, date, pool[0]!) : '';
   }
-  const last = (await getMeta<number>(numberSeriesKey(kind, businessId, date, s.resetEachFinancialYear))) ?? 0;
-  return formatDocNumber(prefix, date, last + 1, s.resetEachFinancialYear);
+  const last = (await getMeta<number>(localCounterKey(series, businessId, period))) ?? 0;
+  return formatDocNumber(s, series, date, last + 1);
 }
 
-async function nextSeq(kind: 'invoice' | 'estimate', businessId: string, date: string, resetEachFY: boolean): Promise<number> {
-  const period = seriesPeriod(date, resetEachFY);
+async function nextSeq(series: NumberSeries, businessId: string, period: string): Promise<number> {
   if (!allocator) {
-    const key = numberSeriesKey(kind, businessId, date, resetEachFY);
+    const key = localCounterKey(series, businessId, period);
     const seq = ((await getMeta<number>(key)) ?? 0) + 1;
     await setMeta(key, seq);
     return seq;
   }
-  const fromServer = await allocator(businessId, kind, period).catch(() => null);
+  const fromServer = await allocator(businessId, series, period).catch(() => null);
   if (fromServer != null) return fromServer;
-  const key = numberPoolKey(businessId, kind, period);
+  const key = numberPoolKey(businessId, series, period);
   const pool = (await getMeta<number[]>(key)) ?? [];
   const seq = pool.shift();
   if (seq == null) {
-    throw new NumberingError(`No ${kind} numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.`);
+    const what = { invoice: 'invoice', bill: 'bill', estimate: 'estimate', credit: 'credit note' }[series];
+    throw new NumberingError(`No ${what} numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.`);
   }
   await setMeta(key, pool);
   return seq;
 }
 
-async function takeNextNumber(kind: 'invoice' | 'estimate', businessId: string, date: string): Promise<string> {
-  const s = (await db.settings.get(businessId)) ?? defaultSettings(businessId);
-  const prefix = kind === 'invoice' ? s.invoicePrefix : s.estimatePrefix;
-  const table = (kind === 'invoice' ? db.invoices : db.estimates) as Table<DocBase, string>;
+const tableOfKind = (kind: DocKind) => (kind === 'invoice' ? db.invoices : kind === 'estimate' ? db.estimates : db.creditNotes) as unknown as Table<DocBase, string>;
+
+async function takeNextNumber(kind: DocKind, series: NumberSeries, businessId: string, date: string): Promise<Pick<DocBase, 'number' | 'numberSeries' | 'numberSeq'>> {
+  const s = await settingsOf(businessId);
+  const period = seriesPeriod(date, s.resetEachFinancialYear);
   // Skip numbers already used on this phone (e.g. typed by hand).
   for (let tries = 0; tries < 50; tries++) {
-    const number = formatDocNumber(prefix, date, await nextSeq(kind, businessId, date, s.resetEachFinancialYear), s.resetEachFinancialYear);
-    if (!(await table.where('[businessId+number]').equals([businessId, number]).count())) return number;
+    const seq = await nextSeq(series, businessId, period);
+    const number = formatDocNumber(s, series, date, seq);
+    if (!(await tableOfKind(kind).where('[businessId+number]').equals([businessId, number]).count())) {
+      return { number, numberSeries: `${series}:${period}`, numberSeq: seq };
+    }
   }
   throw new NumberingError('Could not find a free number. Please try again.');
 }
 
-export async function isNumberTaken(kind: 'invoice' | 'estimate', businessId: string, number: string, exceptId?: string): Promise<boolean> {
-  const table = (kind === 'invoice' ? db.invoices : db.estimates) as Table<DocBase, string>;
-  const hits = await table.where('[businessId+number]').equals([businessId, number]).toArray();
+export async function isNumberTaken(kind: DocKind, businessId: string, number: string, exceptId?: string): Promise<boolean> {
+  const hits = await tableOfKind(kind).where('[businessId+number]').equals([businessId, number]).toArray();
   return hits.some((d) => d.id !== exceptId && !d.deleted);
 }
 
 /* ---------- documents ---------- */
 
-export function computeTotals(doc: Pick<DocBase, 'lines' | 'overallDiscount' | 'charges' | 'roundOff' | 'targetTotal'>): InvoiceTotals {
+/** A bill without GST charges no tax: the entered price is the price. */
+export function computeTotals(doc: Pick<DocBase, 'lines' | 'overallDiscount' | 'charges' | 'roundOff' | 'targetTotal' | 'taxMode'>): InvoiceTotals {
+  const noTax = doc.taxMode === 'none';
   return calculateInvoice({
-    lines: doc.lines,
+    lines: noTax ? doc.lines.map((l) => ({ ...l, taxPct: 0, rateIncludesTax: false })) : doc.lines,
     overallDiscount: doc.overallDiscount,
-    charges: doc.charges,
+    charges: noTax ? doc.charges.map((c) => ({ ...c, taxPct: 0 })) : doc.charges,
     roundOff: doc.roundOff,
     targetTotal: doc.targetTotal,
   });
@@ -236,6 +311,20 @@ async function snapshotBusiness(businessId: string) {
 
 export class PermissionError extends Error {}
 
+/** GST fields fixed when a document is saved: tax mode follows the store, place of supply is recorded. */
+async function settleGst<D extends DocBase>(businessId: string, doc: D): Promise<D> {
+  const profile = await db.profiles.get(businessId);
+  const gstType = effectiveGstType(profile);
+  const taxMode: TaxMode = gstType === 'regular' ? (doc.taxMode ?? 'gst') : 'none';
+  return { ...doc, taxMode, placeOfSupply: taxMode === 'gst' ? (placeOfSupplyOf(doc, profile) ?? null) : null };
+}
+
+async function numberFor(kind: DocKind, businessId: string, doc: DocBase): Promise<Pick<DocBase, 'number' | 'numberSeries' | 'numberSeq'>> {
+  if (doc.number) return { number: doc.number, numberSeries: doc.numberSeries, numberSeq: doc.numberSeq };
+  const gstType = effectiveGstType(await db.profiles.get(businessId));
+  return takeNextNumber(kind, seriesOf(kind, doc.taxMode, gstType), businessId, doc.date);
+}
+
 /**
  * Save an invoice. `finalize` = true turns a draft into a saved invoice (assigns a number,
  * freezes business details). Staff may not edit an invoice once it is saved.
@@ -245,16 +334,18 @@ export async function saveInvoice(actor: Actor, inv: Invoice, opts: { finalize: 
   if (existing && existing.status !== 'draft' && actor.role !== 'owner') throw new PermissionError('Only the owner can edit a saved invoice');
   if (existing?.status === 'cancelled') throw new PermissionError('Cancelled invoices cannot be edited');
 
-  const totals = computeTotals(inv);
-  const next: Invoice = { ...inv, totals, history: [...(existing?.history ?? inv.history ?? [])] };
+  let next: Invoice = { ...inv, history: [...(existing?.history ?? inv.history ?? [])] };
+  const finalizing = opts.finalize && next.status === 'draft';
+  if (finalizing) next = await settleGst(actor.businessId, next);
+  const totals = computeTotals(next);
+  next.totals = totals;
   if (!existing) next.history.push(historyEntry(actor, 'created'));
 
   // Payment can never exceed the total (SPEC §3) — re-clamp after edits change the total.
-  if (next.payment.amountPaid > totals.grandTotal) next.payment = { ...next.payment, amountPaid: totals.grandTotal };
-  next.payment = normalisePayment(next.payment, totals.grandTotal);
+  next.payment = normalisePayment(next.payment, totals.grandTotal, next.credited);
 
-  if (opts.finalize && next.status === 'draft') {
-    if (!next.number) next.number = await takeNextNumber('invoice', actor.businessId, next.date);
+  if (finalizing) {
+    Object.assign(next, await numberFor('invoice', actor.businessId, next));
     next.status = 'saved';
     next.businessSnapshot = await snapshotBusiness(actor.businessId);
     next.history.push(historyEntry(actor, 'saved', next.number));
@@ -270,11 +361,13 @@ export async function saveEstimate(actor: Actor, est: Estimate, opts: { finalize
   if (existing && existing.status !== 'draft' && actor.role !== 'owner' && existing.createdBy !== actor.userId) {
     throw new PermissionError('Only the owner can edit this estimate');
   }
-  const totals = computeTotals(est);
-  const next: Estimate = { ...est, totals, history: [...(existing?.history ?? est.history ?? [])] };
+  let next: Estimate = { ...est, history: [...(existing?.history ?? est.history ?? [])] };
+  const finalizing = opts.finalize && next.status === 'draft';
+  if (finalizing) next = await settleGst(actor.businessId, next);
+  next.totals = computeTotals(next);
   if (!existing) next.history.push(historyEntry(actor, 'created'));
-  if (opts.finalize && next.status === 'draft') {
-    if (!next.number) next.number = await takeNextNumber('estimate', actor.businessId, next.date);
+  if (finalizing) {
+    Object.assign(next, await numberFor('estimate', actor.businessId, next));
     next.status = 'open';
     next.businessSnapshot = await snapshotBusiness(actor.businessId);
     next.history.push(historyEntry(actor, 'saved', next.number));
@@ -284,18 +377,23 @@ export async function saveEstimate(actor: Actor, est: Estimate, opts: { finalize
   return putRecord('estimates', actor, next);
 }
 
-export function normalisePayment(p: Invoice['payment'], total: number): Invoice['payment'] {
+/**
+ * Amount paid is kept between 0 and the invoice total. The invoice counts as paid once payments
+ * cover the total less credit notes.
+ */
+export function normalisePayment(p: Invoice['payment'], total: number, credited = 0): Invoice['payment'] {
   const amountPaid = Math.max(0, Math.min(p.amountPaid, total));
-  const status = amountPaid === 0 ? 'unpaid' : amountPaid >= total ? 'paid' : 'partial';
+  const due = Math.max(0, total - credited);
+  const status = amountPaid >= due ? 'paid' : amountPaid === 0 ? 'unpaid' : 'partial';
   return { ...p, amountPaid, status };
 }
 
 export async function updatePayment(actor: Actor, invoiceId: string, payment: Invoice['payment']): Promise<Invoice> {
   const inv = await db.invoices.get(invoiceId);
   if (!inv || inv.status !== 'saved') throw new PermissionError('Payment can only be recorded on a saved invoice');
-  const p = normalisePayment(payment, inv.totals.grandTotal);
+  const p = normalisePayment(payment, inv.totals.grandTotal, inv.credited);
   if (p.amountPaid < inv.payment.amountPaid && actor.role !== 'owner') throw new PermissionError('Only the owner can reduce a recorded payment');
-  const detail = p.status === 'unpaid' ? 'marked unpaid' : `paid ₹${(p.amountPaid / 100).toFixed(2)}${p.mode ? ` (${p.mode})` : ''}`;
+  const detail = p.amountPaid === 0 ? 'marked unpaid' : `paid ₹${(p.amountPaid / 100).toFixed(2)}${p.mode ? ` (${p.mode})` : ''}`;
   return putRecord('invoices', actor, { ...inv, payment: p, history: [...inv.history, historyEntry(actor, 'payment', detail)] });
 }
 
@@ -303,13 +401,14 @@ export async function cancelInvoice(actor: Actor, invoiceId: string, reason?: st
   if (actor.role !== 'owner') throw new PermissionError('Only the owner can cancel an invoice');
   const inv = await db.invoices.get(invoiceId);
   if (!inv || inv.status !== 'saved') return;
+  if ((inv.credited ?? 0) > 0) throw new PermissionError('Cancel its credit notes first');
   await putRecord('invoices', actor, { ...inv, status: 'cancelled', history: [...inv.history, historyEntry(actor, 'cancelled', reason)] });
 }
 
-export async function deleteDraft(actor: Actor, kind: 'invoice' | 'estimate', id: string): Promise<void> {
-  const doc = kind === 'invoice' ? await db.invoices.get(id) : await db.estimates.get(id);
-  if (!doc || doc.status !== 'draft') throw new PermissionError('Only drafts can be deleted');
-  await deleteRecord(kind === 'invoice' ? 'invoices' : 'estimates', actor, id);
+export async function deleteDraft(actor: Actor, kind: DocKind, id: string): Promise<void> {
+  const doc = await tableOfKind(kind).get(id);
+  if (!doc || (doc as DocBase & { status: string }).status !== 'draft') throw new PermissionError('Only drafts can be deleted');
+  await deleteRecord(kind === 'invoice' ? 'invoices' : kind === 'estimate' ? 'estimates' : 'creditNotes', actor, id);
 }
 
 export async function setEstimateStatus(actor: Actor, id: string, status: 'open' | 'accepted' | 'declined'): Promise<void> {
@@ -320,13 +419,16 @@ export async function setEstimateStatus(actor: Actor, id: string, status: 'open'
 
 /** Blank document with business defaults applied. */
 export async function blankDoc(actor: Actor): Promise<Omit<DocBase, 'id' | 'businessId' | 'createdAt' | 'updatedAt' | 'updatedBy'>> {
-  const s = (await db.settings.get(actor.businessId)) ?? defaultSettings(actor.businessId);
+  const s = await settingsOf(actor.businessId);
+  const profile = await db.profiles.get(actor.businessId);
   const defaultBank = (await db.bankAccounts.where('businessId').equals(actor.businessId).toArray()).find((b) => b.isDefault && !b.deleted);
   const defaultUpi = (await db.upiIds.where('businessId').equals(actor.businessId).toArray()).find((u) => u.isDefault && !u.deleted);
   const date = todayISO();
   const base = {
     number: '',
     date,
+    taxMode: defaultTaxMode(effectiveGstType(profile)),
+    placeOfSupply: null,
     paymentTermsDays: s.defaultPaymentTermsDays,
     customFields: s.customFieldLabels.filter(Boolean).map((label) => ({ label, value: '' })),
     billTo: null,
@@ -375,6 +477,8 @@ export async function convertEstimate(actor: Actor, estimateId: string): Promise
   const inv: Invoice = {
     ...draft,
     reference: est.number ? `Estimate ${est.number}` : est.reference,
+    taxMode: est.taxMode ?? draft.taxMode,
+    placeOfSupply: est.placeOfSupply ?? null,
     customFields: est.customFields,
     billTo: est.billTo,
     shipTo: est.shipTo,
@@ -407,6 +511,8 @@ export async function duplicateInvoice(actor: Actor, id: string): Promise<Invoic
     actor,
     {
       ...draft,
+      // Keep a non-GST bill a non-GST bill (only possible while the store is registered).
+      taxMode: draft.taxMode === 'gst' && src.taxMode === 'none' ? 'none' : draft.taxMode,
       billTo: src.billTo,
       shipTo: src.shipTo,
       customFields: src.customFields.map((f) => ({ ...f })),
@@ -424,12 +530,119 @@ export async function duplicateInvoice(actor: Actor, id: string): Promise<Invoic
   );
 }
 
-/** Pending (unpaid) amount on an invoice. */
+/** What the customer still owes on an invoice: total less credit notes and payments. */
 export function pendingAmount(inv: Invoice): number {
   if (inv.status !== 'saved') return 0;
-  return Math.max(0, inv.totals.grandTotal - inv.payment.amountPaid);
+  return Math.max(0, inv.totals.grandTotal - (inv.credited ?? 0) - inv.payment.amountPaid);
 }
 
 export function isOverdue(inv: Invoice, today = todayISO()): boolean {
   return inv.status === 'saved' && pendingAmount(inv) > 0 && !!inv.dueDate && inv.dueDate < today;
+}
+
+/* ---------- credit notes ---------- */
+/*
+ * A credit note reduces a saved invoice: goods returned or a price cut. It copies the invoice's
+ * customer, GST mode and place of supply; the owner edits quantities or removes lines. Saved
+ * notes add up in invoice.credited, which lowers what the customer owes. Owner only.
+ */
+
+/** How much of an invoice can still be credited, leaving out `exceptNoteId` (the note being edited). */
+export async function creditableAmount(invoiceId: string, exceptNoteId?: string): Promise<number> {
+  const inv = await db.invoices.get(invoiceId);
+  if (!inv) return 0;
+  const notes = await db.creditNotes.where('invoiceId').equals(invoiceId).toArray();
+  const used = notes.filter((n) => n.id !== exceptNoteId && n.status === 'saved' && !n.deleted).reduce((a, n) => a + n.totals.grandTotal, 0);
+  return Math.max(0, inv.totals.grandTotal - used);
+}
+
+export async function newCreditNoteDraft(actor: Actor, invoiceId: string): Promise<CreditNote> {
+  if (actor.role !== 'owner') throw new PermissionError('Only the owner can make credit notes');
+  const inv = await db.invoices.get(invoiceId);
+  if (!inv || inv.status !== 'saved') throw new PermissionError('Credit notes are made against a saved invoice');
+  if ((await creditableAmount(invoiceId)) <= 0) throw new PermissionError('This invoice is already fully credited');
+  const now = nowIso();
+  const profile = await db.profiles.get(actor.businessId);
+  const totalsBase = {
+    lines: inv.lines.map((l) => ({ ...l, id: newId() })),
+    // A percentage discount still applies to what is returned; a fixed amount or final amount would not.
+    overallDiscount: inv.overallDiscount?.type === 'pct' ? inv.overallDiscount : null,
+    targetTotal: null,
+    charges: [],
+    roundOff: inv.roundOff,
+    taxMode: inv.taxMode,
+  };
+  return {
+    ...totalsBase,
+    id: newId(),
+    businessId: actor.businessId,
+    createdAt: now,
+    updatedAt: now,
+    updatedBy: actor.userId,
+    status: 'draft',
+    number: '',
+    date: todayISO(),
+    placeOfSupply: inv.taxMode === 'gst' ? (inv.placeOfSupply ?? placeOfSupplyOf(inv, profile) ?? null) : null,
+    customFields: [],
+    billTo: inv.billTo,
+    shipTo: inv.shipTo,
+    notes: '',
+    terms: '',
+    bankAccountId: null,
+    upiIdId: null,
+    totals: computeTotals(totalsBase),
+    createdBy: actor.userId,
+    history: [],
+    invoiceId: inv.id,
+    invoiceNumber: inv.number,
+    invoiceDate: inv.date,
+    reason: 'return',
+  };
+}
+
+export async function saveCreditNote(actor: Actor, note: CreditNote, opts: { finalize: boolean }): Promise<CreditNote> {
+  if (actor.role !== 'owner') throw new PermissionError('Only the owner can make credit notes');
+  const existing = await db.creditNotes.get(note.id);
+  if (existing?.status === 'cancelled') throw new PermissionError('Cancelled credit notes cannot be edited');
+  const next: CreditNote = { ...note, totals: computeTotals(note), history: [...(existing?.history ?? note.history ?? [])] };
+  const finalizing = opts.finalize && next.status === 'draft';
+  if (finalizing || next.status === 'saved') {
+    const room = await creditableAmount(next.invoiceId, next.id);
+    if (next.totals.grandTotal > room) throw new PermissionError(`The credit note can be at most ₹${(room / 100).toFixed(2)} (the invoice total less earlier credit notes)`);
+  }
+  if (!existing) next.history.push(historyEntry(actor, 'created'));
+  if (finalizing) {
+    Object.assign(next, await numberFor('credit', actor.businessId, next));
+    next.status = 'saved';
+    next.businessSnapshot = await snapshotBusiness(actor.businessId);
+    next.history.push(historyEntry(actor, 'saved', next.number));
+  } else if (existing && existing.status === 'saved') {
+    next.history.push(historyEntry(actor, 'edited'));
+  }
+  const saved = await putRecord('creditNotes', actor, next);
+  if (saved.status === 'saved') await refreshCredited(actor, saved.invoiceId, `${saved.number} ₹${(saved.totals.grandTotal / 100).toFixed(2)}`);
+  return saved;
+}
+
+export async function cancelCreditNote(actor: Actor, id: string, reason?: string): Promise<void> {
+  if (actor.role !== 'owner') throw new PermissionError('Only the owner can cancel a credit note');
+  const note = await db.creditNotes.get(id);
+  if (!note || note.status !== 'saved') return;
+  await putRecord('creditNotes', actor, { ...note, status: 'cancelled', history: [...note.history, historyEntry(actor, 'cancelled', reason)] });
+  await refreshCredited(actor, note.invoiceId, `${note.number} cancelled`);
+}
+
+/** Recomputes invoice.credited from its saved credit notes. */
+async function refreshCredited(actor: Actor, invoiceId: string, detail: string) {
+  const inv = await db.invoices.get(invoiceId);
+  if (!inv) return;
+  const notes = await db.creditNotes.where('invoiceId').equals(invoiceId).toArray();
+  const credited = notes.filter((n) => n.status === 'saved' && !n.deleted).reduce((a, n) => a + n.totals.grandTotal, 0);
+  if (credited === (inv.credited ?? 0)) return;
+  await putRecord('invoices', actor, {
+    ...inv,
+    credited,
+    payment: normalisePayment(inv.payment, inv.totals.grandTotal, credited),
+    history: [...inv.history, historyEntry(actor, 'credit note', detail)],
+  });
 }

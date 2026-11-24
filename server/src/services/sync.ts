@@ -1,9 +1,11 @@
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import {
+  NUMBER_SERIES,
   OWNER_ONLY_TABLES,
   SYNC_PULL_MAX,
   parseDocNumber,
   type ClientKind,
+  type NumberSeries,
   type ReserveNumbersBody,
   type Role,
   type SyncPullResponse,
@@ -116,16 +118,22 @@ export class SyncService {
       .returning({ id: syncRecords.id });
     if (!row) return { table, id, status: 'stale', current: existing };
 
-    if ((table === 'invoices' || table === 'estimates') && typeof data.number === 'string' && data.number) {
-      await this.bumpCounter(tx, actor.businessId, table === 'invoices' ? 'invoice' : 'estimate', data.number);
-    }
+    const used = usedNumber(table, data);
+    if (used) await this.bumpCounter(tx, actor.businessId, used.series, used.seq);
     return { table, id, status: 'ok' };
   }
 
   /** Returns a reason when the change is not allowed, else null. */
   private checkPermission(actor: SyncActor, table: SyncTable, data: Data, existing: Data | undefined): string | null {
     if ((table === 'profiles' || table === 'settings') && data.id !== actor.businessId) return 'wrong store';
-    if (OWNER_ONLY_TABLES.includes(table) && actor.role !== 'owner') return 'Only the owner can change store details';
+    if (OWNER_ONLY_TABLES.includes(table) && actor.role !== 'owner') {
+      return table === 'creditNotes' ? 'Only the owner can make credit notes' : 'Only the owner can change store details';
+    }
+
+    if (table === 'creditNotes') {
+      if (actor.client === 'web' && !existing) return 'Credit notes are made in the phone app';
+      if (data.deleted === true && existing && existing.status !== 'draft') return 'Only drafts can be deleted';
+    }
 
     if (table === 'invoices') {
       const wasDraft = !existing || existing.status === 'draft';
@@ -178,16 +186,32 @@ export class SyncService {
   }
 
   /** A number used on a phone (e.g. typed by hand, or from before sync) is never handed out again. */
-  private async bumpCounter(tx: DB, businessId: string, kind: 'invoice' | 'estimate', number: string) {
-    const parsed = parseDocNumber(number);
-    if (!parsed) return;
-    const series = `${kind}:${parsed.period}`;
+  private async bumpCounter(tx: DB, businessId: string, series: string, seq: number) {
     await tx
       .insert(numberCounters)
-      .values({ businessId, series, next: parsed.seq + 1 })
+      .values({ businessId, series, next: seq + 1 })
       .onConflictDoUpdate({
         target: [numberCounters.businessId, numberCounters.series],
-        set: { next: sql`greatest(${numberCounters.next}, ${parsed.seq + 1})` },
+        set: { next: sql`greatest(${numberCounters.next}, ${seq + 1})` },
       });
   }
+}
+
+const SERIES_KEY = /^([a-z]+):(\d{2}-\d{2}|all)$/;
+
+/** The series and running number a pushed document used, if any. */
+function usedNumber(table: SyncTable, data: Data): { series: string; seq: number } | null {
+  if (typeof data.number !== 'string' || !data.number) return null;
+  // Documents from R1.3 on say which series and number they used.
+  const series = data.numberSeries;
+  const seq = data.numberSeq;
+  if (typeof series === 'string' && typeof seq === 'number') {
+    const m = SERIES_KEY.exec(series);
+    if (!m || !NUMBER_SERIES.includes(m[1] as NumberSeries) || !Number.isInteger(seq) || seq < 1 || seq > 1e9) return null;
+    return { series, seq };
+  }
+  // Older documents: read it back from the number itself.
+  if (table !== 'invoices' && table !== 'estimates') return null;
+  const parsed = parseDocNumber(data.number);
+  return parsed ? { series: `${table === 'invoices' ? 'invoice' : 'estimate'}:${parsed.period}`, seq: parsed.seq } : null;
 }

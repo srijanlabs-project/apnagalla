@@ -1,5 +1,5 @@
 import { IonButton, useIonAlert, useIonRouter } from '@ionic/react';
-import { calculateInvoice } from '@invoice/shared';
+import { calculateInvoice, checkHsn } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -39,7 +39,18 @@ export function ItemForm({ value: it, onChange: patch, settings, priceLocked }: 
       </FormSection>
       <FormSection title="Price & tax" note={priceLocked ? 'Only the owner can change prices.' : undefined}>
         <MoneyField label={it.rateIncludesTax ? 'Price (incl. tax)' : 'Price (before tax)'} value={it.rate} onChange={(v) => patch({ rate: v ?? 0 })} disabled={priceLocked} />
-        <SelectField label="Tax %" value={it.taxPct} options={rates.map((r) => ({ value: r, label: `${r}%` }))} onChange={(taxPct) => patch({ taxPct })} disabled={priceLocked} />
+        <div className="field-row">
+          <SelectField label="Tax %" value={it.taxPct} options={rates.map((r) => ({ value: r, label: `${r}%` }))} onChange={(taxPct) => patch({ taxPct })} disabled={priceLocked} />
+          <TextField
+            label="HSN / SAC"
+            value={it.hsn}
+            onChange={(hsn) => patch({ hsn: hsn.replace(/\D/g, '') || undefined })}
+            disabled={priceLocked}
+            inputmode="numeric"
+            maxlength={8}
+            error={it.hsn && !checkHsn(it.hsn) ? '4, 6 or 8 digits' : null}
+          />
+        </div>
         <ToggleRow
           label="Price includes tax"
           note="Turn on for MRP-style prices where the price already contains tax."

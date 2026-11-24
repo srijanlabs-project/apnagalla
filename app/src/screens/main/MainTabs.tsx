@@ -35,6 +35,9 @@ export default function MainTabs() {
           <Route path="estimates/new" element={<DocEditorScreen kind="estimate" />} />
           <Route path="estimates/:id" element={<DocDetailScreen kind="estimate" />} />
           <Route path="estimates/:id/edit" element={<DocEditorScreen kind="estimate" />} />
+          <Route path="credit-notes" element={<DocListScreen kind="credit" />} />
+          <Route path="credit-notes/:id" element={<DocDetailScreen kind="credit" />} />
+          <Route path="credit-notes/:id/edit" element={<DocEditorScreen kind="credit" />} />
 
           <Route path="customers" element={<CustomersScreen />} />
           <Route path="customers/new" element={<CustomerEditScreen />} />

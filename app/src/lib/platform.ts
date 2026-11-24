@@ -1,8 +1,13 @@
 import { Capacitor } from '@capacitor/core';
 import type { ClientKind } from '@invoice/shared';
 
-/** The Android app is a 'mobile' login (one phone at a time); the browser is a 'web' login. */
-export const CLIENT_KIND: ClientKind = Capacitor.isNativePlatform() ? 'mobile' : 'web';
+/**
+ * The Android app is a 'mobile' login (one phone at a time); the browser is a 'web' login.
+ * In local development only, VITE_DEV_CLIENT_KIND=mobile makes a browser act as the phone app,
+ * so phone-only flows (invoices, credit notes) can be tested in a browser.
+ */
+export const CLIENT_KIND: ClientKind =
+  Capacitor.isNativePlatform() || (import.meta.env.DEV && import.meta.env.VITE_DEV_CLIENT_KIND === 'mobile') ? 'mobile' : 'web';
 
 /**
  * Client rule: invoices are created and edited only in the phone app. The web is for viewing,

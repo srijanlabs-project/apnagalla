@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import type { InvoiceTotals } from '@invoice/shared';
-import { db, type BusinessSettings, type Estimate, type Invoice } from '../db';
-import { computeTotals } from '../repo';
+import { db, type BusinessSettings, type CreditNote, type Estimate, type Invoice } from '../db';
+import { computeTotals, type DocKind } from '../repo';
 import { buildDocDefinition, type BusinessInfo, type PdfInput } from './buildDoc';
 
 /** pdfmake is ~1 MB with fonts, so it loads only when a PDF is first needed. */
@@ -23,7 +23,7 @@ export async function renderPdf(input: PdfInput, totals?: InvoiceTotals): Promis
 }
 
 /** Gathers business, design and payment details for a saved or draft document. */
-export async function pdfInputFor(kind: 'invoice' | 'estimate', doc: Invoice | Estimate, settings: BusinessSettings): Promise<PdfInput> {
+export async function pdfInputFor(kind: DocKind, doc: Invoice | Estimate | CreditNote, settings: BusinessSettings): Promise<PdfInput> {
   const profile = await db.profiles.get(doc.businessId);
   const { id: _i, businessId: _b, createdAt: _c, updatedAt: _u, updatedBy: _ub, deleted: _d, ...live } = profile ?? ({ name: '', address: {} } as never);
   // SPEC §1: saved documents print the business details as they were when saved.
@@ -41,10 +41,11 @@ export async function pdfInputFor(kind: 'invoice' | 'estimate', doc: Invoice | E
   };
 }
 
-export function pdfFileName(kind: 'invoice' | 'estimate', doc: Invoice | Estimate): string {
+export function pdfFileName(kind: DocKind, doc: Invoice | Estimate | CreditNote): string {
   const num = (doc.number || 'draft').replace(/[^A-Za-z0-9-]+/g, '-');
   const who = (doc.billTo?.name ?? '').replace(/[^A-Za-z0-9]+/g, '-').slice(0, 30);
-  return `${kind === 'invoice' ? 'Invoice' : 'Estimate'}-${num}${who ? `-${who}` : ''}.pdf`;
+  const what = { invoice: 'Invoice', estimate: 'Estimate', credit: 'Credit-note' }[kind];
+  return `${what}-${num}${who ? `-${who}` : ''}.pdf`;
 }
 
 /**

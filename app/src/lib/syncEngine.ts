@@ -1,15 +1,16 @@
-import { SYNC_PUSH_MAX, financialYearLabel, todayISO, type SyncPushResult, type SyncTable } from '@invoice/shared';
+import { SYNC_PUSH_MAX, financialYearLabel, todayISO, type MeResponse, type NumberSeries, type SyncPushResult, type SyncTable } from '@invoice/shared';
 import type { Table } from 'dexie';
 import { ApiError, NetworkError, api } from './api';
 import { db, getMeta, setMeta, type SyncedRecord } from './db';
 import { CAN_CREATE_INVOICES } from './platform';
-import { defaultSettings, numberPoolKey, setNumberAllocator } from './repo';
+import { effectiveGstType, numberPoolKey, setNumberAllocator, settingsOf } from './repo';
+import { KEYS, kv } from './storage';
 
 /**
  * Phone side of offline sync:
  *   push: send queued local changes (outbox) for every store this person works in;
  *   pull: fetch every change after this phone's cursor, per store;
- *   numbers: keep a block of 10 invoice / estimate numbers for offline use.
+ *   numbers: keep a block of 10 numbers per series this phone may use, for offline saving.
  * Runs on app open, when the internet returns, a few seconds after each save, and every few
  * minutes. Only one run at a time.
  */
@@ -45,10 +46,10 @@ const table = (name: SyncTable) => db.table(name) as Table<SyncedRecord, string>
 const cursorKey = (businessId: string) => `sync.cursor:${businessId}`;
 
 /** Numbers come from the server when online (see repo numbering). */
-setNumberAllocator(async (businessId, kind, period) => {
+setNumberAllocator(async (businessId, series, period) => {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
   // Short timeout: on a weak connection, fall back to this phone's reserved block quickly.
-  const { numbers } = await api.reserveNumbers(businessId, { kind, period, count: 1 }, 4_000);
+  const { numbers } = await api.reserveNumbers(businessId, { kind: series, period, count: 1 }, 4_000);
   return numbers[0] ?? null;
 });
 
@@ -159,9 +160,15 @@ async function pullStore(businessId: string) {
 
 /** Keeps POOL_SIZE numbers per series on the phone for offline saving. */
 async function topUpNumbers(businessId: string) {
-  const s = (await db.settings.get(businessId)) ?? defaultSettings(businessId);
+  const s = await settingsOf(businessId);
   const period = s.resetEachFinancialYear ? financialYearLabel(todayISO()) : 'all';
-  const kinds = CAN_CREATE_INVOICES ? (['invoice', 'estimate'] as const) : (['estimate'] as const);
+  const kinds: NumberSeries[] = ['estimate'];
+  if (CAN_CREATE_INVOICES) {
+    kinds.push('invoice');
+    // Non-GST bills have their own series only in a regular GST store; credit notes are the owner's.
+    if (effectiveGstType(await db.profiles.get(businessId)) === 'regular') kinds.push('bill');
+    if (await isOwnerOf(businessId)) kinds.push('credit');
+  }
   for (const kind of kinds) {
     const key = numberPoolKey(businessId, kind, period);
     const pool = (await getMeta<number[]>(key)) ?? [];
@@ -175,5 +182,14 @@ async function topUpNumbers(businessId: string) {
       if (e instanceof ApiError && e.status === 403) return;
       throw e;
     }
+  }
+}
+
+async function isOwnerOf(businessId: string): Promise<boolean> {
+  try {
+    const me = await kv.get<MeResponse>(KEYS.me);
+    return me?.memberships.some((m) => m.businessId === businessId && m.role === 'owner') ?? false;
+  } catch {
+    return false;
   }
 }

@@ -1,5 +1,5 @@
 import { IonButton, useIonAlert, useIonRouter } from '@ionic/react';
-import { normalizeIndianMobile } from '@invoice/shared';
+import { checkGstin, normalizeIndianMobile, stateName } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -18,6 +18,10 @@ export function validateCustomer(c: Customer): string | null {
   if (!c.name.trim()) return 'Name is required';
   if (c.phone && !normalizeIndianMobile(c.phone)) return 'Enter a valid 10-digit mobile number (or leave it empty)';
   if (c.email && !/^\S+@\S+\.\S+$/.test(c.email)) return 'Enter a valid email (or leave it empty)';
+  if (c.taxId) {
+    const g = checkGstin(c.taxId);
+    if (!g.ok) return g.message;
+  }
   return null;
 }
 
@@ -25,7 +29,7 @@ export function validateCustomer(c: Customer): string | null {
 export async function saveCustomer(actor: Actor, c: Customer): Promise<Customer> {
   const err = validateCustomer(c);
   if (err) throw new Error(err);
-  return putRecord('customers', actor, { ...c, name: c.name.trim(), phone: c.phone ? normalizeIndianMobile(c.phone)! : undefined });
+  return putRecord('customers', actor, { ...c, name: c.name.trim(), phone: c.phone ? normalizeIndianMobile(c.phone)! : undefined, taxId: c.taxId?.trim() || undefined });
 }
 
 /** `update` must apply the function to the parent's latest state (functional setState). */
@@ -47,7 +51,23 @@ export function CustomerForm({ value: c, update }: { value: Customer; update: (f
           error={c.phone && err?.includes('mobile') ? err : null}
         />
         <TextField label="Email" type="email" inputmode="email" value={c.email} onChange={(email) => patch({ email })} autocapitalize="off" />
-        <TextField label="Tax ID (optional)" value={c.taxId} onChange={(taxId) => patch({ taxId: taxId.toUpperCase() })} />
+        <TextField
+          label="GSTIN (if registered)"
+          value={c.taxId}
+          maxlength={15}
+          autocapitalize="characters"
+          onChange={(taxId) => {
+            const gstin = taxId.toUpperCase().trim();
+            const g = checkGstin(gstin);
+            // A valid GSTIN tells us the state: fill it in if the address has none yet.
+            update((cur) => ({
+              ...cur,
+              taxId: gstin,
+              billingAddress: g.ok && !cur.billingAddress.state ? { ...cur.billingAddress, state: stateName(g.stateCode) } : cur.billingAddress,
+            }));
+          }}
+          error={c.taxId && err && !err.includes('mobile') && !err.includes('email') && !err.includes('Name') ? err : null}
+        />
       </FormSection>
       <FormSection title="Billing address">
         <AddressFields value={c.billingAddress} onChange={patchAddress('billingAddress')} />

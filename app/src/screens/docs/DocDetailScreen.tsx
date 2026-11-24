@@ -24,16 +24,28 @@ import PageShell from '../../components/PageShell';
 import PdfPreview from '../../components/PdfPreview';
 import StatusBadge from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
-import { db, type Estimate, type Invoice } from '../../lib/db';
+import { db, type CreditNote, type Estimate, type Invoice } from '../../lib/db';
+import { gstViewOf } from '../../lib/gstView';
 import { dateIN, rupees } from '../../lib/format';
 import { pdfFileName, pdfInputFor, renderPdf, sharePdf } from '../../lib/pdf';
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
-import { cancelInvoice, convertEstimate, deleteDraft, duplicateInvoice, pendingAmount, setEstimateStatus, updatePayment } from '../../lib/repo';
+import {
+  cancelCreditNote,
+  cancelInvoice,
+  convertEstimate,
+  deleteDraft,
+  duplicateInvoice,
+  newCreditNoteDraft,
+  pendingAmount,
+  saveCreditNote,
+  setEstimateStatus,
+  updatePayment,
+  type DocKind,
+} from '../../lib/repo';
+import { DOC_BASE, DOC_LABEL } from './DocEditorScreen';
 import PaymentModal from './PaymentModal';
 
-type Kind = 'invoice' | 'estimate';
-
-export default function DocDetailScreen({ kind }: { kind: Kind }) {
+export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const { id } = useParams<{ id: string }>();
   const { actor, isOwner, settings, profile } = useBusiness();
   const router = useIonRouter();
@@ -43,15 +55,25 @@ export default function DocDetailScreen({ kind }: { kind: Kind }) {
   const [payOpen, setPayOpen] = useState(false);
   const [preview, setPreview] = useState<Blob | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const base = kind === 'invoice' ? '/tabs/invoices' : '/tabs/estimates';
+  const base = DOC_BASE[kind];
+  const label = DOC_LABEL[kind];
 
-  const doc = useLiveQuery(() => (kind === 'invoice' ? db.invoices.get(id!) : db.estimates.get(id!)) as Promise<Invoice | Estimate | undefined>, [id, kind]);
+  const doc = useLiveQuery(
+    () => (kind === 'invoice' ? db.invoices.get(id!) : kind === 'estimate' ? db.estimates.get(id!) : db.creditNotes.get(id!)) as Promise<Invoice | Estimate | CreditNote | undefined>,
+    [id, kind],
+  );
+  const creditNotes = useLiveQuery(
+    () => (kind === 'invoice' && id ? db.creditNotes.where('invoiceId').equals(id).filter((n) => !n.deleted).toArray() : Promise.resolve([] as CreditNote[])),
+    [id, kind],
+  );
   if (!doc) return null;
   const inv = kind === 'invoice' ? (doc as Invoice) : null;
   const est = kind === 'estimate' ? (doc as Estimate) : null;
+  const note = kind === 'credit' ? (doc as CreditNote) : null;
   const pending = inv ? pendingAmount(inv) : 0;
+  const view = gstViewOf(kind, doc, doc.businessSnapshot ?? profile, doc.totals);
   const canEdit =
-    (kind !== 'invoice' || CAN_CREATE_INVOICES) &&
+    (kind === 'estimate' || CAN_CREATE_INVOICES) &&
     (doc.status === 'draft' || (doc.status !== 'cancelled' && doc.status !== 'converted' && (isOwner || (est != null && doc.createdBy === actor.userId))));
 
   const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : 'Something went wrong', duration: 2500, color: 'danger' });
@@ -64,7 +86,9 @@ export default function DocDetailScreen({ kind }: { kind: Kind }) {
     setBusy('share');
     try {
       const pdf = await makePdf();
-      const text = inv ? `${profile.name}: Invoice ${doc!.number} for ${rupees(inv.totals.grandTotal)}${pending > 0 ? `. Pending ${rupees(pending)}.` : '.'}` : `${profile.name}: Estimate ${doc!.number}`;
+      const text = inv
+        ? `${profile.name}: ${view.title} ${doc!.number} for ${rupees(inv.totals.grandTotal)}${pending > 0 ? `. Pending ${rupees(pending)}.` : '.'}`
+        : `${profile.name}: ${view.title} ${doc!.number}`;
       const r = await sharePdf(pdfFileName(kind, doc!), pdf, text);
       if (r === 'downloaded') void toast({ message: 'PDF downloaded', duration: 1500 });
     } catch (e) {
@@ -99,6 +123,36 @@ export default function DocDetailScreen({ kind }: { kind: Kind }) {
 
   const menuButtons = [
     ...(canEdit ? [{ text: 'Edit', handler: () => router.push(`${base}/${doc.id}/edit`) }] : []),
+    ...(inv && inv.status === 'saved' && isOwner && CAN_CREATE_INVOICES && (inv.credited ?? 0) < inv.totals.grandTotal
+      ? [
+          {
+            text: 'Credit note (return / price cut)',
+            handler: () =>
+              void newCreditNoteDraft(actor, doc.id)
+                .then((n) => saveCreditNote(actor, n, { finalize: false }))
+                .then((n) => router.push(`/tabs/credit-notes/${n.id}/edit`))
+                .catch(fail),
+          },
+        ]
+      : []),
+    ...(note && note.status === 'saved' && isOwner
+      ? [
+          {
+            text: 'Cancel credit note',
+            role: 'destructive' as const,
+            handler: () =>
+              void alert({
+                header: `Cancel ${doc.number}?`,
+                message: `The number is kept and the amount goes back onto invoice ${note.invoiceNumber}. This cannot be undone.`,
+                inputs: [{ name: 'reason', placeholder: 'Reason (optional)' }],
+                buttons: [
+                  { text: 'Keep', role: 'cancel' },
+                  { text: 'Cancel credit note', role: 'destructive', handler: (v: { reason?: string }) => void cancelCreditNote(actor, doc.id, v.reason).catch(fail) },
+                ],
+              }),
+          },
+        ]
+      : []),
     ...(inv && CAN_CREATE_INVOICES
       ? [
           {
@@ -150,23 +204,40 @@ export default function DocDetailScreen({ kind }: { kind: Kind }) {
   ];
 
   return (
-    <PageShell title={doc.number || 'Draft'} backHref={base} padded={false}>
+    <PageShell title={doc.number || `${label} draft`} backHref={base} padded={false}>
       <IonCard>
         <IonCardContent>
           <div className="detail-head">
             <div>
               <h2>{doc.billTo?.name ?? 'No customer'}</h2>
               <p>
-                {kind === 'invoice' ? 'Invoice' : 'Estimate'} {doc.number || '(draft)'} · {dateIN(doc.date)}
+                {view.title} {doc.number || '(draft)'} · {dateIN(doc.date)}
                 {inv?.dueDate ? ` · due ${dateIN(inv.dueDate)}` : ''}
               </p>
+              {view.mode === 'gst' && view.pos && (
+                <p>
+                  Place of supply {view.posLabel} · {view.interState ? 'IGST' : `CGST + ${view.sgstName}`}
+                </p>
+              )}
+              {note && (
+                <p>
+                  Against invoice <a onClick={() => router.push(`/tabs/invoices/${note.invoiceId}`)}>{note.invoiceNumber}</a> of {dateIN(note.invoiceDate)}
+                </p>
+              )}
             </div>
-            {inv ? <StatusBadge invoice={inv} /> : <StatusBadge estimate={est!} />}
+            {inv ? <StatusBadge invoice={inv} /> : est ? <StatusBadge estimate={est} /> : <StatusBadge creditNote={note!} />}
           </div>
           <div className="detail-total">
             <span>Total</span>
             <strong>{rupees(doc.totals.grandTotal)}</strong>
           </div>
+          {inv && (inv.credited ?? 0) > 0 && (
+            <div className="detail-pay">
+              <div>
+                <span>Credit notes</span> <strong>−{rupees(inv.credited!)}</strong>
+              </div>
+            </div>
+          )}
           {inv && inv.status === 'saved' && (
             <div className="detail-pay">
               <div>
@@ -223,6 +294,25 @@ export default function DocDetailScreen({ kind }: { kind: Kind }) {
 
       {preview && <PdfPreview blob={preview} />}
 
+      {creditNotes && creditNotes.length > 0 && (
+        <IonList inset>
+          <IonListHeader>
+            <IonLabel>Credit notes</IonLabel>
+          </IonListHeader>
+          {creditNotes.map((n) => (
+            <IonItem key={n.id} routerLink={`/tabs/credit-notes/${n.id}`} detail={false}>
+              <IonLabel>
+                <h3>{n.number || 'Draft'}</h3>
+                <p>
+                  {dateIN(n.date)} · {n.status}
+                </p>
+              </IonLabel>
+              <IonNote slot="end">{rupees(n.totals.grandTotal)}</IonNote>
+            </IonItem>
+          ))}
+        </IonList>
+      )}
+
       <IonList inset>
         <IonListHeader>
           <IonLabel>Items</IonLabel>
@@ -232,7 +322,9 @@ export default function DocDetailScreen({ kind }: { kind: Kind }) {
             <IonLabel>
               <h3>{l.name}</h3>
               <p>
-                {l.qty} {l.unit} × {rupees(l.rate)} · tax {l.taxPct}%
+                {l.qty} {l.unit} × {rupees(l.rate)}
+                {view.mode === 'none' ? '' : ` · tax ${l.taxPct}%`}
+                {l.hsn && view.mode !== 'none' ? ` · HSN ${l.hsn}` : ''}
               </p>
             </IonLabel>
             <IonNote slot="end">{rupees(doc.totals.lines[i]?.amount ?? 0)}</IonNote>

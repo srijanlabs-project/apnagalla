@@ -6,7 +6,7 @@ const server = vi.hoisted(() => ({
   records: new Map<string, Record<string, unknown>>(), // `${table}:${id}` -> data
   log: [] as { table: string; id: string; data: Record<string, unknown>; seq: number }[],
   seq: 0,
-  next: 1,
+  next: {} as Record<string, number>,
   online: true,
   rejectTables: new Set<string>(),
 }));
@@ -49,9 +49,9 @@ vi.mock('./api', async () => {
         const changes = server.log.filter((l) => l.seq > since);
         return { changes, cursor: changes.length ? changes[changes.length - 1]!.seq : since, more: false };
       },
-      reserveNumbers: async (_biz: string, body: { count: number }) => {
+      reserveNumbers: async (_biz: string, body: { kind: string; count: number }) => {
         offline();
-        const numbers = Array.from({ length: body.count }, () => server.next++);
+        const numbers = Array.from({ length: body.count }, () => (server.next[body.kind] = (server.next[body.kind] ?? 0) + 1));
         return { numbers };
       },
     },
@@ -74,7 +74,7 @@ beforeEach(async () => {
   server.records.clear();
   server.log.length = 0;
   server.seq = 0;
-  server.next = 1;
+  server.next = {};
   server.online = true;
   server.rejectTables.clear();
   await repo.ensureBusinessRecords('b1', 'Test Co');

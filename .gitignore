@@ -22,3 +22,4 @@ app/android/captures/
 # Built app packages
 *.apk
 *.aab
+!.env.phone

@@ -14,7 +14,7 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/react';
-import { calculateInvoice } from '@invoice/shared';
+import { calculateInvoice, checkHsn } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
 import { FormSection, MoneyField, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
@@ -25,19 +25,21 @@ import { newId, putRecord } from '../../lib/repo';
 import { sync } from '../../lib/sync';
 
 export function lineFromItem(it: Item): DocLine {
-  return { id: newId(), itemId: it.id, name: it.name, description: it.description, qty: 1, unit: it.unit, rate: it.rate, rateIncludesTax: it.rateIncludesTax, taxPct: it.taxPct, discount: null };
+  return { id: newId(), itemId: it.id, name: it.name, description: it.description, qty: 1, unit: it.unit, rate: it.rate, rateIncludesTax: it.rateIncludesTax, taxPct: it.taxPct, hsn: it.hsn, discount: null };
 }
 
 interface Props {
   /** null = closed; a line with empty name = new line (start with item search). */
   line: DocLine | null;
   isNew: boolean;
+  /** Bill without GST: hide tax and HSN, since no tax is charged. */
+  noTax?: boolean;
   onClose: () => void;
   onSave: (line: DocLine) => void;
   onDelete: (id: string) => void;
 }
 
-export default function LineEditor({ line, isNew, onClose, onSave, onDelete }: Props) {
+export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDelete }: Props) {
   const { actor, settings } = useBusiness();
   const [l, setL] = useState<DocLine | null>(line);
   const [picking, setPicking] = useState(false);
@@ -67,7 +69,7 @@ export default function LineEditor({ line, isNew, onClose, onSave, onDelete }: P
 
   if (!l) return <IonModal isOpen={false} />;
   const set = (p: Partial<DocLine>) => setL((cur) => (cur ? { ...cur, ...p } : cur));
-  const calc = calculateInvoice({ lines: [l], roundOff: false });
+  const calc = calculateInvoice({ lines: [noTax ? { ...l, taxPct: 0, rateIncludesTax: false } : l], roundOff: false });
   const units = settings.units.includes(l.unit) ? settings.units : [...settings.units, l.unit];
   const rates = settings.taxRates.includes(l.taxPct) ? settings.taxRates : [...settings.taxRates, l.taxPct].sort((a, b) => a - b);
   const valid = l.name.trim() !== '' && l.qty > 0 && l.rate >= 0;
@@ -84,6 +86,7 @@ export default function LineEditor({ line, isNew, onClose, onSave, onDelete }: P
         rate: line.rate,
         rateIncludesTax: line.rateIncludesTax,
         taxPct: line.taxPct,
+        hsn: line.hsn,
       });
       line = { ...line, itemId: item.id };
     }
@@ -155,11 +158,27 @@ export default function LineEditor({ line, isNew, onClose, onSave, onDelete }: P
                 <NumberField label="Quantity" value={l.qty} onChange={(qty) => set({ qty: qty ?? 0 })} min={0} />
                 <SelectField label="Unit" value={l.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => set({ unit })} />
               </div>
-              <div className="field-row">
-                <MoneyField label={l.rateIncludesTax ? 'Rate (incl. tax)' : 'Rate'} value={l.rate} onChange={(rate) => set({ rate: rate ?? 0 })} />
-                <SelectField label="Tax %" value={l.taxPct} options={rates.map((r) => ({ value: r, label: `${r}%` }))} onChange={(taxPct) => set({ taxPct })} />
-              </div>
-              <ToggleRow label="Rate includes tax" checked={l.rateIncludesTax} onChange={(rateIncludesTax) => set({ rateIncludesTax })} />
+              {noTax ? (
+                <MoneyField label="Rate" value={l.rate} onChange={(rate) => set({ rate: rate ?? 0 })} />
+              ) : (
+                <>
+                  <div className="field-row">
+                    <MoneyField label={l.rateIncludesTax ? 'Rate (incl. tax)' : 'Rate'} value={l.rate} onChange={(rate) => set({ rate: rate ?? 0 })} />
+                    <SelectField label="Tax %" value={l.taxPct} options={rates.map((r) => ({ value: r, label: `${r}%` }))} onChange={(taxPct) => set({ taxPct })} />
+                  </div>
+                  <div className="field-row">
+                    <TextField
+                      label="HSN / SAC"
+                      value={l.hsn}
+                      onChange={(hsn) => set({ hsn: hsn.replace(/\D/g, '') || undefined })}
+                      inputmode="numeric"
+                      maxlength={8}
+                      error={l.hsn && !checkHsn(l.hsn) ? '4, 6 or 8 digits' : null}
+                    />
+                    <ToggleRow label="Rate includes tax" checked={l.rateIncludesTax} onChange={(rateIncludesTax) => set({ rateIncludesTax })} />
+                  </div>
+                </>
+              )}
             </FormSection>
 
             <FormSection title="Discount on this item">
@@ -184,14 +203,18 @@ export default function LineEditor({ line, isNew, onClose, onSave, onDelete }: P
             {!l.itemId && <ToggleRow label="Save this item to my catalogue" checked={saveToCatalogue} onChange={setSaveToCatalogue} />}
 
             <div className="line-preview">
-              <div>
-                <span>Before tax</span>
-                <strong>{rupees(calc.taxableAmount)}</strong>
-              </div>
-              <div>
-                <span>Tax</span>
-                <strong>{rupees(calc.taxTotal)}</strong>
-              </div>
+              {!noTax && (
+                <>
+                  <div>
+                    <span>Before tax</span>
+                    <strong>{rupees(calc.taxableAmount)}</strong>
+                  </div>
+                  <div>
+                    <span>Tax</span>
+                    <strong>{rupees(calc.taxTotal)}</strong>
+                  </div>
+                </>
+              )}
               <div>
                 <span>Amount</span>
                 <strong>{rupees(calc.taxableAmount + calc.taxTotal)}</strong>

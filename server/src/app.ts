@@ -205,7 +205,7 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/numbers/reserve', authed, async (req): Promise<ReserveNumbersResponse> => {
     await accounts.requireRole(uid(req), req.params.businessId);
     const body = parse(reserveNumbersBody, req.body);
-    if (body.kind === 'invoice' && req.auth!.client === 'web') throw forbidden('Invoices are created in the phone app');
+    if (body.kind !== 'estimate' && req.auth!.client === 'web') throw forbidden('Invoices, bills and credit notes are made in the phone app');
     return { numbers: await syncService.reserveNumbers(req.params.businessId, body) };
   });
 

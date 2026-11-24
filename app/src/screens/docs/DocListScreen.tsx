@@ -6,15 +6,15 @@ import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
 import StatusBadge, { invoiceStatus } from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
-import { db, type Estimate, type Invoice } from '../../lib/db';
+import { db, type CreditNote, type Estimate, type Invoice } from '../../lib/db';
 import { dateIN, rupees } from '../../lib/format';
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
-import { pendingAmount } from '../../lib/repo';
+import { pendingAmount, type DocKind } from '../../lib/repo';
+import { DOC_BASE } from './DocEditorScreen';
 
-type Kind = 'invoice' | 'estimate';
 const INVOICE_FILTERS = ['All', 'Unpaid', 'Overdue', 'Paid', 'Draft'] as const;
 
-export default function DocListScreen({ kind }: { kind: Kind }) {
+export default function DocListScreen({ kind }: { kind: DocKind }) {
   const { actor } = useBusiness();
   const router = useIonRouter();
   const [q, setQ] = useState('');
@@ -22,14 +22,14 @@ export default function DocListScreen({ kind }: { kind: Kind }) {
 
   const docs = useLiveQuery(
     async () => {
-      const table = kind === 'invoice' ? db.invoices : db.estimates;
-      const rows = await (table as typeof db.invoices)
+      const table = kind === 'invoice' ? db.invoices : kind === 'estimate' ? db.estimates : db.creditNotes;
+      const rows = await (table as unknown as typeof db.invoices)
         .where('[businessId+date]')
         .between([actor.businessId, ''], [actor.businessId, '￿'])
         .reverse()
         .filter((d) => !d.deleted)
         .toArray();
-      return rows as (Invoice | Estimate)[];
+      return rows as unknown as (Invoice | Estimate | CreditNote)[];
     },
     [actor.businessId, kind],
   );
@@ -45,16 +45,19 @@ export default function DocListScreen({ kind }: { kind: Kind }) {
     });
   }, [docs, q, filter, kind]);
 
-  const base = kind === 'invoice' ? '/tabs/invoices' : '/tabs/estimates';
+  const base = DOC_BASE[kind];
 
   return (
-    <PageShell title={kind === 'invoice' ? 'Invoices' : 'Estimates'} padded={false}>
-      <IonSegment value={kind} onIonChange={(e) => router.push(e.detail.value === 'invoice' ? '/tabs/invoices' : '/tabs/estimates', 'none', 'replace')}>
+    <PageShell title={kind === 'invoice' ? 'Invoices' : kind === 'estimate' ? 'Estimates' : 'Credit notes'} padded={false}>
+      <IonSegment value={kind} onIonChange={(e) => router.push(DOC_BASE[e.detail.value as DocKind], 'none', 'replace')}>
         <IonSegmentButton value="invoice">
           <IonLabel>Invoices</IonLabel>
         </IonSegmentButton>
         <IonSegmentButton value="estimate">
           <IonLabel>Estimates</IonLabel>
+        </IonSegmentButton>
+        <IonSegmentButton value="credit">
+          <IonLabel>Credit notes</IonLabel>
         </IonSegmentButton>
       </IonSegment>
       <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder="Search number or customer" />
@@ -71,8 +74,14 @@ export default function DocListScreen({ kind }: { kind: Kind }) {
       {docs && docs.length === 0 ? (
         <EmptyState
           icon={documentTextOutline}
-          title={kind === 'invoice' ? 'No invoices yet' : 'No estimates yet'}
-          text={kind === 'invoice' ? 'Tap + to create your first invoice. It works offline too.' : 'Send a quotation, then convert it to an invoice in one tap.'}
+          title={kind === 'invoice' ? 'No invoices yet' : kind === 'estimate' ? 'No estimates yet' : 'No credit notes yet'}
+          text={
+            kind === 'invoice'
+              ? 'Tap + to create your first invoice. It works offline too.'
+              : kind === 'estimate'
+                ? 'Send a quotation, then convert it to an invoice in one tap.'
+                : 'For a return or a price cut, open the invoice and choose More actions → Credit note.'
+          }
         />
       ) : (
         <IonList>
@@ -88,7 +97,13 @@ export default function DocListScreen({ kind }: { kind: Kind }) {
                 </IonLabel>
                 <div slot="end" className="list-end">
                   <strong>{rupees(d.totals.grandTotal)}</strong>
-                  {kind === 'invoice' ? <StatusBadge invoice={d as Invoice} /> : <StatusBadge estimate={d as Estimate} />}
+                  {kind === 'invoice' ? (
+                    <StatusBadge invoice={d as Invoice} />
+                  ) : kind === 'estimate' ? (
+                    <StatusBadge estimate={d as Estimate} />
+                  ) : (
+                    <StatusBadge creditNote={d as CreditNote} />
+                  )}
                   {pending > 0 && pending < d.totals.grandTotal && <small className="text-danger">{rupees(pending)} due</small>}
                 </div>
               </IonItem>
@@ -97,7 +112,7 @@ export default function DocListScreen({ kind }: { kind: Kind }) {
         </IonList>
       )}
 
-      {(kind !== 'invoice' || CAN_CREATE_INVOICES) && (
+      {(kind === 'estimate' || (kind === 'invoice' && CAN_CREATE_INVOICES)) && (
         <IonFab slot="fixed" vertical="bottom" horizontal="end">
           <IonFabButton routerLink={`${base}/new`} aria-label={kind === 'invoice' ? 'New invoice' : 'New estimate'}>
             <IonIcon icon={add} />
