@@ -1,2 +1,5 @@
 export * from './phone';
 export * from './api';
+export * from './calc';
+export * from './words';
+export * from './dates';

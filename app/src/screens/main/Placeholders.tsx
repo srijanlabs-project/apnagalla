@@ -1,57 +1,82 @@
-import { IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle } from '@ionic/react';
-import { cubeOutline, documentTextOutline, peopleOutline } from 'ionicons/icons';
-import EmptyState from '../../components/EmptyState';
+import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonRouterLink } from '@ionic/react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { addOutline, clipboardOutline } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
+import StatusBadge from '../../components/StatusBadge';
+import { useBusiness } from '../../lib/business';
+import { db } from '../../lib/db';
+import { dateIN, rupees } from '../../lib/format';
 import { useSession } from '../../lib/session';
 
+/** Home: quick actions + recent invoices. The full dashboard arrives in M4. */
 export function HomeScreen() {
-  const { me, membership } = useSession();
+  const { me } = useSession();
+  const { profile, actor } = useBusiness();
   const first = me?.user.name?.split(' ')[0];
+  const recent = useLiveQuery(
+    () =>
+      db.invoices
+        .where('[businessId+date]')
+        .between([actor.businessId, ''], [actor.businessId, '￿'])
+        .reverse()
+        .filter((i) => !i.deleted)
+        .limit(5)
+        .toArray(),
+    [actor.businessId],
+  );
+
   return (
-    <PageShell title={membership?.businessName ?? 'Home'}>
+    <PageShell title={profile.name}>
       <h2 className="greeting">Hi{first ? `, ${first}` : ''} 👋</h2>
-      <div className="stat-grid">
-        {[
-          ['Sales this month', '₹0'],
-          ['Received', '₹0'],
-          ['Outstanding', '₹0'],
-          ['Overdue', '0'],
-        ].map(([label, value]) => (
-          <IonCard key={label} className="stat-card">
-            <IonCardHeader>
-              <IonCardSubtitle>{label}</IonCardSubtitle>
-              <IonCardTitle>{value}</IonCardTitle>
-            </IonCardHeader>
-          </IonCard>
-        ))}
+      <div className="quick-actions">
+        <IonButton expand="block" routerLink="/tabs/invoices/new">
+          <IonIcon icon={addOutline} slot="start" /> New invoice
+        </IonButton>
+        <IonButton expand="block" fill="outline" routerLink="/tabs/estimates/new">
+          <IonIcon icon={clipboardOutline} slot="start" /> New estimate
+        </IonButton>
       </div>
-      <IonCard>
-        <IonCardContent>The dashboard fills up once you create invoices (milestone M2–M4).</IonCardContent>
-      </IonCard>
-    </PageShell>
-  );
-}
 
-export function InvoicesScreen() {
-  return (
-    <PageShell title="Invoices">
-      <EmptyState icon={documentTextOutline} title="No invoices yet" text="Creating invoices and estimates arrives in the next milestone (M2)." />
-    </PageShell>
-  );
-}
-
-export function CustomersScreen() {
-  return (
-    <PageShell title="Customers">
-      <EmptyState icon={peopleOutline} title="No customers yet" text="Your customer list arrives in the next milestone (M2)." />
-    </PageShell>
-  );
-}
-
-export function ItemsScreen() {
-  return (
-    <PageShell title="Items">
-      <EmptyState icon={cubeOutline} title="No items yet" text="Your product & service catalogue arrives in the next milestone (M2)." />
+      {recent && recent.length > 0 ? (
+        <IonList inset className="flush-list">
+          <IonListHeader>
+            <IonLabel>Recent invoices</IonLabel>
+            <IonButton routerLink="/tabs/invoices">See all</IonButton>
+          </IonListHeader>
+          {recent.map((inv) => (
+            <IonItem key={inv.id} routerLink={`/tabs/invoices/${inv.id}`} detail={false}>
+              <IonLabel>
+                <h2>{inv.billTo?.name ?? 'No customer'}</h2>
+                <p>
+                  {inv.number || 'Draft'} · {dateIN(inv.date)}
+                </p>
+              </IonLabel>
+              <div slot="end" className="list-end">
+                <strong>{rupees(inv.totals.grandTotal)}</strong>
+                <StatusBadge invoice={inv} />
+              </div>
+            </IonItem>
+          ))}
+        </IonList>
+      ) : (
+        <IonCard>
+          <IonCardHeader>
+            <IonCardSubtitle>Get started</IonCardSubtitle>
+            <IonCardTitle>Set up in 3 steps</IonCardTitle>
+          </IonCardHeader>
+          <IonCardContent>
+            <ol className="steps">
+              <li>
+                Add your logo, address and tax ID in <IonRouterLink routerLink="/tabs/more/business">Business profile</IonRouterLink>.
+              </li>
+              <li>
+                Add bank / UPI details in <IonRouterLink routerLink="/tabs/more/payment">Payment details</IonRouterLink> to get paid faster.
+              </li>
+              <li>Create your first invoice and share it on WhatsApp.</li>
+            </ol>
+          </IonCardContent>
+        </IonCard>
+      )}
     </PageShell>
   );
 }

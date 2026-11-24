@@ -9,7 +9,8 @@ export default defineConfig({
     host: true, // reachable from a phone on the same Wi-Fi
   },
   build: {
-    target: 'es2022',
+    // Older Android WebViews (no Google services = often no WebView updates) need conservative output.
+    target: ['es2020', 'chrome87'],
     // Capacitor copies this folder into the Android app.
     outDir: 'dist',
   },

@@ -196,8 +196,8 @@ Overall discount 10% of ₹1,900 = ₹190, shared 900 : 1000 → ₹90 and ₹10
 | Taxable amount | 1,710.00 |
 | Tax @18% | 145.80 |
 | Tax @5% | 45.00 |
-| Round off | −0.80 |
-| **Grand total** | **1,900.00** |
+| Round off (₹1,900.80 → nearest ₹1) | +0.20 |
+| **Grand total** | **1,901.00** |
 
 ---
 

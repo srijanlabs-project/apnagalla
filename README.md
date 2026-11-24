@@ -12,7 +12,18 @@ Product docs: `PLAN.md` (phase 1 plan) and `SPEC.md` (functional spec).
 | `app/` | React + Ionic UI, Dexie (IndexedDB) local database, Capacitor Android project in `app/android` |
 
 ## Milestone status
-- **M1 Foundation (this branch):**
+- **M2 Core invoicing (offline):**
+  - business profile with logo and signature; bank accounts and UPI IDs;
+  - invoice settings: prefixes, financial-year numbering, defaults, custom fields, units, tax rates, reminder text;
+  - customers (with opening balance) and the items catalogue (including "price includes tax");
+  - invoice and estimate editor: item and overall discounts, **Set final amount**, extra charges, round-off;
+  - draft → save → edit history → cancel; duplicate; estimate → invoice;
+  - one payment entry per invoice (Unpaid / Partly paid / Paid, never more than the total);
+  - 3 PDF designs (Classic / Modern / Minimal) with a live preview, A4/A5, UPI QR with the pending amount, amount in words;
+  - share the PDF through the Android share sheet (WhatsApp, Print, Drive…) and send a WhatsApp reminder.
+
+  Everything is stored on the phone and queued for sync. **Sync itself arrives in M3**; until then, data stays on the device it was entered on. Invoice numbers are per device until M3 switches to server-allocated blocks.
+- **M1 Foundation:**
   - phone + OTP login (test mode);
   - device sessions with token refresh and logout;
   - onboarding: name, create a business, or join by invite;
@@ -22,7 +33,7 @@ Product docs: `PLAN.md` (phase 1 plan) and `SPEC.md` (functional spec).
   - app shell with tabs and an online/sync indicator;
   - Android debug build;
   - Railway config.
-- Next: **M2 core invoicing.**
+- Next: **M3 sync and team.**
 
 ## Run locally
 Requires Node 22+.

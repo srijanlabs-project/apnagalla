@@ -1,0 +1,79 @@
+import { IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
+import { formatIndianMobile } from '@invoice/shared';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { add, peopleOutline } from 'ionicons/icons';
+import { useMemo, useState } from 'react';
+import EmptyState from '../../components/EmptyState';
+import PageShell from '../../components/PageShell';
+import { useBusiness } from '../../lib/business';
+import { db } from '../../lib/db';
+import { rupees } from '../../lib/format';
+import { pendingAmount } from '../../lib/repo';
+
+export default function CustomersScreen() {
+  const { actor } = useBusiness();
+  const [q, setQ] = useState('');
+  const customers = useLiveQuery(
+    () =>
+      db.customers
+        .where('[businessId+name]')
+        .between([actor.businessId, ''], [actor.businessId, '￿'])
+        .filter((c) => !c.deleted)
+        .toArray(),
+    [actor.businessId],
+  );
+  const invoices = useLiveQuery(() => db.invoices.where('businessId').equals(actor.businessId).filter((i) => i.status === 'saved' && !i.deleted).toArray(), [actor.businessId]);
+
+  const pendingByCustomer = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const inv of invoices ?? []) {
+      const id = inv.billTo?.customerId;
+      if (id) m.set(id, (m.get(id) ?? 0) + pendingAmount(inv));
+    }
+    return m;
+  }, [invoices]);
+
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    const list = customers ?? [];
+    return s ? list.filter((c) => c.name.toLowerCase().includes(s) || (c.phone ?? '').includes(s)) : list;
+  }, [customers, q]);
+
+  return (
+    <PageShell title="Customers" padded={false}>
+      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder="Search name or phone" />
+      {customers && customers.length === 0 ? (
+        <EmptyState icon={peopleOutline} title="No customers yet" text="Add customers here, or directly while creating an invoice." />
+      ) : (
+        <IonList>
+          {filtered.map((c) => {
+            const pending = (pendingByCustomer.get(c.id) ?? 0) + (c.openingBalance ?? 0);
+            return (
+              <IonItem key={c.id} routerLink={`/tabs/customers/${c.id}`} detail={false}>
+                <div className="avatar" slot="start">
+                  {c.name.slice(0, 1).toUpperCase()}
+                </div>
+                <IonLabel>
+                  <h2>{c.name}</h2>
+                  <p>{c.phone ? formatIndianMobile(c.phone) : c.billingAddress.city ?? ''}</p>
+                </IonLabel>
+                {pending > 0 && (
+                  <IonNote slot="end" color="danger" className="amount-note">
+                    {rupees(pending)}
+                    <br />
+                    <small>pending</small>
+                  </IonNote>
+                )}
+              </IonItem>
+            );
+          })}
+        </IonList>
+      )}
+      <IonFab slot="fixed" vertical="bottom" horizontal="end">
+        <IonFabButton routerLink="/tabs/customers/new" aria-label="Add customer">
+          <IonIcon icon={add} />
+        </IonFabButton>
+      </IonFab>
+    </PageShell>
+  );
+}

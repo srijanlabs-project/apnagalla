@@ -1,11 +1,22 @@
 import { IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonNote, useIonAlert } from '@ionic/react';
 import { formatIndianMobile } from '@invoice/shared';
-import { businessOutline, logOutOutline, peopleOutline, personCircleOutline } from 'ionicons/icons';
+import {
+  businessOutline,
+  cardOutline,
+  clipboardOutline,
+  colorPaletteOutline,
+  logOutOutline,
+  peopleOutline,
+  personCircleOutline,
+  settingsOutline,
+} from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
+import { useBusiness } from '../../lib/business';
 import { useSession } from '../../lib/session';
 
 export default function MoreScreen() {
   const { me, membership, logout } = useSession();
+  const { profile } = useBusiness();
   const [alert] = useIonAlert();
   const isOwner = membership?.role === 'owner';
 
@@ -40,10 +51,29 @@ export default function MoreScreen() {
         <IonListHeader>
           <IonLabel>Business</IonLabel>
         </IonListHeader>
-        <IonItem lines="full">
+        <IonItem routerLink="/tabs/more/business" detail lines="full">
           <IonIcon icon={businessOutline} slot="start" />
-          <IonLabel>{membership?.businessName}</IonLabel>
+          <IonLabel>
+            {profile.name}
+            <p>Business profile</p>
+          </IonLabel>
           <IonNote slot="end">{membership?.role === 'owner' ? 'Owner' : 'Staff'}</IonNote>
+        </IonItem>
+        <IonItem routerLink="/tabs/more/payment" detail lines="full">
+          <IonIcon icon={cardOutline} slot="start" />
+          <IonLabel>Payment details (bank, UPI)</IonLabel>
+        </IonItem>
+        <IonItem routerLink="/tabs/more/invoice-settings" detail lines="full">
+          <IonIcon icon={settingsOutline} slot="start" />
+          <IonLabel>Invoice settings</IonLabel>
+        </IonItem>
+        <IonItem routerLink="/tabs/more/design" detail lines="full">
+          <IonIcon icon={colorPaletteOutline} slot="start" />
+          <IonLabel>Invoice design</IonLabel>
+        </IonItem>
+        <IonItem routerLink="/tabs/estimates" detail lines="full">
+          <IonIcon icon={clipboardOutline} slot="start" />
+          <IonLabel>Estimates</IonLabel>
         </IonItem>
         {isOwner && (
           <IonItem routerLink="/tabs/more/team" detail lines="none">
