@@ -1,6 +1,7 @@
 import { IonApp, IonContent, IonPage, IonRouterOutlet, IonSpinner } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { Navigate, Route } from 'react-router-dom';
+import Splash from './components/Splash';
 import { SessionProvider, useSession } from './lib/session';
 import LoginScreen from './screens/auth/LoginScreen';
 import MainTabs from './screens/main/MainTabs';
@@ -14,6 +15,16 @@ import PausedScreen from './screens/stores/PausedScreen';
  *   member of a business     -> Main tabs (router)
  */
 function Gate() {
+  const { status } = useSession();
+  return (
+    <>
+      <Screens />
+      <Splash ready={status !== 'loading'} />
+    </>
+  );
+}
+
+function Screens() {
   const { status, me, membership } = useSession();
 
   if (status === 'loading') {
