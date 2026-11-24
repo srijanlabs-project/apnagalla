@@ -16,9 +16,9 @@ const portalShape = {
 };
 
 /** A snake_case shape with a bare request status. */
-const snakeShape = { status: 'success', valid: true, company_details: { legal_name: 'ABC LLP', trade_name: 'ABC', gstin_status: 'Cancelled', registration_date: '2019-04-01', address: '5 MG Road, Pune', pincode: '411001' } };
+const snakeShape = { status: 'success', valid: true, details: { legal_name: 'ABC LLP', trade_name: 'ABC', gstin_status: 'Cancelled', registration_date: '2019-04-01', address: '5 MG Road, Pune', pincode: '411001' } };
 
-/** A real GSTZen validator answer (shared by the client, 25 Nov 2026). */
+/** The reshaped answer from the client's other project (25 Nov 2026). */
 const gstzenReal = {
   valid: true,
   profile: {
@@ -29,8 +29,52 @@ const gstzenReal = {
   },
 };
 
+/** GSTZen's actual answer for this public GSTIN (25 Nov 2026), trimmed. */
+const gstzenFull = {
+  status: 1,
+  gstin: '29AAACI4798L1ZU',
+  valid: true,
+  company_details: {
+    legal_name: 'INFOSYS LIMITED',
+    trade_name: 'INFOSYS LIMITED',
+    company_status: 'Active',
+    state_info: { code: '29', name: 'Karnataka', alpha_code: 'KA' },
+    registration_date: '2017-07-01',
+    cancellation_date: '',
+    gst_type: 'Regular',
+    ctb: 'Public Limited Company',
+    adadr: [{ addr1: 'OTHER BRANCH', city: 'Somewhere', pincode: '111111' }],
+    pradr: {
+      addr: 'INFOSYS LIMITED, 44 AND 97A, 3RD CROSS, ELECTRONIC CITY, BANGALORE, Bengaluru Urban, Karnataka, 560100',
+      street: 'ELECTRONIC CITY',
+      addr1: 'INFOSYS LIMITED, 44 AND 97A, 3RD CROSS',
+      addr2: '',
+      city: 'BANGALORE',
+      district: 'Bengaluru Urban',
+      pincode: '560100',
+      locality: '',
+    },
+  },
+};
+
 describe('GSTZen adapter', () => {
-  it('reads a real GSTZen answer: registered, no status, one-line address', () => {
+  it("reads GSTZen's company_details: status, type, date and the principal address", () => {
+    expect(parseGstzen('29AAACI4798L1ZU', gstzenFull)).toEqual({
+      gstin: '29AAACI4798L1ZU',
+      legalName: 'INFOSYS LIMITED',
+      tradeName: 'INFOSYS LIMITED',
+      status: 'Active',
+      active: true,
+      taxpayerType: 'Regular',
+      registeredOn: '2017-07-01',
+      address: { line1: '44 AND 97A, 3RD CROSS', line2: 'ELECTRONIC CITY', city: 'BANGALORE', state: 'Karnataka', pin: '560100' },
+      stateCode: '29',
+    });
+    const cancelled = { ...gstzenFull, company_details: { ...gstzenFull.company_details, company_status: 'Cancelled' } };
+    expect(parseGstzen('29AAACI4798L1ZU', cancelled)).toMatchObject({ status: 'Cancelled', active: false });
+  });
+
+  it('reads a reshaped answer: registered, no status, one-line address', () => {
     expect(parseGstzen('29AAACI4798L1ZU', gstzenReal)).toMatchObject({
       legalName: 'INFOSYS LIMITED',
       tradeName: 'INFOSYS LIMITED',

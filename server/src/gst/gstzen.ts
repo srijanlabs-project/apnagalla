@@ -68,10 +68,51 @@ export function keyPaths(obj: unknown, prefix = '', out: string[] = [], depth = 
   return out;
 }
 
+/**
+ * GSTZen's answer (seen 25 Nov 2026):
+ * {status: 1, gstin, valid, company_details: {legal_name, trade_name, company_status: "Active",
+ *  gst_type: "Regular", registration_date: "2017-07-01", ctb, state_info{code,name},
+ *  pradr: {addr1, addr2, street, locality, city, district, pincode, …}, adadr: [...]}}
+ */
+function parseCompanyDetails(gstin: string, cd: Json): Omit<GstinInfo, 'checkedAt'> | null {
+  const legalName = str(cd.legal_name);
+  if (!legalName) return null;
+  const status = str(cd.company_status) ?? 'Registered';
+  const pr = (cd.pradr && typeof cd.pradr === 'object' ? cd.pradr : {}) as Json;
+  // addr1 often starts with the business name: drop it.
+  const rawAddr1 = str(pr.addr1) ?? '';
+  const addr1 = rawAddr1.toUpperCase().startsWith(legalName.toUpperCase()) ? rawAddr1.slice(legalName.length).replace(/^[\s,]+/, '') : rawAddr1;
+  const line2 = [str(pr.addr2), str(pr.street)?.replace(/,\s*$/, ''), str(pr.locality)].filter(Boolean).join(', ');
+  const stateCode = gstin.slice(0, 2);
+  return {
+    gstin,
+    legalName,
+    tradeName: str(cd.trade_name),
+    status,
+    active: /^act/i.test(status),
+    taxpayerType: str(cd.gst_type),
+    registeredOn: isoDate(cd.registration_date),
+    address: {
+      line1: addr1 || undefined,
+      line2: line2 || undefined,
+      city: str(pr.city) ?? str(pr.district),
+      state: stateName(stateCode),
+      pin: str(pr.pincode) ?? str(pr.pinc),
+    },
+    stateCode,
+  };
+}
+
 /** Turns a GSTZen answer into our GstinInfo, or null when the GSTIN isn't registered. */
 export function parseGstzen(gstin: string, body: unknown, warn?: (m: string) => void): Omit<GstinInfo, 'checkedAt'> | null {
   const validFlag = findField(body, ['valid', 'is_valid', 'isValid']);
   if (validFlag === false || validFlag === 'false') return null;
+  const cd = (body as Json | null)?.company_details;
+  if (cd && typeof cd === 'object') {
+    const parsed = parseCompanyDetails(gstin, cd as Json);
+    if (parsed) return parsed;
+  }
+  // Other shapes (e.g. a reshaped {profile{legalName, tradeName, address}}): read fields by name.
 
   const legalName = str(findField(body, ['legal_name', 'legalName', 'lgnm', 'legal_name_of_business', 'company_name']));
   if (!legalName) {

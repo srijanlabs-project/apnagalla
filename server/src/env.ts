@@ -40,10 +40,12 @@ const schema = z.object({
 
 export type Env = z.infer<typeof schema>;
 
-/** GSTZen settings are also read under the GST_VALIDATION_* names (as set up for another project). */
+/**
+ * GSTZen settings are also read under the GST_VALIDATION_* names (as set up for another project).
+ * Not its URL: that project uses GSTZen's sign-in ("j") endpoint; we use the plain one with the key.
+ */
 const GST_ALIASES: Record<string, string> = {
   GST_API_KEY: 'GST_VALIDATION_API_KEY',
-  GST_API_URL: 'GST_VALIDATION_API_URL',
   GST_API_VERSION: 'GST_VALIDATION_API_VERSION',
   GST_API_TIMEOUT_MS: 'GST_VALIDATION_TIMEOUT_MS',
 };
