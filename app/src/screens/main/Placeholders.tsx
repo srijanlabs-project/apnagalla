@@ -1,4 +1,4 @@
-import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonRouterLink } from '@ionic/react';
+import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonRouterLink, useIonRouter } from '@ionic/react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { addOutline, cartOutline, clipboardOutline } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
@@ -6,6 +6,7 @@ import StatusBadge from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { dateIN, rupees } from '../../lib/format';
+import { deliveriesFor, markDelivered } from '../../lib/deliveries';
 import { CAN_CREATE_INVOICES, WEB_INVOICE_NOTE } from '../../lib/platform';
 import { useSession } from '../../lib/session';
 
@@ -14,6 +15,9 @@ export function HomeScreen() {
   const { me } = useSession();
   const { profile, actor } = useBusiness();
   const first = me?.user.name?.split(' ')[0];
+  const router = useIonRouter();
+  // Overdue, today and tomorrow (later ones only get the phone alert).
+  const deliveries = useLiveQuery(async () => (await deliveriesFor(actor)).filter((d) => d.when !== 'later'), [actor]);
   const recent = useLiveQuery(
     () =>
       db.invoices
@@ -45,6 +49,29 @@ export function HomeScreen() {
         </IonButton>
       </div>
       {!CAN_CREATE_INVOICES && <p className="section-note">{WEB_INVOICE_NOTE}</p>}
+
+      {deliveries && deliveries.length > 0 && (
+        <IonList inset className="flush-list">
+          <IonListHeader>
+            <IonLabel>Deliveries</IonLabel>
+          </IonListHeader>
+          {deliveries.map(({ kind, doc, when }) => (
+            <IonItem key={doc.id} detail={false}>
+              <IonLabel onClick={() => router.push(`/tabs/${kind === 'invoice' ? 'invoices' : 'estimates'}/${doc.id}`)}>
+                <h2>{doc.billTo?.name ?? 'No customer'}</h2>
+                <p>
+                  <span className={when === 'overdue' ? 'text-danger' : undefined}>{when === 'overdue' ? `Overdue · ${dateIN(doc.deliveryDate!)}` : when === 'today' ? 'Today' : 'Tomorrow'}</span>
+                  {doc.number ? ` · ${doc.number}` : ''}
+                  {doc.deliveryAssignee ? ` · ${doc.deliveryAssignee.name}` : ''}
+                </p>
+              </IonLabel>
+              <IonButton slot="end" size="small" fill="outline" color="success" onClick={() => void markDelivered(actor, kind, doc.id)}>
+                Delivered
+              </IonButton>
+            </IonItem>
+          ))}
+        </IonList>
+      )}
 
       {recent && recent.length > 0 ? (
         <IonList inset className="flush-list">

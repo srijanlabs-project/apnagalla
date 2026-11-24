@@ -43,6 +43,7 @@ import {
   type DocKind,
 } from '../../lib/repo';
 import PaySheet from '../../components/PaySheet';
+import { markDelivered } from '../../lib/deliveries';
 import { MODE_LABEL, moneyOf } from '../../lib/ledger';
 import { DOC_BASE, DOC_LABEL } from './DocEditorScreen';
 
@@ -229,6 +230,13 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                   Place of supply {view.posLabel} · {view.interState ? 'IGST' : `CGST + ${view.sgstName}`}
                 </p>
               )}
+              {doc.deliveryDate && (
+                <p>
+                  Delivery {dateIN(doc.deliveryDate)}
+                  {doc.deliveryAssignee ? ` · ${doc.deliveryAssignee.name}` : ''}
+                  {doc.deliveredAt ? ` · delivered${doc.deliveredByName ? ` by ${doc.deliveredByName}` : ''}` : ''}
+                </p>
+              )}
               {note && (
                 <p>
                   Against invoice <a onClick={() => router.push(`/tabs/invoices/${note.invoiceId}`)}>{note.invoiceNumber}</a> of {dateIN(note.invoiceDate)}
@@ -274,6 +282,11 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
             {inv && inv.status === 'saved' && pending > 0 && (
               <IonButton fill="outline" onClick={() => setPayOpen('payment')}>
                 <IonIcon icon={walletOutline} slot="start" /> Record payment
+              </IonButton>
+            )}
+            {doc.deliveryDate && !doc.deliveredAt && (inv?.status === 'saved' || (est && est.status !== 'draft')) && (
+              <IonButton fill="outline" color="success" onClick={() => void markDelivered(actor, kind as 'invoice' | 'estimate', doc.id).catch(fail)}>
+                Mark delivered
               </IonButton>
             )}
             {refundDue > 0 && CAN_CREATE_INVOICES && (

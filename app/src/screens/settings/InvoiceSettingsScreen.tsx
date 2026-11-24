@@ -220,6 +220,13 @@ export default function InvoiceSettingsScreen() {
         ))}
       </FormSection>
 
+      <FormSection title="Delivery alert" note="Phone alert the day before a delivery date, to the owner and the person delivering.">
+        <label className="date-field">
+          <span>Alert time (day before)</span>
+          <input type="time" value={s.deliveryAlertTime} disabled={ro} onChange={(e) => e.target.value && patch({ deliveryAlertTime: e.target.value })} />
+        </label>
+      </FormSection>
+
       <FormSection title="Shop features">
         <ToggleRow
           label="Area / job-work billing"

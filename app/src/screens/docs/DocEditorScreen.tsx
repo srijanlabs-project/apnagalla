@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { AddressFields, FormSection, MoneyField, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
 import { useBusiness } from '../../lib/business';
+import { api } from '../../lib/api';
 import { db, type CreditNote, type DocBase, type DocLine, type Estimate, type Invoice } from '../../lib/db';
 import { gstViewOf, taxRows } from '../../lib/gstView';
 import { addressLines, lineSize, rupees } from '../../lib/format';
@@ -74,6 +75,15 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
 
   const [doc, setDoc] = useState<Doc | null>(null);
   const [room, setRoom] = useState<number | null>(null);
+  // People who can be given a delivery: the team (owner only can list it; works when online), else just me.
+  const [team, setTeam] = useState<{ userId: string; name: string }[]>([{ userId: actor.userId, name: actor.userName || 'Me' }]);
+  useEffect(() => {
+    if (!isOwner) return;
+    void api
+      .team(actor.businessId)
+      .then((t) => setTeam(t.members.filter((m) => m.active).map((m) => ({ userId: m.userId, name: m.name ?? m.phone }))))
+      .catch(() => undefined);
+  }, [actor.businessId, isOwner]);
   const [wasDraft, setWasDraft] = useState(true);
   const [nextNumber, setNextNumber] = useState('');
   const [picker, setPicker] = useState(false);
@@ -472,6 +482,26 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
           {bankAccounts.length === 0 && upiIds.length === 0 && <p className="section-note">Add bank / UPI details in More → Payment details.</p>}
         </FormSection>
         )}
+        {!credit && (
+          <FormSection title="Delivery" note="Optional. The day before, the person delivering gets a phone alert.">
+            <div className="field-row">
+              <label className="date-field">
+                <span>Delivery date</span>
+                <input type="date" value={doc.deliveryDate ?? ''} min={doc.date} disabled={locked} onChange={(e) => patch({ deliveryDate: e.target.value || null })} />
+              </label>
+              {doc.deliveryDate && (
+                <SelectField
+                  label="Delivered by"
+                  value={doc.deliveryAssignee?.userId ?? ''}
+                  options={[{ value: '', label: 'Not assigned' }, ...team.map((t) => ({ value: t.userId, label: t.userId === actor.userId ? `Me (${t.name})` : t.name }))]}
+                  onChange={(userId) => patch({ deliveryAssignee: userId ? { userId, name: team.find((t) => t.userId === userId)?.name ?? '' } : null })}
+                  disabled={locked}
+                />
+              )}
+            </div>
+          </FormSection>
+        )}
+
         <FormSection title="Notes & terms">
           <TextArea label="Notes" value={doc.notes} onChange={(notes) => patch({ notes })} disabled={locked} />
           <TextArea label="Terms & conditions" value={doc.terms} onChange={(terms) => patch({ terms })} disabled={locked} rows={3} />

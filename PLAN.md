@@ -114,7 +114,7 @@ Built in this order; each step is tested and committed before the next.
 | R1.1 Accounts and stores | Several stores per owner (up to 10), staff in several stores with a role per store, owner pauses / turns on staff per store, one phone per login (new phone signs the old one out) + web login, device list with remote sign-out, web can't create or edit invoices, store switcher | Done (branch `feat/r1-accounts-stores`) |
 | R1.2 Sync | Push/pull of all store records (latest edit wins per record; server enforces owner-only settings, staff/web limits on saved invoices), server-allocated numbers per store and series (online: one at a time; offline: block of 10), sync on open / reconnect / after save / every 3 min, sync status chip | Done |
 | R1.3 GST billing | Store GST type (regular / composition / unregistered), GST and non-GST bills with their own series, HSN, CGST+SGST / IGST from place of supply (shipping address), credit notes, number pattern | Done |
-| R1.4 Counter | Quick-sale screen, camera barcode, sq ft / running ft billing, dated part-payments with modes and split, on-screen UPI QR, returns, delivery date + day-before alert | |
+| R1.4 Counter | Quick-sale screen, camera barcode, sq ft / running ft billing, dated part-payments with modes and split, on-screen UPI QR, returns, delivery date + day-before alert | Done |
 | R1.5 Catalogue | Category tree, item barcode / HSN / purchase price / MRP, Excel import of items and customers, GSTIN check via the client's GST API | |
 | R1.6 Print and languages | Bluetooth thermal printing (2" / 3"), English / Hindi / Gujarati / Punjabi | |
 | R1.7 Admin and security | Admin panel (create / suspend stores), app PIN, secure token storage, tenant-isolation tests, rate limits, backups, monitoring | |
@@ -156,6 +156,24 @@ R1.3 decisions and gaps:
     only number bills in their own series.
   - Default bill-without-GST prefix is BOS so staff numbers fit GST's 16 characters.
   - Remaining gap: a removed or lost phone's unused block (shared mode) can't be returned.
+
+R1.4 decisions (25 Nov 2026) and gaps:
+- Payments are their own records (payments table), added and never edited; the owner voids a
+  mistake. Paid / pending / refund due are worked out from entries + saved credit notes, never
+  stored on the invoice. Old single paid amounts were converted to one entry each.
+- Any staff member can take a return on any bill (credit note, reason "return") and refund what
+  was overpaid; price cuts, editing saved notes and cancelling stay with the owner.
+- Counter: walk-in customers pay in full; named customers may pay part or later. Hold = a draft
+  marked held. UPI on screen is a QR for the exact amount; the cashier confirms receipt (no bank
+  check). WhatsApp text bill for quick sales.
+- Barcodes: in-app ZXing scanner (no Google services); USB/Bluetooth scanners work as keyboards.
+- Area billing is a store setting; quantity comes from length × width × pieces (ft or inches).
+- Delivery date + assignee on bills and estimates; local phone alert the day before at the
+  store's alert time (default 09:00); Home lists overdue / today / tomorrow. Anyone can mark
+  delivered.
+- Not yet: stock (returns don't restock), delivery challan, exchange in one bill, staff discount
+  limit, khata payments not tied to one bill (R2). Alerts only for the store open on the phone,
+  and none on the web. Camera scanning and alerts need checking on a real phone.
 
 ## 11. Your action items (can run in parallel with the build)
 - [ ] Start **TRAI DLT registration** with an SMS provider (business entity, sender ID, OTP template). Takes days to weeks; until it's done, OTP runs in test mode.

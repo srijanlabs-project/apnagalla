@@ -128,6 +128,7 @@ export function defaultSettings(businessId: string): BusinessSettings {
     numberDigits: 4,
     numberingMode: 'perPerson',
     areaBilling: false,
+    deliveryAlertTime: '09:00',
     resetEachFinancialYear: true,
     defaultPaymentTermsDays: 0,
     defaultTaxPct: 0,

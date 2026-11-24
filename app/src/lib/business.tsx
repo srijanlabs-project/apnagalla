@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { db, type BankAccount, type BusinessProfile, type BusinessSettings, type UpiId } from './db';
 import { INDIAN_STATES } from './format';
+import { scheduleDeliveryAlerts } from './deliveries';
 import { buildLedger, type Ledger } from './ledger';
 import { convertLegacyPayments, ensureBusinessRecords, withDefaults, type Actor } from './repo';
 import { useSession } from './session';
@@ -71,6 +72,22 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       upiIds: upiIds ?? [],
     };
   }, [ready, profile, settings, bankAccounts, upiIds, ledger, actor, membership, businessId]);
+
+  // Re-plan delivery alerts whenever a delivery date, assignment or the alert time changes.
+  const deliveryKey = useLiveQuery(
+    async () =>
+      (await db.invoices.where('businessId').equals(businessId).toArray())
+        .concat(await db.estimates.where('businessId').equals(businessId).toArray() as never[])
+        .filter((d) => d.deliveryDate)
+        .map((d) => `${d.id}:${d.deliveryDate}:${d.deliveryAssignee?.userId ?? ''}:${d.deliveredAt ?? ''}:${d.status}`)
+        .sort()
+        .join('|'),
+    [businessId],
+  );
+  const alertTime = value?.settings.deliveryAlertTime;
+  useEffect(() => {
+    if (actor && deliveryKey !== undefined && alertTime) void scheduleDeliveryAlerts(actor, alertTime).catch(() => undefined);
+  }, [actor, deliveryKey, alertTime]);
 
   // Bills from before payment entries: turn their paid amount into an entry (once, same id everywhere).
   const actorForConvert = value?.actor;

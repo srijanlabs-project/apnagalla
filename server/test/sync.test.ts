@@ -143,6 +143,15 @@ describe('sync push / pull', () => {
     expect(ownerDoes[0]!.status).toBe('ok');
   });
 
+  it('staff can mark a saved bill delivered', async () => {
+    const { biz, oH, sH } = await setupStore('960000016');
+    await pushOk(biz.id, oH, [{ table: 'invoices', id: 'd1', data: invoice('d1', { number: 'INV/26-27/0099', deliveryDate: '2026-11-26', updatedAt: at(-5) }) }]);
+    const r = await pushOk(biz.id, sH, [
+      { table: 'invoices', id: 'd1', data: invoice('d1', { number: 'INV/26-27/0099', deliveryDate: '2026-11-26', deliveredAt: at(0), deliveredByName: 'Ravi', updatedAt: at(-4) }) },
+    ]);
+    expect(r[0]!.status).toBe('ok');
+  });
+
   it('staff can record a payment on a saved invoice but not edit it or reduce the payment', async () => {
     const { biz, oH, sH } = await setupStore('960000005');
     await pushOk(biz.id, oH, [{ table: 'invoices', id: 'inv1', data: invoice('inv1', { updatedAt: at(-5) }) }]);

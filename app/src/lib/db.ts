@@ -96,6 +96,8 @@ export interface BusinessSettings extends SyncedRecord {
   numberingMode: NumberingMode;
   /** Job-work shops: items priced per sq ft or running foot, with sizes on the bill. */
   areaBilling: boolean;
+  /** "HH:MM": when the day-before delivery alert rings. */
+  deliveryAlertTime: string;
   resetEachFinancialYear: boolean;
   defaultPaymentTermsDays: number; // 0 = due on receipt
   defaultTaxPct: number;
@@ -192,6 +194,11 @@ export interface DocBase extends SyncedRecord {
   /** Series ("bill:26-27") and running number the number came from; the server uses them to never repeat a number. */
   numberSeries?: string;
   numberSeq?: number;
+  /** Date the goods or job are due to be delivered (optional), who delivers, and when it was done. */
+  deliveryDate?: string | null;
+  deliveryAssignee?: { userId: string; name: string } | null;
+  deliveredAt?: string | null;
+  deliveredByName?: string;
   /** gst = tax invoice; none = bill without GST. Missing on documents from before R1.3 (taxed as entered). */
   taxMode?: TaxMode;
   /** GST state code of the place of supply. null/missing = worked out from the addresses. */

@@ -35,8 +35,8 @@ type Change = SyncPushBody['changes'][number];
 /** A client clock far in the future would win every conflict forever; cap it. */
 const MAX_CLOCK_SKEW_MS = 5 * 60_000;
 
-/** Fields anyone who may record a payment can change on a saved invoice. */
-const PAYMENT_FIELDS = ['payment', 'history', 'updatedAt', 'updatedBy'];
+/** Fields staff (and the web) may still change on a saved invoice: history and marking it delivered. */
+const PAYMENT_FIELDS = ['payment', 'history', 'deliveredAt', 'deliveredByName', 'updatedAt', 'updatedBy'];
 
 function stable(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;
@@ -203,7 +203,8 @@ export class SyncService {
     }
 
     if (table === 'estimates' && actor.role === 'staff' && existing && existing.status !== 'draft' && existing.createdBy !== actor.userId) {
-      return 'Only the owner can edit this estimate';
+      // Staff may still mark someone else's order delivered.
+      if (stable(without(data, PAYMENT_FIELDS)) !== stable(without(existing, PAYMENT_FIELDS))) return 'Only the owner can edit this estimate';
     }
     return null;
   }

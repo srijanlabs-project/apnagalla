@@ -121,6 +121,7 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
     ...(kind === 'credit' && doc.invoiceDate ? ([['Invoice date', formatDateIN(doc.invoiceDate)]] as [string, string][]) : []),
     ...(gst && view.posLabel ? ([['Place of supply', view.posLabel]] as [string, string][]) : []),
     ...(kind === 'invoice' && doc.dueDate ? ([['Due date', formatDateIN(doc.dueDate)]] as [string, string][]) : []),
+    ...(doc.deliveryDate && kind !== 'credit' ? ([['Delivery date', formatDateIN(doc.deliveryDate)]] as [string, string][]) : []),
     ...(doc.reference ? ([['Reference', doc.reference]] as [string, string][]) : []),
     ...doc.customFields.filter((f) => f.value.trim()).map((f) => [f.label, f.value] as [string, string]),
   ];

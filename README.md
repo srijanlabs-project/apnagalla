@@ -13,6 +13,13 @@ Product docs: `PLAN.md` (phase 1 plan) and `SPEC.md` (functional spec).
 
 ## Milestone status
 Release 1 is in progress; see PLAN.md §10 for the step list.
+- **R1.4 Counter:**
+  - New sale screen: search, tap or scan items, quantities, hold and resume bills;
+  - payments as dated entries (cash / UPI / card / bank / cheque, split, change to give back, UPI QR on screen); the owner voids mistakes;
+  - returns by any staff member, with refunds of overpaid money;
+  - item barcodes with an in-app camera scanner (no Google services);
+  - area billing by sq ft / running ft (store setting);
+  - delivery date and person on bills, a phone alert the day before (9 AM by default), deliveries on Home.
 - **R1.3 GST billing:**
   - store GST registration (regular / composition / not registered) with an offline GSTIN check;
   - tax invoices and bills without GST, each with its own number series; HSN/SAC on items and lines;
