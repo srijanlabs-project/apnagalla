@@ -23,7 +23,12 @@ interface Props {
   qrNote?: string;
   /** Owner may record an earlier date. */
   allowDate?: boolean;
-  onConfirm: (parts: NewPayment[], date: string) => Promise<void> | void;
+  /** Walk-in sale: the full amount must be paid now. */
+  requireFull?: boolean;
+  /** Named customer at the counter: may take the goods and pay later. */
+  allowPayLater?: boolean;
+  /** `change` = cash to give back to the customer. */
+  onConfirm: (parts: NewPayment[], date: string, change: number) => Promise<void> | void;
 }
 
 interface Row extends NewPayment {
@@ -39,7 +44,7 @@ const ALL_MODES = Object.entries(MODE_LABEL).map(([value, label]) => ({ value: v
  * give back; UPI shows a QR for the exact amount for the customer to scan. The cashier confirms
  * once the money is received; nothing is checked with the bank.
  */
-export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', upi, qrNote = '', allowDate, onConfirm }: Props) {
+export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', upi, qrNote = '', allowDate, requireFull, allowPayLater, onConfirm }: Props) {
   const [rows, setRows] = useState<Row[]>([{ mode: 'cash', amount }]);
   const [date, setDate] = useState(todayISO());
   const [busy, setBusy] = useState(false);
@@ -54,17 +59,16 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
   const total = rows.reduce((a, r) => a + (r.amount || 0), 0);
   const left = amount - total;
   const tooMuch = total > amount;
+  const short = !!requireFull && left > 0;
+  const change = rows.reduce((a, r) => a + (r.mode === 'cash' && r.tendered && r.tendered > r.amount ? r.tendered - r.amount : 0), 0);
   const set = (i: number, p: Partial<Row>) => setRows((cur) => cur.map((r, j) => (j === i ? { ...r, ...p } : r)));
   const split = rows.length > 1;
 
-  async function confirm() {
-    if (busy || total <= 0 || tooMuch) return;
+  async function confirm(payLater = false) {
+    if (busy || (!payLater && (total <= 0 || tooMuch || short))) return;
     setBusy(true);
     try {
-      await onConfirm(
-        rows.filter((r) => r.amount > 0).map(({ tendered: _t, ...r }) => r),
-        date,
-      );
+      await onConfirm(payLater ? [] : rows.filter((r) => r.amount > 0).map(({ tendered: _t, ...r }) => r), date, payLater ? 0 : change);
     } finally {
       setBusy(false);
     }
@@ -149,14 +153,21 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
         <div className="pay-summary">
           {tooMuch ? (
             <p className="text-danger">That is more than {rupees(amount)}.</p>
+          ) : short ? (
+            <p className="text-danger">A walk-in customer pays the full {rupees(amount)}. Pick a customer to leave a balance.</p>
           ) : left > 0 && kind === 'payment' ? (
             <p>{rupees(left)} stays pending on the bill.</p>
           ) : null}
         </div>
 
-        <IonButton expand="block" size="large" disabled={busy || total <= 0 || tooMuch} onClick={() => void confirm()}>
+        <IonButton expand="block" size="large" disabled={busy || total <= 0 || tooMuch || short} onClick={() => void confirm()}>
           {kind === 'refund' ? `Refunded ${rupees(total)}` : `Received ${rupees(total)}`}
         </IonButton>
+        {allowPayLater && (
+          <IonButton expand="block" fill="clear" disabled={busy} onClick={() => void confirm(true)}>
+            Save unpaid (pay later)
+          </IonButton>
+        )}
       </IonContent>
     </IonModal>
   );

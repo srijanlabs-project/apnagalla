@@ -130,6 +130,20 @@ export interface Item extends SyncedRecord {
   taxPct: number;
   /** HSN (goods) or SAC (services) code. */
   hsn?: string;
+  /** Printed barcode (EAN / UPC / Code 128…) for scanning. */
+  barcode?: string;
+  /** How the item is priced: per unit (default), per square foot, or per running foot. */
+  pricing?: Pricing;
+}
+
+export type Pricing = 'unit' | 'sqft' | 'rft';
+
+/** Size of an area-priced line: length (× width for sq ft) × pieces; qty is worked out from it. */
+export interface LineDims {
+  length: number;
+  width?: number;
+  pieces: number;
+  in: 'ft' | 'in';
 }
 
 /* ---------- documents (invoice & estimate share one shape) ---------- */
@@ -146,6 +160,8 @@ export interface DocLine {
   taxPct: number;
   discount?: DiscountInput | null;
   hsn?: string;
+  pricing?: Pricing;
+  dims?: LineDims | null;
 }
 
 export interface PartySnapshot {
@@ -212,6 +228,8 @@ export interface Invoice extends DocBase {
   /** Business details frozen at save time (SPEC §1 snapshot rule). */
   businessSnapshot?: Omit<BusinessProfile, keyof SyncedRecord> | null;
   fromEstimateId?: string | null;
+  /** A counter bill put on hold (draft) while the next customer is served. */
+  held?: boolean;
   /** Legacy (R1.3): credit notes are now added up from the creditNotes table. */
   credited?: number;
 }

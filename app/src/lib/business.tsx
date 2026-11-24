@@ -48,10 +48,20 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     [businessId],
   );
 
+  // Stable while the person and store stay the same, so screens can safely depend on it.
+  const userId = me?.user.id;
+  const userName = me?.user.name ?? '';
+  const role = membership?.role;
+  const seriesCode = membership?.seriesCode ?? '';
+  const actor = useMemo<Actor | null>(
+    () => (userId && role ? { businessId, userId, userName, role, seriesCode } : null),
+    [businessId, userId, userName, role, seriesCode],
+  );
+
   const value = useMemo<BusinessValue | null>(() => {
-    if (!ready || !profile || !me || !membership || !ledger) return null;
+    if (!ready || !profile || !actor || !membership || !ledger) return null;
     return {
-      actor: { businessId, userId: me.user.id, userName: me.user.name ?? '', role: membership.role, seriesCode: membership.seriesCode ?? '' },
+      actor,
       ledger,
       isOwner: membership.role === 'owner',
       profile,
@@ -60,7 +70,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       bankAccounts: bankAccounts ?? [],
       upiIds: upiIds ?? [],
     };
-  }, [ready, profile, settings, bankAccounts, upiIds, ledger, me, membership, businessId]);
+  }, [ready, profile, settings, bankAccounts, upiIds, ledger, actor, membership, businessId]);
 
   // Bills from before payment entries: turn their paid amount into an entry (once, same id everywhere).
   const actorForConvert = value?.actor;

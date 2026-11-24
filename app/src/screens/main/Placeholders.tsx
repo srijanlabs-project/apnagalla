@@ -1,6 +1,6 @@
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonRouterLink } from '@ionic/react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { addOutline, clipboardOutline } from 'ionicons/icons';
+import { addOutline, cartOutline, clipboardOutline } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
 import StatusBadge from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
@@ -31,7 +31,12 @@ export function HomeScreen() {
       <h2 className="greeting">Hi{first ? `, ${first}` : ''} 👋</h2>
       <div className="quick-actions">
         {CAN_CREATE_INVOICES && (
-          <IonButton expand="block" routerLink="/tabs/invoices/new">
+          <IonButton expand="block" size="large" routerLink="/tabs/sale">
+            <IonIcon icon={cartOutline} slot="start" /> New sale
+          </IonButton>
+        )}
+        {CAN_CREATE_INVOICES && (
+          <IonButton expand="block" fill="outline" routerLink="/tabs/invoices/new">
             <IonIcon icon={addOutline} slot="start" /> New invoice
           </IonButton>
         )}

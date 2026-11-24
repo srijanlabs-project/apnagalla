@@ -7,6 +7,7 @@ import CustomerEditScreen from '../customers/CustomerEditScreen';
 import CustomersScreen from '../customers/CustomersScreen';
 import DocDetailScreen from '../docs/DocDetailScreen';
 import DocEditorScreen from '../docs/DocEditorScreen';
+import SaleScreen from '../sale/SaleScreen';
 import DocListScreen from '../docs/DocListScreen';
 import ItemEditScreen from '../items/ItemEditScreen';
 import ItemsScreen from '../items/ItemsScreen';
@@ -26,6 +27,7 @@ export default function MainTabs() {
       <IonTabs>
         <IonRouterOutlet>
           <Route path="home" element={<HomeScreen />} />
+          <Route path="sale" element={<SaleScreen />} />
 
           <Route path="invoices" element={<DocListScreen kind="invoice" />} />
           <Route path="invoices/new" element={<DocEditorScreen kind="invoice" />} />
