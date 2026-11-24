@@ -30,6 +30,7 @@ const TOGGLES: { key: keyof DesignSettings['show']; label: string }[] = [
   { key: 'signature', label: 'Signature' },
   { key: 'terms', label: 'Terms & conditions' },
   { key: 'amountInWords', label: 'Amount in words' },
+  { key: 'mrpColumn', label: 'MRP column' },
 ];
 
 /** A realistic sample invoice for the live preview. */

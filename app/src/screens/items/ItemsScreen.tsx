@@ -1,16 +1,22 @@
-import { IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
+import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { add, cubeOutline } from 'ionicons/icons';
+import { add, chevronBackOutline, cloudUploadOutline, cubeOutline, folderOpenOutline } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { rupees } from '../../lib/format';
+import { flattenCategories, useCategories, withDescendants } from '../../lib/categories';
 
 export default function ItemsScreen() {
-  const { actor } = useBusiness();
+  const { actor, isOwner } = useBusiness();
   const [q, setQ] = useState('');
+  const [catId, setCatId] = useState<string | null>(null);
+  const cats = useCategories(actor.businessId);
+  const paths = useMemo(() => new Map(flattenCategories(cats).map((n) => [n.cat.id, n.path])), [cats]);
+  const current = cats.find((c) => c.id === catId);
+  const children = cats.filter((c) => (c.parentId ?? null) === (catId ?? null)).sort((a, b) => a.name.localeCompare(b.name));
   const items = useLiveQuery(
     () =>
       db.items
@@ -22,12 +28,42 @@ export default function ItemsScreen() {
   );
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return s ? (items ?? []).filter((i) => i.name.toLowerCase().includes(s)) : items ?? [];
-  }, [items, q]);
+    const inCat = catId ? withDescendants(catId, cats) : null;
+    return (items ?? []).filter(
+      (i) =>
+        (!inCat || (i.categoryId && inCat.has(i.categoryId))) &&
+        (!s || i.name.toLowerCase().includes(s) || i.code?.toLowerCase() === s || i.barcode === s),
+    );
+  }, [items, q, catId, cats]);
 
   return (
     <PageShell title="Items" padded={false}>
-      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder="Search items" />
+      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder="Search name, code or barcode" />
+      {(cats.length > 0 || isOwner) && (
+        <div className="filter-chips">
+          {current && (
+            <IonChip onClick={() => setCatId(current.parentId ?? null)}>
+              <IonIcon icon={chevronBackOutline} />
+              <IonLabel>{paths.get(current.id)}</IonLabel>
+            </IonChip>
+          )}
+          {children.map((c) => (
+            <IonChip key={c.id} outline onClick={() => setCatId(c.id)}>
+              {c.name}
+            </IonChip>
+          ))}
+          {isOwner && (
+            <>
+              <IonButton size="small" fill="clear" routerLink="/tabs/items/categories">
+                <IonIcon icon={folderOpenOutline} slot="start" /> Categories
+              </IonButton>
+              <IonButton size="small" fill="clear" routerLink="/tabs/items/import">
+                <IonIcon icon={cloudUploadOutline} slot="start" /> Import
+              </IonButton>
+            </>
+          )}
+        </div>
+      )}
       {items && items.length === 0 ? (
         <EmptyState icon={cubeOutline} title="No items yet" text="Save your products and services with their price and tax, then pick them while billing." />
       ) : (
@@ -37,7 +73,8 @@ export default function ItemsScreen() {
               <IonLabel>
                 <h2>{i.name}</h2>
                 <p>
-                  per {i.unit} · tax {i.taxPct}%{i.rateIncludesTax ? ' incl.' : ''}
+                  {i.code ? `${i.code} · ` : ''}per {i.unit} · tax {i.taxPct}%{i.rateIncludesTax ? ' incl.' : ''}
+                  {i.categoryId && !catId && paths.get(i.categoryId) ? ` · ${paths.get(i.categoryId)}` : ''}
                 </p>
               </IonLabel>
               <IonNote slot="end" className="amount-note">

@@ -8,6 +8,7 @@ import CustomersScreen from '../customers/CustomersScreen';
 import DocDetailScreen from '../docs/DocDetailScreen';
 import DocEditorScreen from '../docs/DocEditorScreen';
 import SaleScreen from '../sale/SaleScreen';
+import CategoriesScreen from '../items/CategoriesScreen';
 import DocListScreen from '../docs/DocListScreen';
 import ItemEditScreen from '../items/ItemEditScreen';
 import ItemsScreen from '../items/ItemsScreen';
@@ -48,6 +49,7 @@ export default function MainTabs() {
 
           <Route path="items" element={<ItemsScreen />} />
           <Route path="items/new" element={<ItemEditScreen />} />
+          <Route path="items/categories" element={<CategoriesScreen />} />
           <Route path="items/:id" element={<ItemEditScreen />} />
 
           <Route path="more" element={<MoreScreen />} />

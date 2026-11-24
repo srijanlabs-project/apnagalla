@@ -351,3 +351,22 @@ describe('payment entries', () => {
     expect((await pushOk(biz.id, oH, [{ table: 'payments', id: 'p1', data: { ...voided, deleted: true, updatedAt: at(2) } }]))[0]!.status).toBe('rejected');
   });
 });
+
+describe('purchase prices', () => {
+  it('never reach staff unless the store allows it, and a staff edit keeps the cost', async () => {
+    const { biz, oH, sH } = await setupStore('960000017');
+    await pushOk(biz.id, oH, [{ table: 'items', id: 'i1', data: { id: 'i1', name: 'Tin', rate: 50000, purchasePrice: 38000, updatedAt: at(-5) } }]);
+    const staffItem = (await pull(biz.id, sH)).changes.find((c) => c.id === 'i1')!.data;
+    expect(staffItem.purchasePrice).toBeUndefined();
+    expect((await pull(biz.id, oH)).changes.find((c) => c.id === 'i1')!.data.purchasePrice).toBe(38000);
+
+    // Staff renames the item (their copy has no cost): the owner's cost survives.
+    await pushOk(biz.id, sH, [{ table: 'items', id: 'i1', data: { ...staffItem, name: 'Tin 1L', updatedAt: at(-4) } }]);
+    const after = (await pull(biz.id, oH)).changes.find((c) => c.id === 'i1')!.data;
+    expect(after).toMatchObject({ name: 'Tin 1L', purchasePrice: 38000 });
+
+    // The owner lets staff see cost.
+    await pushOk(biz.id, oH, [{ table: 'settings', id: biz.id, data: { id: biz.id, staffSeeCost: true, updatedAt: at(-3) } }]);
+    expect((await pull(biz.id, sH)).changes.find((c) => c.id === 'i1')!.data.purchasePrice).toBe(38000);
+  });
+});

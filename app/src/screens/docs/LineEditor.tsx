@@ -41,6 +41,7 @@ export function lineFromItem(it: Item): DocLine {
     discount: null,
     pricing: it.pricing,
     dims: area ? { length: 0, width: 0, pieces: 1, in: 'ft' } : null,
+    mrp: it.mrp,
   };
 }
 

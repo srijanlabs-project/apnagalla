@@ -227,6 +227,16 @@ export default function InvoiceSettingsScreen() {
         </label>
       </FormSection>
 
+      <FormSection title="Staff">
+        <ToggleRow
+          label="Staff can see purchase prices"
+          note="Off: cost prices never reach staff phones."
+          checked={s.staffSeeCost}
+          onChange={(staffSeeCost) => patch({ staffSeeCost })}
+          disabled={ro}
+        />
+      </FormSection>
+
       <FormSection title="Shop features">
         <ToggleRow
           label="Area / job-work billing"

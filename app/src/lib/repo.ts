@@ -106,6 +106,7 @@ export const DEFAULT_DESIGN: DesignSettings = {
     signature: true,
     terms: true,
     amountInWords: true,
+    mrpColumn: false,
   },
 };
 
@@ -129,6 +130,7 @@ export function defaultSettings(businessId: string): BusinessSettings {
     numberingMode: 'perPerson',
     areaBilling: false,
     deliveryAlertTime: '09:00',
+    staffSeeCost: false,
     resetEachFinancialYear: true,
     defaultPaymentTermsDays: 0,
     defaultTaxPct: 0,

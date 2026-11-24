@@ -2,11 +2,11 @@ import { z } from 'zod';
 import { NUMBER_SERIES } from './gst';
 
 /** Every table the phone keeps offline and syncs with the server. */
-export const SYNC_TABLES = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'customers', 'items', 'invoices', 'estimates', 'creditNotes', 'payments'] as const;
+export const SYNC_TABLES = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'customers', 'items', 'invoices', 'estimates', 'creditNotes', 'payments', 'categories'] as const;
 export type SyncTable = (typeof SYNC_TABLES)[number];
 
 /** Store details: only the owner may change them. */
-export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds'];
+export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'categories'];
 
 /** Payment modes for a payment or refund entry. */
 export const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque', 'other'] as const;

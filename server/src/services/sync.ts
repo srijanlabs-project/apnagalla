@@ -25,6 +25,16 @@ export interface SyncActor {
   client: ClientKind;
   /** The person's own series letter ("" for the owner). */
   seriesCode?: string;
+  /** Staff of a store that keeps purchase prices from staff. */
+  hideCost?: boolean;
+}
+
+/** Item fields staff never receive when the store hides cost. */
+const COST_FIELDS = ['purchasePrice'];
+
+function hideCost(table: string, data: Data | undefined, hide: boolean | undefined): Data | undefined {
+  if (!hide || table !== 'items' || !data) return data;
+  return without(data, COST_FIELDS);
 }
 
 const NUMBERED_TABLES: readonly SyncTable[] = ['invoices', 'estimates', 'creditNotes'];
@@ -85,7 +95,8 @@ export class SyncService {
       .where(and(eq(syncRecords.businessId, actor.businessId), eq(syncRecords.tableName, table), eq(syncRecords.id, id)))
       .limit(1);
     const existing = existingRow?.data;
-    const reject = (reason: string): SyncPushResult => ({ table, id, status: 'rejected', reason, ...(existing ? { current: existing } : {}) });
+    const shown = hideCost(table, existing, actor.hideCost);
+    const reject = (reason: string): SyncPushResult => ({ table, id, status: 'rejected', reason, ...(shown ? { current: shown } : {}) });
 
     // Never trust identity fields from the client.
     const clientTime = Date.parse(String(ch.data.updatedAt ?? ''));
@@ -94,6 +105,11 @@ export class SyncService {
     const data: Data = { ...ch.data, id, businessId: actor.businessId, updatedBy: actor.userId, updatedAt: updatedAt.toISOString() };
     // Who took a payment is the person pushing it, never what the phone claims.
     if (table === 'payments' && !existing) data.receivedBy = actor.userId;
+    // A staff phone never had the cost, so it must not wipe (or set) it.
+    if (table === 'items' && actor.hideCost) {
+      delete data.purchasePrice;
+      if (existing?.purchasePrice !== undefined) data.purchasePrice = existing.purchasePrice;
+    }
 
     const denied = this.checkPermission(actor, table, data, existing);
     if (denied) return reject(denied);
@@ -126,7 +142,7 @@ export class SyncService {
         setWhere: sql`${syncRecords.updatedAt} <= ${updatedAt}`,
       })
       .returning({ id: syncRecords.id });
-    if (!row) return { table, id, status: 'stale', current: existing };
+    if (!row) return { table, id, status: 'stale', current: shown };
 
     const used = usedNumber(table, data);
     if (used) await this.bumpCounter(tx, actor.businessId, used.series, used.seq);
@@ -209,7 +225,17 @@ export class SyncService {
     return null;
   }
 
-  async pull(businessId: string, since: number, limit = SYNC_PULL_MAX): Promise<SyncPullResponse> {
+  /** Does this store let staff see purchase prices? (Its settings record, synced like any other.) */
+  async staffSeeCost(businessId: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ data: syncRecords.data })
+      .from(syncRecords)
+      .where(and(eq(syncRecords.businessId, businessId), eq(syncRecords.tableName, 'settings'), eq(syncRecords.id, businessId)))
+      .limit(1);
+    return row?.data.staffSeeCost === true;
+  }
+
+  async pull(businessId: string, since: number, limit = SYNC_PULL_MAX, opts: { hideCost?: boolean } = {}): Promise<SyncPullResponse> {
     const rows = await this.db
       .select({ table: syncRecords.tableName, id: syncRecords.id, data: syncRecords.data, seq: syncRecords.seq })
       .from(syncRecords)
@@ -219,7 +245,7 @@ export class SyncService {
     const more = rows.length > limit;
     const page = rows.slice(0, limit);
     return {
-      changes: page.map((r) => ({ table: r.table as SyncTable, id: r.id, data: r.data, seq: r.seq })),
+      changes: page.map((r) => ({ table: r.table as SyncTable, id: r.id, data: hideCost(r.table, r.data, opts.hideCost)!, seq: r.seq })),
       cursor: page.length ? page[page.length - 1]!.seq : since,
       more,
     };

@@ -79,6 +79,8 @@ export interface DesignSettings {
     signature: boolean;
     terms: boolean;
     amountInWords: boolean;
+    /** MRP column on bills (items that have an MRP). */
+    mrpColumn: boolean;
   };
 }
 
@@ -96,6 +98,8 @@ export interface BusinessSettings extends SyncedRecord {
   numberingMode: NumberingMode;
   /** Job-work shops: items priced per sq ft or running foot, with sizes on the bill. */
   areaBilling: boolean;
+  /** Staff may see items' purchase price. Off: the server never sends it to staff phones. */
+  staffSeeCost: boolean;
   /** "HH:MM": when the day-before delivery alert rings. */
   deliveryAlertTime: string;
   resetEachFinancialYear: boolean;
@@ -136,6 +140,13 @@ export interface Item extends SyncedRecord {
   hsn?: string;
   /** Printed barcode (EAN / UPC / Code 128…) for scanning. */
   barcode?: string;
+  /** The shop's own item code / SKU. */
+  code?: string;
+  /** Maximum retail price per unit, incl. tax (paise). */
+  mrp?: number;
+  /** Cost per unit (paise). Hidden from staff unless the store allows it. */
+  purchasePrice?: number;
+  categoryId?: string | null;
   /** How the item is priced: per unit (default), per square foot, or per running foot. */
   pricing?: Pricing;
 }
@@ -161,6 +172,14 @@ export interface DocLine {
   hsn?: string;
   pricing?: Pricing;
   dims?: LineDims | null;
+  /** Copied from the item for the optional MRP column. */
+  mrp?: number;
+}
+
+/** Item category; up to 3 levels (parentId = null for a top level). */
+export interface Category extends SyncedRecord {
+  name: string;
+  parentId: string | null;
 }
 
 export interface PartySnapshot {
@@ -280,7 +299,7 @@ export interface Estimate extends DocBase {
 
 /* ---------- sync bookkeeping ---------- */
 
-export type SyncedTable = 'profiles' | 'settings' | 'bankAccounts' | 'upiIds' | 'customers' | 'items' | 'invoices' | 'estimates' | 'creditNotes' | 'payments';
+export type SyncedTable = 'profiles' | 'settings' | 'bankAccounts' | 'upiIds' | 'customers' | 'items' | 'invoices' | 'estimates' | 'creditNotes' | 'payments' | 'categories';
 
 export interface OutboxEntry {
   seq?: number;
@@ -307,6 +326,7 @@ export const db = new Dexie('apnagalla') as Dexie & {
   estimates: EntityTable<Estimate, 'id'>;
   creditNotes: EntityTable<CreditNote, 'id'>;
   payments: EntityTable<PaymentEntry, 'id'>;
+  categories: EntityTable<Category, 'id'>;
   outbox: EntityTable<OutboxEntry, 'seq'>;
   meta: EntityTable<MetaEntry, 'key'>;
 };
@@ -333,7 +353,11 @@ db.version(3).stores({
   items: 'id, businessId, [businessId+name], [businessId+barcode], updatedAt',
 });
 
-export const ALL_TABLES = [db.profiles, db.settings, db.bankAccounts, db.upiIds, db.customers, db.items, db.invoices, db.estimates, db.creditNotes, db.payments, db.outbox, db.meta];
+db.version(4).stores({
+  categories: 'id, businessId, parentId',
+});
+
+export const ALL_TABLES = [db.profiles, db.settings, db.bankAccounts, db.upiIds, db.customers, db.items, db.invoices, db.estimates, db.creditNotes, db.payments, db.categories, db.outbox, db.meta];
 
 export async function getMeta<T>(key: string): Promise<T | undefined> {
   return (await db.meta.get(key))?.value as T | undefined;

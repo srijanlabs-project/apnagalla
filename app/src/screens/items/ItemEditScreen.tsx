@@ -10,6 +10,7 @@ import FormPage from '../../components/FormPage';
 import { useBusiness } from '../../lib/business';
 import { db, type BusinessSettings, type Item } from '../../lib/db';
 import { rupees } from '../../lib/format';
+import { flattenCategories, useCategories } from '../../lib/categories';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
 
@@ -29,7 +30,25 @@ export function blankItem(actor: Actor, settings: BusinessSettings, name = '', b
   };
 }
 
-export function ItemForm({ value: it, onChange: patch, settings, priceLocked }: { value: Item; onChange: (p: Partial<Item>) => void; settings: BusinessSettings; priceLocked?: boolean }) {
+export function ItemForm({
+  value: it,
+  onChange: patch,
+  settings,
+  priceLocked,
+  showCost,
+}: {
+  value: Item;
+  onChange: (p: Partial<Item>) => void;
+  settings: BusinessSettings;
+  priceLocked?: boolean;
+  /** Owner, or staff when the store lets them see cost. */
+  showCost?: boolean;
+}) {
+  const cats = flattenCategories(useCategories(it.businessId));
+  // Selling price per unit as the customer pays it, to compare with MRP.
+  const finalPrice = it.rateIncludesTax ? it.rate : Math.round(it.rate * (1 + it.taxPct / 100));
+  const aboveMrp = !!it.mrp && finalPrice > it.mrp;
+  const margin = showCost && it.purchasePrice && it.rate ? (it.rateIncludesTax ? it.rate / (1 + it.taxPct / 100) : it.rate) - it.purchasePrice : null;
   const [scanning, setScanning] = useState(false);
   // Another item with the same barcode would make scanning ambiguous.
   const clash = useLiveQuery(
@@ -44,6 +63,17 @@ export function ItemForm({ value: it, onChange: patch, settings, priceLocked }: 
       <FormSection>
         <TextField label="Item / service name" required value={it.name} onChange={(name) => patch({ name })} />
         <TextArea label="Description (optional)" value={it.description} onChange={(description) => patch({ description })} />
+        <div className="field-row">
+          {cats.length > 0 && (
+            <SelectField
+              label="Category"
+              value={it.categoryId ?? ''}
+              options={[{ value: '', label: 'None' }, ...cats.map((n) => ({ value: n.cat.id, label: n.path }))]}
+              onChange={(categoryId) => patch({ categoryId: categoryId || null })}
+            />
+          )}
+          <TextField label="Item code" value={it.code} onChange={(code) => patch({ code: code.trim() || undefined })} disabled={priceLocked} maxlength={30} autocapitalize="characters" />
+        </div>
         {(settings.areaBilling || (it.pricing && it.pricing !== 'unit')) && (
           <SelectField
             label="Priced"
@@ -90,6 +120,12 @@ export function ItemForm({ value: it, onChange: patch, settings, priceLocked }: 
             error={it.hsn && !checkHsn(it.hsn) ? '4, 6 or 8 digits' : null}
           />
         </div>
+        <div className="field-row">
+          <MoneyField label="MRP (incl. tax)" value={it.mrp ?? null} onChange={(mrp) => patch({ mrp: mrp || undefined })} disabled={priceLocked} />
+          {showCost && <MoneyField label="Purchase price (cost)" value={it.purchasePrice ?? null} onChange={(purchasePrice) => patch({ purchasePrice: purchasePrice || undefined })} disabled={priceLocked} />}
+        </div>
+        {aboveMrp && <p className="section-note text-danger">Selling price {rupees(finalPrice)} is above the MRP {rupees(it.mrp!)}. Selling above MRP is not allowed.</p>}
+        {margin != null && <p className="section-note">Margin before tax: {rupees(Math.round(margin))} per {it.unit}</p>}
         <ToggleRow
           label="Price includes tax"
           note="Turn on for MRP-style prices where the price already contains tax."
@@ -133,7 +169,7 @@ export default function ItemEditScreen() {
       canSave={!!it.name.trim()}
     >
       {!isNew && !isOwner && <p className="section-note">Only the owner can edit catalogue items.</p>}
-      <ItemForm value={it} onChange={patch} settings={settings} priceLocked={priceLocked} />
+      <ItemForm value={it} onChange={patch} settings={settings} priceLocked={priceLocked} showCost={isOwner || settings.staffSeeCost} />
       {!isNew && isOwner && (
         <IonButton
           color="danger"

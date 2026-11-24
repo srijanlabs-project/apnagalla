@@ -202,14 +202,16 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
     const role = await accounts.requireRole(uid(req), req.params.businessId);
     const { changes } = parse(syncPushBody, req.body);
     const seriesCode = await accounts.seriesCodeOf(req.params.businessId, uid(req));
-    const results = await syncService.push({ businessId: req.params.businessId, userId: uid(req), role, client: req.auth!.client, seriesCode }, changes);
+    const hideCost = role === 'staff' && !(await syncService.staffSeeCost(req.params.businessId));
+    const results = await syncService.push({ businessId: req.params.businessId, userId: uid(req), role, client: req.auth!.client, seriesCode, hideCost }, changes);
     return { results };
   });
 
   app.get<{ Params: BizParams; Querystring: { since?: string } }>('/v1/businesses/:businessId/sync/pull', authed, async (req) => {
-    await accounts.requireRole(uid(req), req.params.businessId);
+    const role = await accounts.requireRole(uid(req), req.params.businessId);
     const since = Math.max(0, Number.parseInt(req.query.since ?? '0', 10) || 0);
-    return syncService.pull(req.params.businessId, since);
+    const hideCost = role === 'staff' && !(await syncService.staffSeeCost(req.params.businessId));
+    return syncService.pull(req.params.businessId, since, undefined, { hideCost });
   });
 
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/numbers/reserve', authed, async (req): Promise<ReserveNumbersResponse> => {
