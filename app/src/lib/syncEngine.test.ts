@@ -14,12 +14,12 @@ const server = vi.hoisted(() => ({
 vi.mock('./platform', () => ({ CLIENT_KIND: 'mobile', CAN_CREATE_INVOICES: true, WEB_INVOICE_NOTE: '' }));
 vi.mock('./api', async () => {
   class ApiError extends Error {
-    constructor(
-      readonly status: number,
-      readonly code: string,
-      message: string,
-    ) {
+    readonly status: number;
+    readonly code: string;
+    constructor(status: number, code: string, message: string) {
       super(message);
+      this.status = status;
+      this.code = code;
     }
   }
   class NetworkError extends Error {}
