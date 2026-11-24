@@ -1,6 +1,7 @@
 import { IonBadge } from '@ionic/react';
 import { useBusiness } from '../lib/business';
 import type { CreditNote, Estimate, Invoice } from '../lib/db';
+import { t } from '../lib/i18n';
 import { isOverdue, moneyOf, type Ledger } from '../lib/ledger';
 
 export function invoiceStatus(inv: Invoice, ledger: Ledger): { label: string; color: string } {
@@ -38,7 +39,8 @@ export default function StatusBadge({ invoice, estimate, creditNote }: { invoice
   const s = invoice ? invoiceStatus(invoice, ledger) : estimate ? estimateStatus(estimate) : creditNoteStatus(creditNote!);
   return (
     <IonBadge color={s.color} className="status-badge">
-      {s.label}
+      {/* i18n: labels above are translated where rendered */}
+      {t(s.label)}
     </IonBadge>
   );
 }

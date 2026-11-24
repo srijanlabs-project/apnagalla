@@ -24,16 +24,19 @@ import {
 } from '@ionic/react';
 import { formatPaise } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { addOutline, barcodeOutline, checkmarkCircle, logoWhatsapp, personCircleOutline, removeOutline, shareSocialOutline } from 'ionicons/icons';
+import { addOutline, barcodeOutline, printOutline, checkmarkCircle, logoWhatsapp, personCircleOutline, removeOutline, shareSocialOutline } from 'ionicons/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import BarcodeScanner from '../../components/BarcodeScanner';
+import { loadPrinter } from '../../lib/printer';
+import { usePrint } from '../../lib/usePrint';
 import PaySheet from '../../components/PaySheet';
 import { useBusiness } from '../../lib/business';
 import { db, type DocLine, type Invoice, type Item } from '../../lib/db';
 import { isAreaLine, lineSize, rupees } from '../../lib/format';
+import { t } from '../../lib/i18n';
 import { pdfFileName, pdfInputFor, renderPdf, sharePdf } from '../../lib/pdf';
-import { CAN_CREATE_INVOICES, WEB_INVOICE_NOTE } from '../../lib/platform';
+import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
 import { computeTotals, deleteDraft, effectiveGstType, newId, newInvoiceDraft, recordPayments, saveInvoice, type NewPayment } from '../../lib/repo';
 import { sync } from '../../lib/sync';
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
@@ -65,6 +68,7 @@ export default function SaleScreen() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<Done | null>(null);
   const [scanning, setScanning] = useState(false);
+  const printer = usePrint();
   const regular = effectiveGstType(profile) === 'regular';
 
   const heldId = new URLSearchParams(location.search).get('held');
@@ -115,11 +119,11 @@ export default function SaleScreen() {
             <IonButtons slot="start">
               <IonBackButton defaultHref="/tabs/home" />
             </IonButtons>
-            <IonTitle>Sale</IonTitle>
+            <IonTitle>{t('Sale')}</IonTitle>
           </IonToolbar>
         </IonHeader>
         <IonContent className="ion-padding">
-          <p>{WEB_INVOICE_NOTE}</p>
+          <p>{webInvoiceNote()}</p>
         </IonContent>
       </IonPage>
     );
@@ -139,7 +143,7 @@ export default function SaleScreen() {
 
   const walkIn = !bill.billTo?.customerId;
   const patch = (p: Partial<Invoice> | ((cur: Invoice) => Partial<Invoice>)) => setBill((cur) => (cur ? { ...cur, ...(typeof p === 'function' ? p(cur) : p) } : cur));
-  const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : 'Something went wrong', duration: 2500, color: 'danger' });
+  const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : t('Something went wrong'), duration: 2500, color: 'danger' });
 
   function addItem(it: Item) {
     // Priced by size: ask for the size straight away.
@@ -165,11 +169,11 @@ export default function SaleScreen() {
     }
     setScanning(false);
     void alert({
-      header: 'Not in your items',
-      message: `No item has barcode ${code}. Add it to your items?`,
+      header: t('Not in your items'),
+      message: t('No item has barcode {code}. Add it to your items?', { code }),
       buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        { text: 'Add item', handler: () => router.push(`/tabs/items/new?barcode=${encodeURIComponent(code)}`) },
+        { text: t('Cancel'), role: 'cancel' },
+        { text: t('Add item'), handler: () => router.push(`/tabs/items/new?barcode=${encodeURIComponent(code)}`) },
       ],
     });
     return false;
@@ -190,7 +194,7 @@ export default function SaleScreen() {
     if (!bill || !bill.lines.length) return;
     try {
       await saveInvoice(actor, { ...bill, held: true }, { finalize: false });
-      void toast({ message: 'Bill held. Tap it at the top to resume.', duration: 1500 });
+      void toast({ message: t('Bill held. Tap it at the top to resume.'), duration: 1500 });
       startNew();
     } catch (e) {
       fail(e);
@@ -207,6 +211,9 @@ export default function SaleScreen() {
       if (paid > 0) await recordPayments(actor, saved.id, parts, { date });
       setPaying(false);
       setDone({ invoice: saved, paid, change });
+      // Auto-print when this phone's printer is set to.
+      const p = await loadPrinter();
+      if (p?.autoPrint && printer.canPrint) void printer.print('invoice', saved, change);
     } catch (e) {
       fail(e);
     } finally {
@@ -240,6 +247,8 @@ export default function SaleScreen() {
   const upi = upiIds.find((u) => u.id === bill.upiIdId) ?? upiIds.find((u) => u.isDefault) ?? upiIds[0] ?? null;
   // Area lines count their pieces, not their square feet.
   const count = bill.lines.reduce((a, l) => a + (isAreaLine(l) ? (l.dims?.pieces ?? 1) : l.qty), 0);
+  // The amount is shown in bold, wherever the language puts it in the sentence.
+  const [giveBackBefore, giveBackAfter = ''] = t('Give back {amount}').split('{amount}');
 
   return (
     <IonPage>
@@ -248,15 +257,15 @@ export default function SaleScreen() {
           <IonButtons slot="start">
             <IonBackButton defaultHref="/tabs/home" />
           </IonButtons>
-          <IonTitle>{done ? 'Sale saved' : 'New sale'}</IonTitle>
+          <IonTitle>{done ? t('Sale saved') : t('New sale')}</IonTitle>
         </IonToolbar>
         {!done && heldBills && heldBills.length > 0 && (
           <IonToolbar className="held-bar">
             <div className="filter-chips">
-              <span className="held-label">Held:</span>
+              <span className="held-label">{t('Held:')}</span>
               {heldBills.map((h) => (
                 <IonChip key={h.id} outline={h.id !== bill.id} color={h.id === bill.id ? 'primary' : undefined} onClick={() => router.push(`/tabs/sale?held=${h.id}`, 'none', 'replace')}>
-                  {h.billTo?.customerId ? h.billTo.name : 'Walk-in'} · {rupees(computeTotals(h).grandTotal)}
+                  {h.billTo?.customerId ? h.billTo.name : t('Walk-in')} · {rupees(computeTotals(h).grandTotal)}
                 </IonChip>
               ))}
             </div>
@@ -271,26 +280,39 @@ export default function SaleScreen() {
             <h2>
               {done.invoice.number} · {rupees(done.invoice.totals.grandTotal)}
             </h2>
-            <p>{done.paid >= done.invoice.totals.grandTotal ? 'Paid in full' : done.paid > 0 ? `Paid ${rupees(done.paid)}, balance ${rupees(done.invoice.totals.grandTotal - done.paid)}` : 'Saved unpaid'}</p>
+            <p>
+              {done.paid >= done.invoice.totals.grandTotal
+                ? t('Paid in full')
+                : done.paid > 0
+                  ? t('Paid {paid}, balance {balance}', { paid: rupees(done.paid), balance: rupees(done.invoice.totals.grandTotal - done.paid) })
+                  : t('Saved unpaid')}
+            </p>
             {done.change > 0 && (
               <p className="sale-change">
-                Give back <strong>{rupees(done.change)}</strong>
+                {giveBackBefore}
+                <strong>{rupees(done.change)}</strong>
+                {giveBackAfter}
               </p>
             )}
           </div>
           <div className="detail-actions">
+            {printer.canPrint && (
+              <IonButton onClick={() => void printer.print('invoice', done.invoice, done.change)} disabled={printer.busy}>
+                {printer.busy ? <IonSpinner name="dots" /> : <IonIcon icon={printOutline} slot="start" />} {t('Print')}
+              </IonButton>
+            )}
             <IonButton color="success" onClick={() => whatsappText(done.invoice, done.paid)}>
-              <IonIcon icon={logoWhatsapp} slot="start" /> WhatsApp bill
+              <IonIcon icon={logoWhatsapp} slot="start" /> {t('WhatsApp bill')}
             </IonButton>
             <IonButton fill="outline" onClick={() => void shareBill(done.invoice)}>
-              <IonIcon icon={shareSocialOutline} slot="start" /> Share PDF
+              <IonIcon icon={shareSocialOutline} slot="start" /> {t('Share PDF')}
             </IonButton>
             <IonButton fill="clear" routerLink={`/tabs/invoices/${done.invoice.id}`}>
-              Open bill
+              {t('Open bill')}
             </IonButton>
           </div>
           <IonButton expand="block" size="large" onClick={startNew}>
-            <IonIcon icon={addOutline} slot="start" /> Next sale
+            <IonIcon icon={addOutline} slot="start" /> {t('Next sale')}
           </IonButton>
         </IonContent>
       ) : (
@@ -298,15 +320,15 @@ export default function SaleScreen() {
           <div className="sale-top">
             <IonChip onClick={() => setPicker(true)}>
               <IonIcon icon={personCircleOutline} />
-              <IonLabel>{bill.billTo?.name ?? WALK_IN.name}</IonLabel>
+              <IonLabel>{walkIn && (!bill.billTo || bill.billTo.name === WALK_IN.name) ? t('Walk-in customer') : bill.billTo!.name}</IonLabel>
             </IonChip>
             {regular && (
               <IonSegment value={bill.taxMode ?? 'gst'} onIonChange={sync((e) => patch({ taxMode: e.detail.value as 'gst' | 'none' }))} className="sale-tax">
                 <IonSegmentButton value="gst">
-                  <IonLabel>GST</IonLabel>
+                  <IonLabel>{t('GST')}</IonLabel>
                 </IonSegmentButton>
                 <IonSegmentButton value="none">
-                  <IonLabel>No GST</IonLabel>
+                  <IonLabel>{t('No GST')}</IonLabel>
                 </IonSegmentButton>
               </IonSegment>
             )}
@@ -323,10 +345,10 @@ export default function SaleScreen() {
                   else if (matches.length === 1) addItem(matches[0]!);
                 }
               }}
-              placeholder="Search item or type barcode"
+              placeholder={t('Search item or type barcode')}
               debounce={0}
             />
-            <IonButton fill="clear" onClick={() => setScanning(true)} aria-label="Scan barcode">
+            <IonButton fill="clear" onClick={() => setScanning(true)} aria-label={t('Scan barcode')}>
               <IonIcon icon={barcodeOutline} slot="icon-only" />
             </IonButton>
           </div>
@@ -337,7 +359,7 @@ export default function SaleScreen() {
                 <IonItem key={it.id} button detail={false} onClick={() => addItem(it)}>
                   <IonLabel>
                     <h2>{it.name}</h2>
-                    <p>per {it.unit}</p>
+                    <p>{t('per {unit}', { unit: it.unit })}</p>
                   </IonLabel>
                   <IonNote slot="end">{rupees(it.rate)}</IonNote>
                 </IonItem>
@@ -353,12 +375,12 @@ export default function SaleScreen() {
                   setQ('');
                 }}
               >
-                <IonLabel color="primary">+ Sell "{q.trim()}" (not in the catalogue)</IonLabel>
+                <IonLabel color="primary">{t('+ Sell "{name}" (not in the catalogue)', { name: q.trim() })}</IonLabel>
               </IonItem>
             </IonList>
           ) : bill.lines.length === 0 ? (
             <div className="sale-empty">
-              <p>Search an item above to start the bill.</p>
+              <p>{t('Search an item above to start the bill.')}</p>
               {(items ?? []).length > 0 && (
                 <div className="sale-quick">
                   {(items ?? []).slice(0, 12).map((it) => (
@@ -380,15 +402,15 @@ export default function SaleScreen() {
                   <div slot="end" className="qty-stepper">
                     {isAreaLine(l) ? (
                       <IonButton fill="clear" size="small" onClick={() => setEditing({ line: l, isNew: false })}>
-                        Size
+                        {t('Size')}
                       </IonButton>
                     ) : (
                       <>
-                        <IonButton fill="outline" size="small" onClick={() => step(l.id, -1)} aria-label="One less">
+                        <IonButton fill="outline" size="small" onClick={() => step(l.id, -1)} aria-label={t('One less')}>
                           <IonIcon icon={removeOutline} />
                         </IonButton>
                         <span>{l.qty}</span>
-                        <IonButton fill="outline" size="small" onClick={() => step(l.id, 1)} aria-label="One more">
+                        <IonButton fill="outline" size="small" onClick={() => step(l.id, 1)} aria-label={t('One more')}>
                           <IonIcon icon={addOutline} />
                         </IonButton>
                       </>
@@ -408,13 +430,13 @@ export default function SaleScreen() {
             <div className="save-bar-row">
               <div className="save-bar-total">
                 <span>
-                  {count} item{count === 1 ? '' : 's'}
+                  {count === 1 ? t('1 item') : t('{count} items', { count })}
                 </span>
                 <strong>{rupees(totals.grandTotal)}</strong>
               </div>
               {bill.lines.length > 0 && (
                 <IonButton fill="outline" onClick={() => void hold()}>
-                  Hold
+                  {t('Hold')}
                 </IonButton>
               )}
               {bill.lines.length > 0 && heldId && (
@@ -423,19 +445,19 @@ export default function SaleScreen() {
                   color="medium"
                   onClick={() =>
                     void alert({
-                      header: 'Discard this held bill?',
+                      header: t('Discard this held bill?'),
                       buttons: [
-                        { text: 'Keep', role: 'cancel' },
-                        { text: 'Discard', role: 'destructive', handler: () => void deleteDraft(actor, 'invoice', bill.id).then(startNew).catch(fail) },
+                        { text: t('Keep'), role: 'cancel' },
+                        { text: t('Discard'), role: 'destructive', handler: () => void deleteDraft(actor, 'invoice', bill.id).then(startNew).catch(fail) },
                       ],
                     })
                   }
                 >
-                  Discard
+                  {t('Discard')}
                 </IonButton>
               )}
               <IonButton disabled={!bill.lines.length || busy} onClick={() => setPaying(true)}>
-                {busy ? <IonSpinner name="dots" /> : 'Pay'}
+                {busy ? <IonSpinner name="dots" /> : t('Pay')}
               </IonButton>
             </div>
           </IonToolbar>
@@ -452,7 +474,7 @@ export default function SaleScreen() {
         onClose={() => setPaying(false)}
         onConfirm={finish}
       />
-      <BarcodeScanner isOpen={scanning} continuous title="Scan items" onClose={() => setScanning(false)} onScan={(code) => byBarcode(code)} />
+      <BarcodeScanner isOpen={scanning} continuous title={t('Scan items')} onClose={() => setScanning(false)} onScan={(code) => byBarcode(code)} />
       <CustomerPicker isOpen={picker} onClose={() => setPicker(false)} onPick={(party) => patch({ billTo: party, shipTo: null })} />
       <LineEditor
         line={editing?.line ?? null}

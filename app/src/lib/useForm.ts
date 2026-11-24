@@ -1,5 +1,6 @@
 import { useIonRouter, useIonToast } from '@ionic/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { t } from './i18n';
 import { PermissionError } from './repo';
 
 /**
@@ -38,7 +39,7 @@ export function useForm<T>(initial: T | undefined) {
         if (opts.back && router.canGoBack()) router.goBack();
         return true;
       } catch (e) {
-        const message = e instanceof PermissionError || e instanceof Error ? e.message : 'Could not save';
+        const message = e instanceof PermissionError || e instanceof Error ? e.message : t('Could not save');
         void toast({ message, duration: 2500, position: 'top', color: 'danger' });
         return false;
       } finally {

@@ -1,5 +1,5 @@
 import { IonButton, useIonAlert, useIonRouter } from '@ionic/react';
-import { checkGstin, normalizeIndianMobile, stateName } from '@invoice/shared';
+import { checkGstin, normalizeIndianMobile, stateName, type GstinProblem } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -8,6 +8,7 @@ import FormPage from '../../components/FormPage';
 import GstinCheck from '../../components/GstinCheck';
 import { useBusiness } from '../../lib/business';
 import { db, type Address, type Customer } from '../../lib/db';
+import { t } from '../../lib/i18n';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
 
@@ -15,13 +16,25 @@ export function blankCustomer(actor: Actor, name = ''): Customer {
   return { id: newId(), businessId: actor.businessId, createdAt: '', updatedAt: '', updatedBy: '', name, billingAddress: {}, shippingAddress: null, openingBalance: 0 };
 }
 
+// Compared by value in CustomerForm to show each message under the right field (any language).
+const nameRequired = () => t('Name is required');
+const badMobile = () => t('Enter a valid 10-digit mobile number (or leave it empty)');
+const badEmail = () => t('Enter a valid email (or leave it empty)');
+
+/** checkGstin's message (English, from shared) in the app's language. */
+export function gstinProblemText(problem: GstinProblem, gstin: string): string {
+  if (problem === 'format') return t('A GSTIN has 15 characters, like 24ABCDE1234F1Z5');
+  if (problem === 'state') return t('{code} is not a GST state code', { code: gstin.trim().toUpperCase().slice(0, 2) });
+  return t('This GSTIN has a typo (the last character does not match)');
+}
+
 export function validateCustomer(c: Customer): string | null {
-  if (!c.name.trim()) return 'Name is required';
-  if (c.phone && !normalizeIndianMobile(c.phone)) return 'Enter a valid 10-digit mobile number (or leave it empty)';
-  if (c.email && !/^\S+@\S+\.\S+$/.test(c.email)) return 'Enter a valid email (or leave it empty)';
+  if (!c.name.trim()) return nameRequired();
+  if (c.phone && !normalizeIndianMobile(c.phone)) return badMobile();
+  if (c.email && !/^\S+@\S+\.\S+$/.test(c.email)) return badEmail();
   if (c.taxId) {
     const g = checkGstin(c.taxId);
-    if (!g.ok) return g.message;
+    if (!g.ok) return gstinProblemText(g.problem, c.taxId);
   }
   return null;
 }
@@ -42,18 +55,18 @@ export function CustomerForm({ value: c, update }: { value: Customer; update: (f
   return (
     <>
       <FormSection>
-        <TextField label="Name" required value={c.name} onChange={(name) => patch({ name })} autocapitalize="words" />
+        <TextField label={t('Name')} required value={c.name} onChange={(name) => patch({ name })} autocapitalize="words" />
         <TextField
-          label="Mobile"
+          label={t('Mobile')}
           type="tel"
           inputmode="tel"
           value={c.phone?.replace(/^\+91/, '')}
           onChange={(phone) => patch({ phone })}
-          error={c.phone && err?.includes('mobile') ? err : null}
+          error={c.phone && err === badMobile() ? err : null}
         />
-        <TextField label="Email" type="email" inputmode="email" value={c.email} onChange={(email) => patch({ email })} autocapitalize="off" />
+        <TextField label={t('Email')} type="email" inputmode="email" value={c.email} onChange={(email) => patch({ email })} autocapitalize="off" />
         <TextField
-          label="GSTIN (if registered)"
+          label={t('GSTIN (if registered)')}
           value={c.taxId}
           maxlength={15}
           autocapitalize="characters"
@@ -67,7 +80,7 @@ export function CustomerForm({ value: c, update }: { value: Customer; update: (f
               billingAddress: g.ok && !cur.billingAddress.state ? { ...cur.billingAddress, state: stateName(g.stateCode) } : cur.billingAddress,
             }));
           }}
-          error={c.taxId && err && !err.includes('mobile') && !err.includes('email') && !err.includes('Name') ? err : null}
+          error={c.taxId && err && err !== badMobile() && err !== badEmail() && err !== nameRequired() ? err : null}
         />
         <GstinCheck
           businessId={c.businessId}
@@ -81,12 +94,12 @@ export function CustomerForm({ value: c, update }: { value: Customer; update: (f
           }
         />
       </FormSection>
-      <FormSection title="Billing address">
+      <FormSection title={t('Billing address')}>
         <AddressFields value={c.billingAddress} onChange={patchAddress('billingAddress')} />
       </FormSection>
-      <FormSection title="Shipping address">
+      <FormSection title={t('Shipping address')}>
         <ToggleRow
-          label="Same as billing address"
+          label={t('Same as billing address')}
           checked={!c.shippingAddress}
           onChange={(same) => update((cur) => ({ ...cur, shippingAddress: same ? null : { ...cur.billingAddress } }))}
         />
@@ -109,15 +122,15 @@ export default function CustomerEditScreen() {
 
   return (
     <FormPage
-      title={isNew ? 'New customer' : 'Edit customer'}
+      title={isNew ? t('New customer') : t('Edit customer')}
       backHref={isNew ? '/tabs/customers' : `/tabs/customers/${c.id}`}
-      onSave={() => save(() => saveCustomer(actor, c), { message: 'Customer saved', back: true })}
+      onSave={() => save(() => saveCustomer(actor, c), { message: t('Customer saved'), back: true })}
       saving={saving}
       canSave={!validateCustomer(c)}
     >
       <CustomerForm value={c} update={(fn) => setValue((v) => v && fn(v))} />
-      <FormSection title="Opening balance" note="Amount this customer already owed you before you started using the app. Added to their pending total.">
-        <MoneyField label="Opening balance" value={c.openingBalance} onChange={(v) => patch({ openingBalance: v ?? 0 })} disabled={!isOwner && !isNew} />
+      <FormSection title={t('Opening balance')} note={t('Amount this customer already owed you before you started using the app. Added to their pending total.')}>
+        <MoneyField label={t('Opening balance')} value={c.openingBalance} onChange={(v) => patch({ openingBalance: v ?? 0 })} disabled={!isOwner && !isNew} />
       </FormSection>
       {!isNew && isOwner && (
         <IonButton
@@ -126,11 +139,11 @@ export default function CustomerEditScreen() {
           expand="block"
           onClick={() =>
             void alert({
-              message: `Delete ${c.name}? Their past invoices are kept.`,
+              message: t('Delete {customer}? Their past invoices are kept.', { customer: c.name }),
               buttons: [
-                { text: 'Cancel', role: 'cancel' },
+                { text: t('Cancel'), role: 'cancel' },
                 {
-                  text: 'Delete',
+                  text: t('Delete'),
                   role: 'destructive',
                   handler: async () => {
                     await deleteRecord('customers', actor, c.id);
@@ -141,7 +154,7 @@ export default function CustomerEditScreen() {
             })
           }
         >
-          Delete customer
+          {t('Delete customer')}
         </IonButton>
       )}
     </FormPage>

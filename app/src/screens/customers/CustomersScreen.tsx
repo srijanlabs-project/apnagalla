@@ -8,6 +8,7 @@ import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { rupees } from '../../lib/format';
+import { t } from '../../lib/i18n';
 import { moneyOf } from '../../lib/ledger';
 
 export default function CustomersScreen() {
@@ -40,17 +41,17 @@ export default function CustomersScreen() {
   }, [customers, q]);
 
   return (
-    <PageShell title="Customers" padded={false}>
-      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder="Search name or phone" />
+    <PageShell title={t('Customers')} padded={false}>
+      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search name or phone')} />
       {isOwner && (
         <div className="filter-chips">
           <IonButton size="small" fill="clear" routerLink="/tabs/items/import?kind=customers">
-            <IonIcon icon={cloudUploadOutline} slot="start" /> Import from Excel
+            <IonIcon icon={cloudUploadOutline} slot="start" /> {t('Import from Excel')}
           </IonButton>
         </div>
       )}
       {customers && customers.length === 0 ? (
-        <EmptyState icon={peopleOutline} title="No customers yet" text="Add customers here, or directly while creating an invoice." />
+        <EmptyState icon={peopleOutline} title={t('No customers yet')} text={t('Add customers here, or directly while creating an invoice.')} />
       ) : (
         <IonList>
           {filtered.map((c) => {
@@ -68,7 +69,7 @@ export default function CustomersScreen() {
                   <IonNote slot="end" color="danger" className="amount-note">
                     {rupees(pending)}
                     <br />
-                    <small>pending</small>
+                    <small>{t('pending')}</small>
                   </IonNote>
                 )}
               </IonItem>
@@ -77,7 +78,7 @@ export default function CustomersScreen() {
         </IonList>
       )}
       <IonFab slot="fixed" vertical="bottom" horizontal="end">
-        <IonFabButton routerLink="/tabs/customers/new" aria-label="Add customer">
+        <IonFabButton routerLink="/tabs/customers/new" aria-label={t('Add customer')}>
           <IonIcon icon={add} />
         </IonFabButton>
       </IonFab>

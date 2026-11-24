@@ -116,7 +116,7 @@ Built in this order; each step is tested and committed before the next.
 | R1.3 GST billing | Store GST type (regular / composition / unregistered), GST and non-GST bills with their own series, HSN, CGST+SGST / IGST from place of supply (shipping address), credit notes, number pattern | Done |
 | R1.4 Counter | Quick-sale screen, camera barcode, sq ft / running ft billing, dated part-payments with modes and split, on-screen UPI QR, returns, delivery date + day-before alert | Done |
 | R1.5 Catalogue | Category tree, item barcode / HSN / purchase price / MRP, Excel import of items and customers, GSTIN check via the client's GST API | Done |
-| R1.6 Print and languages | Bluetooth thermal printing (2" / 3"), English / Hindi / Gujarati / Punjabi | |
+| R1.6 Print and languages | Bluetooth thermal printing (2" / 3"), English / Hindi / Gujarati / Punjabi | Done (translations to be reviewed; printing to be tried on real printers) |
 | R1.7 Admin and security | Admin panel (create / suspend stores), app PIN, secure token storage, tenant-isolation tests, rate limits, backups, monitoring | |
 
 Known gaps after R1.2:
@@ -204,3 +204,18 @@ R1.5 decisions (25 Nov 2026) and gaps:
 - **Free AI tier limits or terms change:** the adapter makes switching providers a settings change.
 - **Number gaps or out-of-order numbers when offline:** accepted; blocks kept small.
 - **Losing data that hasn't synced yet** (phone lost or app uninstalled while offline): there's a "last synced" indicator, and the app warns before logout if anything is still unsynced.
+
+R1.6 decisions (25 Nov 2026) and gaps:
+- Thermal receipts are drawn on the phone and sent as a picture (ESC/POS raster), so all four
+  scripts, the logo and the UPI QR print on cheap printers without Indian fonts. 58 mm (384 dots)
+  or 80 mm (576 dots). Classic Bluetooth (paired printers, our own Android plugin) and BLE
+  (@capacitor-community/bluetooth-le). Printer, paper width, logo and auto-print after a counter
+  sale are kept per phone (More → Printer). The web shows a receipt preview instead.
+- Receipt language: one store default (Invoice settings → Printed receipts). PDFs stay English
+  (our PDF library can't join Indian-script letters).
+- App language: each person picks it (More → Language); English text is the key (src/lib/i18n.ts,
+  src/i18n/{hi,gu,pa}.json). 777 phrases translated by Claude; a native speaker should review
+  docs/translations-review.csv (also the number words in shared/src/langs.ts). Corrections come
+  back with `node scripts/i18n.mjs import FILE.csv` (placeholders are checked).
+- Not yet: text sent to customers on WhatsApp / share stays English; Indian-language PDFs;
+  printing untested on real printers.

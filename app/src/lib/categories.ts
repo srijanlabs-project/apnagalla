@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Category } from './db';
+import { t } from './i18n';
 import { PermissionError, deleteRecord, newId, putRecord, type Actor } from './repo';
 
 /** Paints › Emulsion › Interior is as deep as it goes. */
@@ -64,22 +65,22 @@ function depthOf(id: string | null, cats: Category[]): number {
 
 /** Add or rename a category (owner only). Names are unique among siblings; at most 3 levels. */
 export async function saveCategory(actor: Actor, cats: Category[], input: { id?: string; name: string; parentId: string | null }): Promise<Category> {
-  if (actor.role !== 'owner') throw new PermissionError('Only the owner can change categories');
+  if (actor.role !== 'owner') throw new PermissionError(t('Only the owner can change categories'));
   const name = input.name.trim();
-  if (!name) throw new PermissionError('Enter a name');
-  if (depthOf(input.parentId, cats) >= MAX_CATEGORY_DEPTH) throw new PermissionError(`Categories go ${MAX_CATEGORY_DEPTH} levels deep at most`);
+  if (!name) throw new PermissionError(t('Enter a name'));
+  if (depthOf(input.parentId, cats) >= MAX_CATEGORY_DEPTH) throw new PermissionError(t('Categories go {levels} levels deep at most', { levels: MAX_CATEGORY_DEPTH }));
   const twin = cats.find((c) => c.id !== input.id && (c.parentId ?? null) === input.parentId && c.name.toLowerCase() === name.toLowerCase());
-  if (twin) throw new PermissionError(`${name} already exists here`);
+  if (twin) throw new PermissionError(t('{name} already exists here', { name }));
   const existing = input.id ? cats.find((c) => c.id === input.id) : undefined;
   return putRecord('categories', actor, { ...(existing ?? {}), id: input.id ?? newId(), name, parentId: input.parentId });
 }
 
 /** Only an empty category (no sub-categories, no items) can be deleted. */
 export async function deleteCategory(actor: Actor, cats: Category[], id: string): Promise<void> {
-  if (actor.role !== 'owner') throw new PermissionError('Only the owner can change categories');
-  if (cats.some((c) => c.parentId === id)) throw new PermissionError('Delete or move its sub-categories first');
+  if (actor.role !== 'owner') throw new PermissionError(t('Only the owner can change categories'));
+  if (cats.some((c) => c.parentId === id)) throw new PermissionError(t('Delete or move its sub-categories first'));
   const used = await db.items.where('businessId').equals(actor.businessId).filter((i) => i.categoryId === id && !i.deleted).count();
-  if (used) throw new PermissionError(`${used} item${used === 1 ? '' : 's'} use this category; move them first`);
+  if (used) throw new PermissionError(used === 1 ? t('1 item uses this category; move it first') : t('{count} items use this category; move them first', { count: used }));
   await deleteRecord('categories', actor, id);
 }
 

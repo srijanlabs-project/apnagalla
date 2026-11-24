@@ -1,5 +1,6 @@
 import { IonBackButton, IonButton, IonButtons, IonContent, IonFooter, IonHeader, IonPage, IonSpinner, IonTitle, IonToolbar } from '@ionic/react';
 import type { ReactNode } from 'react';
+import { t } from '../lib/i18n';
 
 interface Props {
   title: string;
@@ -14,7 +15,7 @@ interface Props {
 }
 
 /** Page with back button and a sticky bottom save bar — used by all edit screens. */
-export default function FormPage({ title, backHref, children, onSave, saveLabel = 'Save', saving, canSave = true, headerEnd }: Props) {
+export default function FormPage({ title, backHref, children, onSave, saveLabel = t('Save'), saving, canSave = true, headerEnd }: Props) {
   return (
     <IonPage>
       <IonHeader>

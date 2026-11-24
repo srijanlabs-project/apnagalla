@@ -21,6 +21,7 @@ import { FormSection, SelectField, TextArea, TextField, ToggleRow } from '../../
 import FormPage from '../../components/FormPage';
 import { useBusiness } from '../../lib/business';
 import { db, type BankAccount, type UpiId } from '../../lib/db';
+import { t } from '../../lib/i18n';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 
 const IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/;
@@ -47,7 +48,7 @@ export default function PaymentDetailsScreen() {
 
   async function saveBank(b: BankAccount) {
     if (!b.holderName.trim() || !b.bankName.trim() || !b.accountNumber.trim() || !IFSC_RE.test(b.ifsc)) {
-      void toast({ message: 'Fill holder name, bank, account number and a valid IFSC (e.g. HDFC0001234)', duration: 2500, color: 'danger' });
+      void toast({ message: t('Fill holder name, bank, account number and a valid IFSC (e.g. HDFC0001234)'), duration: 2500, color: 'danger' });
       return;
     }
     const first = bankAccounts.length === 0;
@@ -58,7 +59,7 @@ export default function PaymentDetailsScreen() {
 
   async function saveUpi(u: UpiId) {
     if (!UPI_RE.test(u.upiId.trim()) || !u.payeeName.trim()) {
-      void toast({ message: 'Enter a valid UPI ID (like name@bank) and payee name', duration: 2500, color: 'danger' });
+      void toast({ message: t('Enter a valid UPI ID (like name@bank) and payee name'), duration: 2500, color: 'danger' });
       return;
     }
     const first = upiIds.length === 0;
@@ -67,30 +68,30 @@ export default function PaymentDetailsScreen() {
     setUpi(null);
   }
 
-  function confirmDelete(what: string, fn: () => Promise<void>) {
-    void alert({ message: `Delete this ${what}?`, buttons: [{ text: 'Cancel', role: 'cancel' }, { text: 'Delete', role: 'destructive', handler: () => void fn() }] });
+  function confirmDelete(message: string, fn: () => Promise<void>) {
+    void alert({ message, buttons: [{ text: t('Cancel'), role: 'cancel' }, { text: t('Delete'), role: 'destructive', handler: () => void fn() }] });
   }
 
   return (
-    <FormPage title="Payment details" backHref="/tabs/more">
-      {!isOwner && <p className="section-note">Only the owner can change payment details.</p>}
+    <FormPage title={t('Payment details')} backHref="/tabs/more">
+      {!isOwner && <p className="section-note">{t('Only the owner can change payment details.')}</p>}
 
       <IonList inset className="flush-list">
         <IonListHeader>
-          <IonLabel>Bank accounts</IonLabel>
+          <IonLabel>{t('Bank accounts')}</IonLabel>
           {isOwner && (
             <IonButton
               onClick={() =>
                 setBank({ ...blank, id: newId(), holderName: profile.legalName || profile.name, bankName: '', accountNumber: '', ifsc: '', accountType: 'current', isDefault: false })
               }
             >
-              <IonIcon icon={addOutline} slot="start" /> Add
+              <IonIcon icon={addOutline} slot="start" /> {t('Add')}
             </IonButton>
           )}
         </IonListHeader>
         {bankAccounts.length === 0 && (
           <IonItem lines="none">
-            <IonNote>No bank account yet. It's printed on invoices so customers can pay you.</IonNote>
+            <IonNote>{t("No bank account yet. It's printed on invoices so customers can pay you.")}</IonNote>
           </IonItem>
         )}
         {bankAccounts.map((b) => (
@@ -99,26 +100,26 @@ export default function PaymentDetailsScreen() {
             <IonLabel>
               <h2>{b.bankName}</h2>
               <p>
-                A/c ••••{b.accountNumber.slice(-4)} · {b.ifsc}
+                {t('A/c ••••{last4} · {ifsc}', { last4: b.accountNumber.slice(-4), ifsc: b.ifsc })}
               </p>
             </IonLabel>
-            {b.isDefault && <IonNote slot="end">Default</IonNote>}
+            {b.isDefault && <IonNote slot="end">{t('Default')}</IonNote>}
           </IonItem>
         ))}
       </IonList>
 
       <IonList inset className="flush-list">
         <IonListHeader>
-          <IonLabel>UPI IDs</IonLabel>
+          <IonLabel>{t('UPI IDs')}</IonLabel>
           {isOwner && (
             <IonButton onClick={() => setUpi({ ...blank, id: newId(), upiId: '', payeeName: profile.name, isDefault: false })}>
-              <IonIcon icon={addOutline} slot="start" /> Add
+              <IonIcon icon={addOutline} slot="start" /> {t('Add')}
             </IonButton>
           )}
         </IonListHeader>
         {upiIds.length === 0 && (
           <IonItem lines="none">
-            <IonNote>Add a UPI ID to print a scan-to-pay QR code with the amount pre-filled.</IonNote>
+            <IonNote>{t('Add a UPI ID to print a scan-to-pay QR code with the amount pre-filled.')}</IonNote>
           </IonItem>
         )}
         {upiIds.map((u) => (
@@ -128,22 +129,22 @@ export default function PaymentDetailsScreen() {
               <h2>{u.upiId}</h2>
               <p>{u.payeeName}</p>
             </IonLabel>
-            {u.isDefault && <IonNote slot="end">Default</IonNote>}
+            {u.isDefault && <IonNote slot="end">{t('Default')}</IonNote>}
           </IonItem>
         ))}
       </IonList>
 
-      <FormSection title="Other payment instructions" note='Free text printed on invoices, e.g. "Cheques in favour of …"'>
-        <TextArea label="Instructions" value={other} onChange={setOther} disabled={!isOwner} />
+      <FormSection title={t('Other payment instructions')} note={t('Free text printed on invoices, e.g. "Cheques in favour of …"')}>
+        <TextArea label={t('Instructions')} value={other} onChange={setOther} disabled={!isOwner} />
         {isOwner && other !== settings.otherPaymentInstructions && (
           <IonButton
             size="small"
             onClick={async () => {
               await putRecord('settings', actor, { ...settings, otherPaymentInstructions: other });
-              void toast({ message: 'Saved', duration: 1200, color: 'success' });
+              void toast({ message: t('Saved'), duration: 1200, color: 'success' });
             }}
           >
-            Save instructions
+            {t('Save instructions')}
           </IonButton>
         )}
       </FormSection>
@@ -155,52 +156,52 @@ export default function PaymentDetailsScreen() {
             <IonHeader>
               <IonToolbar>
                 <IonButtons slot="start">
-                  <IonButton onClick={() => setBank(null)}>Cancel</IonButton>
+                  <IonButton onClick={() => setBank(null)}>{t('Cancel')}</IonButton>
                 </IonButtons>
-                <IonTitle>Bank account</IonTitle>
+                <IonTitle>{t('Bank account')}</IonTitle>
                 <IonButtons slot="end">
                   <IonButton strong onClick={() => void saveBank(bank)}>
-                    Save
+                    {t('Save')}
                   </IonButton>
                 </IonButtons>
               </IonToolbar>
             </IonHeader>
             <IonContent className="ion-padding">
-              <TextField label="Account holder name" required value={bank.holderName} onChange={(holderName) => setBank((b) => b && { ...b, holderName })} autocapitalize="words" />
-              <TextField label="Bank name" required value={bank.bankName} onChange={(bankName) => setBank((b) => b && { ...b, bankName })} autocapitalize="words" />
-              <TextField label="Account number" required inputmode="numeric" value={bank.accountNumber} onChange={(v) => setBank((b) => b && { ...b, accountNumber: v.replace(/\s/g, '') })} />
+              <TextField label={t('Account holder name')} required value={bank.holderName} onChange={(holderName) => setBank((b) => b && { ...b, holderName })} autocapitalize="words" />
+              <TextField label={t('Bank name')} required value={bank.bankName} onChange={(bankName) => setBank((b) => b && { ...b, bankName })} autocapitalize="words" />
+              <TextField label={t('Account number')} required inputmode="numeric" value={bank.accountNumber} onChange={(v) => setBank((b) => b && { ...b, accountNumber: v.replace(/\s/g, '') })} />
               <TextField
                 label="IFSC"
                 required
                 value={bank.ifsc}
                 onChange={(v) => setBank((b) => b && { ...b, ifsc: v.toUpperCase().trim() })}
-                error={bank.ifsc && !IFSC_RE.test(bank.ifsc) ? '11 characters, e.g. HDFC0001234' : null}
+                error={bank.ifsc && !IFSC_RE.test(bank.ifsc) ? t('11 characters, e.g. HDFC0001234') : null}
                 maxlength={11}
               />
-              <TextField label="Branch" value={bank.branch} onChange={(branch) => setBank((b) => b && { ...b, branch })} autocapitalize="words" />
+              <TextField label={t('Branch')} value={bank.branch} onChange={(branch) => setBank((b) => b && { ...b, branch })} autocapitalize="words" />
               <SelectField
-                label="Account type"
+                label={t('Account type')}
                 value={bank.accountType}
                 options={[
-                  { value: 'current', label: 'Current' },
-                  { value: 'savings', label: 'Savings' },
+                  { value: 'current', label: t('Current') },
+                  { value: 'savings', label: t('Savings') },
                 ]}
                 onChange={(accountType) => setBank((b) => b && { ...b, accountType })}
               />
-              <ToggleRow label="Default (print on every invoice)" checked={bank.isDefault} onChange={(isDefault) => setBank((b) => b && { ...b, isDefault })} />
+              <ToggleRow label={t('Default (print on every invoice)')} checked={bank.isDefault} onChange={(isDefault) => setBank((b) => b && { ...b, isDefault })} />
               {bankAccounts.some((b) => b.id === bank.id) && (
                 <IonButton
                   color="danger"
                   fill="clear"
                   expand="block"
                   onClick={() =>
-                    confirmDelete('bank account', async () => {
+                    confirmDelete(t('Delete this bank account?'), async () => {
                       await deleteRecord('bankAccounts', actor, bank.id);
                       setBank(null);
                     })
                   }
                 >
-                  Delete bank account
+                  {t('Delete bank account')}
                 </IonButton>
               )}
             </IonContent>
@@ -215,41 +216,41 @@ export default function PaymentDetailsScreen() {
             <IonHeader>
               <IonToolbar>
                 <IonButtons slot="start">
-                  <IonButton onClick={() => setUpi(null)}>Cancel</IonButton>
+                  <IonButton onClick={() => setUpi(null)}>{t('Cancel')}</IonButton>
                 </IonButtons>
-                <IonTitle>UPI ID</IonTitle>
+                <IonTitle>{t('UPI ID')}</IonTitle>
                 <IonButtons slot="end">
                   <IonButton strong onClick={() => void saveUpi(upi)}>
-                    Save
+                    {t('Save')}
                   </IonButton>
                 </IonButtons>
               </IonToolbar>
             </IonHeader>
             <IonContent className="ion-padding">
               <TextField
-                label="UPI ID"
+                label={t('UPI ID')}
                 required
                 placeholder="shopname@okbank"
                 value={upi.upiId}
                 onChange={(upiId) => setUpi((u) => u && { ...u, upiId })}
                 autocapitalize="off"
-                error={upi.upiId && !UPI_RE.test(upi.upiId.trim()) ? 'Looks like name@bank' : null}
+                error={upi.upiId && !UPI_RE.test(upi.upiId.trim()) ? t('Looks like name@bank') : null}
               />
-              <TextField label="Payee name" required value={upi.payeeName} onChange={(payeeName) => setUpi((u) => u && { ...u, payeeName })} autocapitalize="words" />
-              <ToggleRow label="Default (QR on every invoice)" checked={upi.isDefault} onChange={(isDefault) => setUpi((u) => u && { ...u, isDefault })} />
+              <TextField label={t('Payee name')} required value={upi.payeeName} onChange={(payeeName) => setUpi((u) => u && { ...u, payeeName })} autocapitalize="words" />
+              <ToggleRow label={t('Default (QR on every invoice)')} checked={upi.isDefault} onChange={(isDefault) => setUpi((u) => u && { ...u, isDefault })} />
               {upiIds.some((u) => u.id === upi.id) && (
                 <IonButton
                   color="danger"
                   fill="clear"
                   expand="block"
                   onClick={() =>
-                    confirmDelete('UPI ID', async () => {
+                    confirmDelete(t('Delete this UPI ID?'), async () => {
                       await deleteRecord('upiIds', actor, upi.id);
                       setUpi(null);
                     })
                   }
                 >
-                  Delete UPI ID
+                  {t('Delete UPI ID')}
                 </IonButton>
               )}
             </IonContent>

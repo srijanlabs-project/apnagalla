@@ -1,5 +1,6 @@
 import { todayISO } from '@invoice/shared';
 import type { CreditNote, Invoice, PaymentEntry } from './db';
+import { t } from './i18n';
 
 /**
  * Money on each bill, worked out from its payment entries and saved credit notes. Nothing here is
@@ -52,4 +53,17 @@ export function isOverdue(inv: Invoice, money: BillMoney, today = todayISO()): b
   return inv.status === 'saved' && money.pending > 0 && !!inv.dueDate && inv.dueDate < today;
 }
 
+/** English payment-mode names; for display use modeLabel(), which translates them. */
 export const MODE_LABEL: Record<PaymentEntry['mode'], string> = { cash: 'Cash', upi: 'UPI', card: 'Card', bank: 'Bank transfer', cheque: 'Cheque', other: 'Other' };
+
+const MODE_TEXT: Record<PaymentEntry['mode'], () => string> = {
+  cash: () => t('Cash'),
+  upi: () => t('UPI'),
+  card: () => t('Card'),
+  bank: () => t('Bank transfer'),
+  cheque: () => t('Cheque'),
+  other: () => t('Other'),
+};
+
+/** A payment mode's name in the app's language. */
+export const modeLabel = (m: PaymentEntry['mode']): string => MODE_TEXT[m]();

@@ -19,6 +19,7 @@ import type {
   VerifyOtpResponse,
 } from '@invoice/shared';
 import { API_URL } from '../config';
+import { t } from './i18n';
 import { KEYS, kv } from './storage';
 
 export class ApiError extends Error {
@@ -34,7 +35,7 @@ export class ApiError extends Error {
 /** The request never reached the server (offline, DNS, server down). */
 export class NetworkError extends Error {
   constructor() {
-    super("Can't reach the server. Check your internet connection.");
+    super(t("Can't reach the server. Check your internet connection."));
   }
 }
 
@@ -105,14 +106,14 @@ async function request<T>(method: string, path: string, body?: unknown, opts: { 
   let res = await rawFetch(path, init);
   if (res.status === 401 && opts.auth !== false && tokens) {
     const refreshed = await refreshTokens();
-    if (!refreshed) throw new ApiError(401, 'unauthorized', 'Please log in again');
+    if (!refreshed) throw new ApiError(401, 'unauthorized', t('Please log in again'));
     res = await rawFetch(path, init);
   }
   if (res.status === 204) return undefined as T;
   const data = (await res.json().catch(() => null)) as unknown;
   if (!res.ok) {
     const err = (data ?? {}) as Partial<ApiErrorBody>;
-    throw new ApiError(res.status, err.error ?? 'error', err.message ?? `Request failed (${res.status})`);
+    throw new ApiError(res.status, err.error ?? 'error', err.message ?? t('Request failed ({status})', { status: res.status }));
   }
   return data as T;
 }
@@ -152,5 +153,5 @@ export const api = {
 
 export function errorMessage(e: unknown): string {
   if (e instanceof ApiError || e instanceof NetworkError) return e.message;
-  return 'Something went wrong. Please try again.';
+  return t('Something went wrong. Please try again.');
 }

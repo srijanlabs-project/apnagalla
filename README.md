@@ -13,6 +13,10 @@ Product docs: `PLAN.md` (phase 1 plan) and `SPEC.md` (functional spec).
 
 ## Milestone status
 Release 1 is in progress; see PLAN.md §10 for the step list.
+- **R1.6 Printing and languages:**
+  - Bluetooth thermal printing (classic + BLE, 58 / 80 mm), receipts drawn as a picture so every script, logo and UPI QR print; auto-print after a counter sale;
+  - app in English, Hindi, Gujarati and Punjabi (More → Language); receipts in the store's receipt language;
+  - translations: `npm run i18n -w @invoice/app -- check | export FILE.csv | import FILE.csv` (review sheet: `docs/translations-review.csv`).
 - **R1.5 Catalogue:**
   - category tree (3 levels), item code, MRP (optional bill column), purchase price hidden from staff by default;
   - import items and customers from Excel / CSV with a preview, update-or-skip for matches;

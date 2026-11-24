@@ -1,5 +1,6 @@
 import { IonSpinner } from '@ionic/react';
 import { useEffect, useRef, useState } from 'react';
+import { t } from '../lib/i18n';
 
 /**
  * Renders PDF pages to canvases with pdf.js. (Android WebView has no built-in PDF viewer,
@@ -45,7 +46,7 @@ export default function PdfPreview({ blob }: { blob: Blob | null }) {
         if (cancelled) return;
         el.replaceChildren(...canvases);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Could not show preview');
+        if (!cancelled) setError(e instanceof Error ? e.message : t('Could not show preview'));
       } finally {
         if (!cancelled) setBusy(false);
       }

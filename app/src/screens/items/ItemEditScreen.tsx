@@ -10,6 +10,7 @@ import FormPage from '../../components/FormPage';
 import { useBusiness } from '../../lib/business';
 import { db, type BusinessSettings, type Item } from '../../lib/db';
 import { rupees } from '../../lib/format';
+import { t } from '../../lib/i18n';
 import { flattenCategories, useCategories } from '../../lib/categories';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
@@ -61,81 +62,84 @@ export function ItemForm({
   return (
     <>
       <FormSection>
-        <TextField label="Item / service name" required value={it.name} onChange={(name) => patch({ name })} />
-        <TextArea label="Description (optional)" value={it.description} onChange={(description) => patch({ description })} />
+        <TextField label={t('Item / service name')} required value={it.name} onChange={(name) => patch({ name })} />
+        <TextArea label={t('Description (optional)')} value={it.description} onChange={(description) => patch({ description })} />
         <div className="field-row">
           {cats.length > 0 && (
             <SelectField
-              label="Category"
+              label={t('Category')}
               value={it.categoryId ?? ''}
-              options={[{ value: '', label: 'None' }, ...cats.map((n) => ({ value: n.cat.id, label: n.path }))]}
+              options={[{ value: '', label: t('None') }, ...cats.map((n) => ({ value: n.cat.id, label: n.path }))]}
               onChange={(categoryId) => patch({ categoryId: categoryId || null })}
             />
           )}
-          <TextField label="Item code" value={it.code} onChange={(code) => patch({ code: code.trim() || undefined })} disabled={priceLocked} maxlength={30} autocapitalize="characters" />
+          <TextField label={t('Item code')} value={it.code} onChange={(code) => patch({ code: code.trim() || undefined })} disabled={priceLocked} maxlength={30} autocapitalize="characters" />
         </div>
         {(settings.areaBilling || (it.pricing && it.pricing !== 'unit')) && (
           <SelectField
-            label="Priced"
+            label={t('Priced')}
             value={it.pricing ?? 'unit'}
             options={[
-              { value: 'unit' as const, label: 'Per unit (piece, kg, box…)' },
-              { value: 'sqft' as const, label: 'Per sq ft (length × width)' },
-              { value: 'rft' as const, label: 'Per running foot (length)' },
+              { value: 'unit' as const, label: t('Per unit (piece, kg, box…)') },
+              { value: 'sqft' as const, label: t('Per sq ft (length × width)') },
+              { value: 'rft' as const, label: t('Per running foot (length)') },
             ]}
             onChange={(pricing) => patch({ pricing, ...(pricing === 'sqft' ? { unit: 'sq ft' } : pricing === 'rft' ? { unit: 'rft' } : {}) })}
             disabled={priceLocked}
           />
         )}
         {(it.pricing ?? 'unit') === 'unit' && (
-          <SelectField label="Unit" value={it.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => patch({ unit })} />
+          <SelectField label={t('Unit')} value={it.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => patch({ unit })} />
         )}
         <div className="search-row">
           <TextField
-            label="Barcode"
+            label={t('Barcode')}
             value={it.barcode}
             onChange={(barcode) => patch({ barcode: barcode.trim() || undefined })}
             disabled={priceLocked}
-            error={clash ? `Already on ${clash.name}` : null}
+            error={clash ? t('Already on {item}', { item: clash.name }) : null}
           />
           {!priceLocked && (
-            <IonButton fill="clear" onClick={() => setScanning(true)} aria-label="Scan barcode">
+            <IonButton fill="clear" onClick={() => setScanning(true)} aria-label={t('Scan barcode')}>
               <IonIcon icon={barcodeOutline} slot="icon-only" />
             </IonButton>
           )}
         </div>
         <BarcodeScanner isOpen={scanning} onClose={() => setScanning(false)} onScan={(barcode) => patch({ barcode })} />
       </FormSection>
-      <FormSection title="Price & tax" note={priceLocked ? 'Only the owner can change prices.' : undefined}>
-        <MoneyField label={it.rateIncludesTax ? 'Price (incl. tax)' : 'Price (before tax)'} value={it.rate} onChange={(v) => patch({ rate: v ?? 0 })} disabled={priceLocked} />
+      <FormSection title={t('Price & tax')} note={priceLocked ? t('Only the owner can change prices.') : undefined}>
+        <MoneyField label={it.rateIncludesTax ? t('Price (incl. tax)') : t('Price (before tax)')} value={it.rate} onChange={(v) => patch({ rate: v ?? 0 })} disabled={priceLocked} />
         <div className="field-row">
-          <SelectField label="Tax %" value={it.taxPct} options={rates.map((r) => ({ value: r, label: `${r}%` }))} onChange={(taxPct) => patch({ taxPct })} disabled={priceLocked} />
+          <SelectField label={t('Tax %')} value={it.taxPct} options={rates.map((r) => ({ value: r, label: `${r}%` }))} onChange={(taxPct) => patch({ taxPct })} disabled={priceLocked} />
           <TextField
-            label="HSN / SAC"
+            label={t('HSN / SAC')}
             value={it.hsn}
             onChange={(hsn) => patch({ hsn: hsn.replace(/\D/g, '') || undefined })}
             disabled={priceLocked}
             inputmode="numeric"
             maxlength={8}
-            error={it.hsn && !checkHsn(it.hsn) ? '4, 6 or 8 digits' : null}
+            error={it.hsn && !checkHsn(it.hsn) ? t('4, 6 or 8 digits') : null}
           />
         </div>
         <div className="field-row">
-          <MoneyField label="MRP (incl. tax)" value={it.mrp ?? null} onChange={(mrp) => patch({ mrp: mrp || undefined })} disabled={priceLocked} />
-          {showCost && <MoneyField label="Purchase price (cost)" value={it.purchasePrice ?? null} onChange={(purchasePrice) => patch({ purchasePrice: purchasePrice || undefined })} disabled={priceLocked} />}
+          <MoneyField label={t('MRP (incl. tax)')} value={it.mrp ?? null} onChange={(mrp) => patch({ mrp: mrp || undefined })} disabled={priceLocked} />
+          {showCost && <MoneyField label={t('Purchase price (cost)')} value={it.purchasePrice ?? null} onChange={(purchasePrice) => patch({ purchasePrice: purchasePrice || undefined })} disabled={priceLocked} />}
         </div>
-        {aboveMrp && <p className="section-note text-danger">Selling price {rupees(finalPrice)} is above the MRP {rupees(it.mrp!)}. Selling above MRP is not allowed.</p>}
-        {margin != null && <p className="section-note">Margin before tax: {rupees(Math.round(margin))} per {it.unit}</p>}
+        {aboveMrp && <p className="section-note text-danger">{t('Selling price {price} is above the MRP {mrp}. Selling above MRP is not allowed.', { price: rupees(finalPrice), mrp: rupees(it.mrp!) })}</p>}
+        {margin != null && <p className="section-note">{t('Margin before tax: {margin} per {unit}', { margin: rupees(Math.round(margin)), unit: it.unit })}</p>}
         <ToggleRow
-          label="Price includes tax"
-          note="Turn on for MRP-style prices where the price already contains tax."
+          label={t('Price includes tax')}
+          note={t('Turn on for MRP-style prices where the price already contains tax.')}
           checked={it.rateIncludesTax}
           onChange={(rateIncludesTax) => patch({ rateIncludesTax })}
           disabled={priceLocked}
         />
         {it.rate > 0 && (
           <p className="section-note">
-            Before tax {rupees(preview.taxableAmount)} + tax {rupees(preview.taxTotal)} = <strong>{rupees(preview.taxableAmount + preview.taxTotal)}</strong> per {it.unit}
+            {/* One phrase; {total} is left unfilled so it can be shown in bold where the language puts it. */}
+            {t('Before tax {taxable} + tax {tax} = {total} per {unit}', { taxable: rupees(preview.taxableAmount), tax: rupees(preview.taxTotal), unit: it.unit })
+              .split('{total}')
+              .map((part, i) => (i === 0 ? part : [<strong key={i}>{rupees(preview.taxableAmount + preview.taxTotal)}</strong>, part]))}
           </p>
         )}
       </FormSection>
@@ -162,13 +166,13 @@ export default function ItemEditScreen() {
 
   return (
     <FormPage
-      title={isNew ? 'New item' : 'Edit item'}
+      title={isNew ? t('New item') : t('Edit item')}
       backHref="/tabs/items"
-      onSave={isNew || isOwner ? () => save(() => putRecord('items', actor, { ...it, name: it.name.trim() }), { message: 'Item saved', back: true }) : undefined}
+      onSave={isNew || isOwner ? () => save(() => putRecord('items', actor, { ...it, name: it.name.trim() }), { message: t('Item saved'), back: true }) : undefined}
       saving={saving}
       canSave={!!it.name.trim()}
     >
-      {!isNew && !isOwner && <p className="section-note">Only the owner can edit catalogue items.</p>}
+      {!isNew && !isOwner && <p className="section-note">{t('Only the owner can edit catalogue items.')}</p>}
       <ItemForm value={it} onChange={patch} settings={settings} priceLocked={priceLocked} showCost={isOwner || settings.staffSeeCost} />
       {!isNew && isOwner && (
         <IonButton
@@ -177,11 +181,11 @@ export default function ItemEditScreen() {
           expand="block"
           onClick={() =>
             void alert({
-              message: `Delete ${it.name}? Existing invoices keep their lines.`,
+              message: t('Delete {item}? Existing invoices keep their lines.', { item: it.name }),
               buttons: [
-                { text: 'Cancel', role: 'cancel' },
+                { text: t('Cancel'), role: 'cancel' },
                 {
-                  text: 'Delete',
+                  text: t('Delete'),
                   role: 'destructive',
                   handler: async () => {
                     await deleteRecord('items', actor, it.id);
@@ -192,7 +196,7 @@ export default function ItemEditScreen() {
             })
           }
         >
-          Delete item
+          {t('Delete item')}
         </IonButton>
       )}
     </FormPage>

@@ -8,6 +8,7 @@ import StatusBadge, { invoiceStatus } from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
 import { db, type CreditNote, type Estimate, type Invoice } from '../../lib/db';
 import { dateIN, rupees } from '../../lib/format';
+import { t } from '../../lib/i18n';
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
 import { moneyOf } from '../../lib/ledger';
 import type { DocKind } from '../../lib/repo';
@@ -49,24 +50,25 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
   const base = DOC_BASE[kind];
 
   return (
-    <PageShell title={kind === 'invoice' ? 'Invoices' : kind === 'estimate' ? 'Estimates' : 'Credit notes'} padded={false}>
+    <PageShell title={kind === 'invoice' ? t('Invoices') : kind === 'estimate' ? t('Estimates') : t('Credit notes')} padded={false}>
       <IonSegment value={kind} onIonChange={(e) => router.push(DOC_BASE[e.detail.value as DocKind], 'none', 'replace')}>
         <IonSegmentButton value="invoice">
-          <IonLabel>Invoices</IonLabel>
+          <IonLabel>{t('Invoices')}</IonLabel>
         </IonSegmentButton>
         <IonSegmentButton value="estimate">
-          <IonLabel>Estimates</IonLabel>
+          <IonLabel>{t('Estimates')}</IonLabel>
         </IonSegmentButton>
         <IonSegmentButton value="credit">
-          <IonLabel>Credit notes</IonLabel>
+          <IonLabel>{t('Credit notes')}</IonLabel>
         </IonSegmentButton>
       </IonSegment>
-      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder="Search number or customer" />
+      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search number or customer')} />
       {kind === 'invoice' && (
         <div className="filter-chips">
           {INVOICE_FILTERS.map((f) => (
             <IonChip key={f} outline={filter !== f} color={filter === f ? 'primary' : undefined} onClick={() => setFilter(f)}>
-              {f}
+              {/* i18n: labels above are translated where rendered */}
+              {t(f)}
             </IonChip>
           ))}
         </div>
@@ -75,13 +77,13 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
       {docs && docs.length === 0 ? (
         <EmptyState
           icon={documentTextOutline}
-          title={kind === 'invoice' ? 'No invoices yet' : kind === 'estimate' ? 'No estimates yet' : 'No credit notes yet'}
+          title={kind === 'invoice' ? t('No invoices yet') : kind === 'estimate' ? t('No estimates yet') : t('No credit notes yet')}
           text={
             kind === 'invoice'
-              ? 'Tap + to create your first invoice. It works offline too.'
+              ? t('Tap + to create your first invoice. It works offline too.')
               : kind === 'estimate'
-                ? 'Send a quotation, then convert it to an invoice in one tap.'
-                : 'For a return or a price cut, open the invoice and choose More actions → Credit note.'
+                ? t('Send a quotation, then convert it to an invoice in one tap.')
+                : t('For a return or a price cut, open the invoice and choose More actions → Credit note.')
           }
         />
       ) : (
@@ -91,9 +93,9 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
             return (
               <IonItem key={d.id} routerLink={`${base}/${d.id}`} detail={false}>
                 <IonLabel>
-                  <h2>{d.billTo?.name ?? 'No customer'}</h2>
+                  <h2>{d.billTo?.name ?? t('No customer')}</h2>
                   <p>
-                    {d.number || 'Draft'} · {dateIN(d.date)}
+                    {d.number || t('Draft')} · {dateIN(d.date)}
                   </p>
                 </IonLabel>
                 <div slot="end" className="list-end">
@@ -105,7 +107,7 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
                   ) : (
                     <StatusBadge creditNote={d as CreditNote} />
                   )}
-                  {pending > 0 && pending < d.totals.grandTotal && <small className="text-danger">{rupees(pending)} due</small>}
+                  {pending > 0 && pending < d.totals.grandTotal && <small className="text-danger">{t('{amount} due', { amount: rupees(pending) })}</small>}
                 </div>
               </IonItem>
             );
@@ -115,7 +117,7 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
 
       {(kind === 'estimate' || (kind === 'invoice' && CAN_CREATE_INVOICES)) && (
         <IonFab slot="fixed" vertical="bottom" horizontal="end">
-          <IonFabButton routerLink={`${base}/new`} aria-label={kind === 'invoice' ? 'New invoice' : 'New estimate'}>
+          <IonFabButton routerLink={`${base}/new`} aria-label={kind === 'invoice' ? t('New invoice') : t('New estimate')}>
             <IonIcon icon={add} />
           </IonFabButton>
         </IonFab>

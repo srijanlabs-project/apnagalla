@@ -6,3 +6,4 @@ export * from './dates';
 export * from './sync';
 export * from './gst';
 export * from './area';
+export * from './langs';

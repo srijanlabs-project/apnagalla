@@ -3,6 +3,7 @@ import { addOutline, folderOpenOutline } from 'ionicons/icons';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
+import { t } from '../../lib/i18n';
 import { MAX_CATEGORY_DEPTH, deleteCategory, flattenCategories, saveCategory, useCategories } from '../../lib/categories';
 
 /** Owner: build the category tree (up to 3 levels) items are filed under. */
@@ -12,24 +13,24 @@ export default function CategoriesScreen() {
   const tree = flattenCategories(cats);
   const [alert] = useIonAlert();
   const [toast] = useIonToast();
-  const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : 'Could not save', duration: 2500, color: 'danger' });
+  const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : t('Could not save'), duration: 2500, color: 'danger' });
 
   function ask(header: string, value: string, onOk: (name: string) => Promise<unknown>) {
     void alert({
       header,
-      inputs: [{ name: 'name', value, placeholder: 'Name', attributes: { maxlength: 40, autocapitalize: 'words' } }],
+      inputs: [{ name: 'name', value, placeholder: t('Name'), attributes: { maxlength: 40, autocapitalize: 'words' } }],
       buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        { text: 'Save', handler: (v: { name?: string }) => void onOk(v.name ?? '').catch(fail) },
+        { text: t('Cancel'), role: 'cancel' },
+        { text: t('Save'), handler: (v: { name?: string }) => void onOk(v.name ?? '').catch(fail) },
       ],
     });
   }
 
   return (
-    <PageShell title="Categories" backHref="/tabs/items" padded={false}>
-      {!isOwner && <p className="section-note ion-padding">Only the owner can change categories.</p>}
+    <PageShell title={t('Categories')} backHref="/tabs/items" padded={false}>
+      {!isOwner && <p className="section-note ion-padding">{t('Only the owner can change categories.')}</p>}
       {tree.length === 0 ? (
-        <EmptyState icon={folderOpenOutline} title="No categories yet" text="Group items, e.g. Paints › Emulsion › Interior. Up to 3 levels." />
+        <EmptyState icon={folderOpenOutline} title={t('No categories yet')} text={t('Group items, e.g. Paints › Emulsion › Interior. Up to 3 levels.')} />
       ) : (
         <IonList>
           {tree.map(({ cat, depth }) => (
@@ -40,8 +41,8 @@ export default function CategoriesScreen() {
               {isOwner && (
                 <>
                   {depth < MAX_CATEGORY_DEPTH && (
-                    <IonButton slot="end" fill="clear" size="small" onClick={() => ask(`New under ${cat.name}`, '', (name) => saveCategory(actor, cats, { name, parentId: cat.id }))}>
-                      + Sub
+                    <IonButton slot="end" fill="clear" size="small" onClick={() => ask(t('New under {category}', { category: cat.name }), '', (name) => saveCategory(actor, cats, { name, parentId: cat.id }))}>
+                      {t('+ Sub')}
                     </IonButton>
                   )}
                   <IonButton
@@ -53,14 +54,14 @@ export default function CategoriesScreen() {
                       void alert({
                         header: cat.name,
                         buttons: [
-                          { text: 'Rename', handler: () => ask('Rename', cat.name, (name) => saveCategory(actor, cats, { id: cat.id, name, parentId: cat.parentId })) },
-                          { text: 'Delete', role: 'destructive', handler: () => void deleteCategory(actor, cats, cat.id).catch(fail) },
-                          { text: 'Close', role: 'cancel' },
+                          { text: t('Rename'), handler: () => ask(t('Rename'), cat.name, (name) => saveCategory(actor, cats, { id: cat.id, name, parentId: cat.parentId })) },
+                          { text: t('Delete'), role: 'destructive', handler: () => void deleteCategory(actor, cats, cat.id).catch(fail) },
+                          { text: t('Close'), role: 'cancel' },
                         ],
                       })
                     }
                   >
-                    Edit
+                    {t('Edit')}
                   </IonButton>
                 </>
               )}
@@ -70,10 +71,10 @@ export default function CategoriesScreen() {
       )}
       {isOwner && (
         <div className="ion-padding">
-          <IonButton expand="block" fill="outline" onClick={() => ask('New category', '', (name) => saveCategory(actor, cats, { name, parentId: null }))}>
-            <IonIcon icon={addOutline} slot="start" /> Add category
+          <IonButton expand="block" fill="outline" onClick={() => ask(t('New category'), '', (name) => saveCategory(actor, cats, { name, parentId: null }))}>
+            <IonIcon icon={addOutline} slot="start" /> {t('Add category')}
           </IonButton>
-          <IonNote>Tip: Import items from Excel creates categories from a column like “Paints &gt; Emulsion”.</IonNote>
+          <IonNote>{t('Tip: Import items from Excel creates categories from a column like “Paints > Emulsion”.')}</IonNote>
         </div>
       )}
     </PageShell>

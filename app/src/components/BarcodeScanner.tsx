@@ -2,6 +2,7 @@ import { IonButton, IonButtons, IonContent, IonHeader, IonModal, IonTitle, IonTo
 import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { useEffect, useRef, useState } from 'react';
+import { t } from '../lib/i18n';
 
 interface Props {
   isOpen: boolean;
@@ -31,7 +32,7 @@ const SAME_CODE_MS = 1500;
  * Reads barcodes with the phone's back camera, inside the app (ZXing, open source, no Google
  * services). Works in the Android app and in a browser.
  */
-export default function BarcodeScanner({ isOpen, onClose, onScan, continuous, title = 'Scan barcode' }: Props) {
+export default function BarcodeScanner({ isOpen, onClose, onScan, continuous, title = t('Scan barcode') }: Props) {
   const video = useRef<HTMLVideoElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [last, setLast] = useState<string | null>(null);
@@ -78,10 +79,10 @@ export default function BarcodeScanner({ isOpen, onClose, onScan, continuous, ti
         const name = (e as Error).name;
         setError(
           name === 'NotAllowedError'
-            ? 'Camera permission was refused. Allow the camera for ApnaGalla in your phone settings.'
+            ? t('Camera permission was refused. Allow the camera for ApnaGalla in your phone settings.')
             : name === 'NotFoundError'
-              ? 'No camera found on this device.'
-              : 'Could not start the camera.',
+              ? t('No camera found on this device.')
+              : t('Could not start the camera.'),
         );
       }
     };
@@ -97,7 +98,7 @@ export default function BarcodeScanner({ isOpen, onClose, onScan, continuous, ti
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
-            <IonButton onClick={onClose}>{continuous ? 'Done' : 'Cancel'}</IonButton>
+            <IonButton onClick={onClose}>{continuous ? t('Done') : t('Cancel')}</IonButton>
           </IonButtons>
           <IonTitle>{title}</IonTitle>
         </IonToolbar>
@@ -111,7 +112,7 @@ export default function BarcodeScanner({ isOpen, onClose, onScan, continuous, ti
             <div className="scanner-frame" />
           </div>
         )}
-        {!error && <p className="ion-padding scanner-hint">{last ? `Read ${last}` : 'Point the camera at the barcode.'}</p>}
+        {!error && <p className="ion-padding scanner-hint">{last ? t('Read {code}', { code: last }) : t('Point the camera at the barcode.')}</p>}
       </IonContent>
     </IonModal>
   );

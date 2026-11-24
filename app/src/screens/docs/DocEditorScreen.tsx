@@ -29,6 +29,7 @@ import { useBusiness } from '../../lib/business';
 import { api } from '../../lib/api';
 import { db, type CreditNote, type DocBase, type DocLine, type Estimate, type Invoice } from '../../lib/db';
 import { gstViewOf, taxRows } from '../../lib/gstView';
+import { t } from '../../lib/i18n';
 import { addressLines, lineSize, rupees } from '../../lib/format';
 import {
   computeTotals,
@@ -50,7 +51,7 @@ import { PAYMENT_TERMS } from '../settings/InvoiceSettingsScreen';
 import CustomerPicker, { snapshotOf } from './CustomerPicker';
 import LineEditor from './LineEditor';
 import { sync } from '../../lib/sync';
-import { CAN_CREATE_INVOICES, WEB_INVOICE_NOTE } from '../../lib/platform';
+import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
 
 type Doc = Invoice | Estimate | CreditNote;
 
@@ -62,6 +63,7 @@ const CREDIT_REASONS = [
   { value: 'price' as const, label: 'Price reduced / discount after sale' },
   { value: 'other' as const, label: 'Other correction' },
 ];
+// i18n: labels above are translated where rendered
 
 export default function DocEditorScreen({ kind }: { kind: DocKind }) {
   const { id } = useParams<{ id: string }>();
@@ -71,6 +73,8 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
   const [toast] = useIonToast();
   const [alert] = useIonAlert();
   const base = DOC_BASE[kind];
+  /** Picks the phrase for this kind of document (whole phrases, so each language can word them its own way). */
+  const byKind = (invoice: string, estimate: string, creditNote: string) => (kind === 'invoice' ? invoice : kind === 'estimate' ? estimate : creditNote);
   const gstType = effectiveGstType(profile);
 
   const [doc, setDoc] = useState<Doc | null>(null);
@@ -135,11 +139,11 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
             <IonButtons slot="start">
               <IonBackButton defaultHref={base} />
             </IonButtons>
-            <IonTitle>{DOC_LABEL[kind]}</IonTitle>
+            <IonTitle>{byKind(t('Invoice'), t('Estimate'), t('Credit note'))}</IonTitle>
           </IonToolbar>
         </IonHeader>
         <IonContent className="ion-padding">
-          <p>{WEB_INVOICE_NOTE}</p>
+          <p>{webInvoiceNote()}</p>
         </IonContent>
       </IonPage>
     );
@@ -161,12 +165,14 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
   // in another field that React hasn't re-rendered yet.
   const patch = (p: Partial<DocBase> | ((cur: Doc) => Partial<DocBase>)) =>
     setDoc((cur) => (cur ? ({ ...cur, ...(typeof p === 'function' ? p(cur) : p) } as Doc) : cur));
-  const label = DOC_LABEL[kind];
   const locked = !wasDraft && kind !== 'estimate' && !isOwner;
   const view = gstViewOf(kind, doc, profile, totals);
   const noTax = view.mode === 'none';
   const credit = kind === 'credit' ? (doc as CreditNote) : null;
   const overCredit = credit && room != null && totals.grandTotal > room;
+  // Bold parts are placed wherever the language puts them in the sentence.
+  const [againstBefore, againstAfter = ''] = t('Against invoice {number} · up to {amount}', { amount: room != null ? rupees(room) : '…' }).split('{number}');
+  const [targetBefore, targetAfter = ''] = t('Final amount set to {amount} → discount {discount}', { discount: rupees(totals.overallDiscount) }).split('{amount}');
 
   function setTerms(days: number) {
     patch({ paymentTermsDays: days, dueDate: addDaysISO(doc!.date, days) });
@@ -174,13 +180,13 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
 
   function askTargetTotal() {
     void alert({
-      header: 'Set final amount',
-      message: 'Enter the total the customer will pay (including tax). The discount is worked out automatically.',
-      inputs: [{ name: 'amount', type: 'number', placeholder: 'e.g. 1800', attributes: { inputmode: 'decimal' } }],
+      header: t('Set final amount'),
+      message: t('Enter the total the customer will pay (including tax). The discount is worked out automatically.'),
+      inputs: [{ name: 'amount', type: 'number', placeholder: t('e.g. 1800'), attributes: { inputmode: 'decimal' } }],
       buttons: [
-        { text: 'Cancel', role: 'cancel' },
+        { text: t('Cancel'), role: 'cancel' },
         {
-          text: 'Apply',
+          text: t('Apply'),
           handler: (v: { amount: string }) => {
             const target = parseRupees(v.amount ?? '');
             if (target == null) return false;
@@ -188,10 +194,10 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
             if ('error' in r) {
               const msg =
                 r.error === 'target_above_total'
-                  ? 'Final amount cannot be more than the current total. Change the rates instead.'
+                  ? t('Final amount cannot be more than the current total. Change the rates instead.')
                   : r.error === 'no_lines'
-                    ? 'Add items first.'
-                    : 'Final amount must be more than the extra charges.';
+                    ? t('Add items first.')
+                    : t('Final amount must be more than the extra charges.');
               void toast({ message: msg, duration: 3000, color: 'danger' });
               return false;
             }
@@ -205,11 +211,16 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
 
   async function persist(finalize: boolean) {
     if (!doc) return;
-    if (finalize && doc.lines.length === 0) return void toast({ message: 'Add at least one item', duration: 2000, color: 'danger' });
-    if (finalize && !doc.billTo) return void toast({ message: 'Select a customer', duration: 2000, color: 'danger' });
-    if (overCredit) return void toast({ message: `A credit note can be at most ${rupees(room!)} for this invoice`, duration: 2500, color: 'danger' });
+    if (finalize && doc.lines.length === 0) return void toast({ message: t('Add at least one item'), duration: 2000, color: 'danger' });
+    if (finalize && !doc.billTo) return void toast({ message: t('Select a customer'), duration: 2000, color: 'danger' });
+    if (overCredit) return void toast({ message: t('A credit note can be at most {amount} for this invoice', { amount: rupees(room!) }), duration: 2500, color: 'danger' });
     if (doc.number && (await isNumberTaken(kind, actor.businessId, doc.number, doc.id))) {
-      return void toast({ message: `${label} number ${doc.number} is already used`, duration: 2500, color: 'danger' });
+      const message = byKind(
+        t('Invoice number {number} is already used', { number: doc.number }),
+        t('Estimate number {number} is already used', { number: doc.number }),
+        t('Credit note number {number} is already used', { number: doc.number }),
+      );
+      return void toast({ message, duration: 2500, color: 'danger' });
     }
     setSaving(true);
     try {
@@ -219,17 +230,21 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
           : kind === 'estimate'
             ? await saveEstimate(actor, doc as Estimate, { finalize })
             : await saveCreditNote(actor, doc as CreditNote, { finalize });
-      void toast({ message: finalize || !wasDraft ? `${label} ${saved.number} saved` : 'Draft saved', duration: 1500, position: 'top', color: 'success' });
+      const message =
+        finalize || !wasDraft
+          ? byKind(t('Invoice {number} saved', { number: saved.number }), t('Estimate {number} saved', { number: saved.number }), t('Credit note {number} saved', { number: saved.number }))
+          : t('Draft saved');
+      void toast({ message, duration: 1500, position: 'top', color: 'success' });
       router.push(`${base}/${saved.id}`, 'forward', 'replace');
     } catch (e) {
-      void toast({ message: e instanceof PermissionError || e instanceof Error ? e.message : 'Could not save', duration: 2500, color: 'danger' });
+      void toast({ message: e instanceof PermissionError || e instanceof Error ? e.message : t('Could not save'), duration: 2500, color: 'danger' });
     } finally {
       setSaving(false);
     }
   }
 
-  const bankOptions = [{ value: '', label: "Don't show" }, ...bankAccounts.map((b) => ({ value: b.id, label: `${b.bankName} ••••${b.accountNumber.slice(-4)}` }))];
-  const upiOptions = [{ value: '', label: "Don't show" }, ...upiIds.map((u) => ({ value: u.id, label: u.upiId }))];
+  const bankOptions = [{ value: '', label: t("Don't show") }, ...bankAccounts.map((b) => ({ value: b.id, label: `${b.bankName} ••••${b.accountNumber.slice(-4)}` }))];
+  const upiOptions = [{ value: '', label: t("Don't show") }, ...upiIds.map((u) => ({ value: u.id, label: u.upiId }))];
 
   return (
     <IonPage>
@@ -238,31 +253,41 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
           <IonButtons slot="start">
             <IonBackButton defaultHref={base} />
           </IonButtons>
-          <IonTitle>{wasDraft ? `New ${label.toLowerCase()}` : `Edit ${doc.number}`}</IonTitle>
+          <IonTitle>{wasDraft ? byKind(t('New invoice'), t('New estimate'), t('New credit note')) : t('Edit {number}', { number: doc.number })}</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding form-content doc-editor">
-        {locked && <p className="section-note">Only the owner can edit a saved {label.toLowerCase()}.</p>}
+        {locked && (
+          <p className="section-note">
+            {byKind(t('Only the owner can edit a saved invoice.'), t('Only the owner can edit a saved estimate.'), t('Only the owner can edit a saved credit note.'))}
+          </p>
+        )}
 
         {/* ---------- GST kind ---------- */}
         {credit ? (
           <div className="target-chip">
             <span>
-              Against invoice <strong>{credit.invoiceNumber}</strong> · up to {room != null ? rupees(room) : '…'}
+              {againstBefore}
+              <strong>{credit.invoiceNumber}</strong>
+              {againstAfter}
             </span>
           </div>
         ) : gstType === 'regular' && wasDraft ? (
           <IonSegment value={doc.taxMode ?? 'gst'} disabled={locked} onIonChange={sync((e) => patch({ taxMode: e.detail.value as 'gst' | 'none' }))}>
             <IonSegmentButton value="gst">
-              <IonLabel>{kind === 'estimate' ? 'With GST' : 'Tax invoice (GST)'}</IonLabel>
+              <IonLabel>{kind === 'estimate' ? t('With GST') : t('Tax invoice (GST)')}</IonLabel>
             </IonSegmentButton>
             <IonSegmentButton value="none">
-              <IonLabel>Without GST</IonLabel>
+              <IonLabel>{t('Without GST')}</IonLabel>
             </IonSegmentButton>
           </IonSegment>
         ) : gstType !== 'regular' && wasDraft ? (
-          <p className="section-note">{gstType === 'composition' ? 'Composition scheme: bills of supply without GST.' : 'Your store is not GST-registered, so bills have no GST.'} Change this in More → Business profile.</p>
+          <p className="section-note">
+            {gstType === 'composition'
+              ? t('Composition scheme: bills of supply without GST. Change this in More → Business profile.')
+              : t('Your store is not GST-registered, so bills have no GST. Change this in More → Business profile.')}
+          </p>
         ) : null}
 
         {/* ---------- customer ---------- */}
@@ -275,14 +300,14 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
             </div>
           ) : (
             <div>
-              <strong className="text-primary">Select customer</strong>
-              <p>Bill to</p>
+              <strong className="text-primary">{t('Select customer')}</strong>
+              <p>{t('Bill to')}</p>
             </div>
           )}
         </div>
         {doc.billTo?.customerId && !credit && (
           <ToggleRow
-            label="Ship to a different address"
+            label={t('Ship to a different address')}
             checked={!!doc.shipTo}
             onChange={async (on) => {
               const c = on && doc.billTo?.customerId ? await db.customers.get(doc.billTo.customerId) : null;
@@ -292,33 +317,33 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
           />
         )}
         {doc.shipTo && !credit && (
-          <FormSection title="Ship to">
+          <FormSection title={t('Ship to')}>
             <AddressFields value={doc.shipTo} onChange={(a) => patch((cur) => ({ shipTo: { ...cur.shipTo, ...a } }))} disabled={locked} />
           </FormSection>
         )}
         {view.mode === 'gst' && (
           <SelectField
-            label="Place of supply"
+            label={t('Place of supply')}
             value={view.pos ?? ''}
-            options={[...(view.pos ? [] : [{ value: '', label: 'Choose the state' }]), ...GST_STATES.map((st) => ({ value: st.code, label: `${st.name} (${st.code})` }))]}
+            options={[...(view.pos ? [] : [{ value: '', label: t('Choose the state') }]), ...GST_STATES.map((st) => ({ value: st.code, label: `${st.name} (${st.code})` }))]}
             onChange={(code) => patch({ placeOfSupply: code || null })}
             disabled={locked || !!credit}
           />
         )}
 
         {/* ---------- header ---------- */}
-        <FormSection title={`${label} details`}>
+        <FormSection title={byKind(t('Invoice details'), t('Estimate details'), t('Credit note details'))}>
           <div className="field-row">
             <TextField
-              label={`${label} no.`}
+              label={byKind(t('Invoice no.'), t('Estimate no.'), t('Credit note no.'))}
               value={doc.number}
               placeholder={nextNumber}
-              helper={!doc.number && wasDraft ? `Auto: ${nextNumber || 'given when you save'}` : undefined}
+              helper={!doc.number && wasDraft ? (nextNumber ? t('Auto: {number}', { number: nextNumber }) : t('Auto: given when you save')) : undefined}
               onChange={(number) => patch({ number: number.trim() })}
               disabled={locked || (!isOwner && !wasDraft)}
             />
             <label className="date-field">
-              <span>Date</span>
+              <span>{t('Date')}</span>
               <input
                 type="date"
                 value={doc.date}
@@ -330,24 +355,25 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
             </label>
           </div>
           {credit && (
-            <SelectField label="Reason" value={credit.reason} options={CREDIT_REASONS} onChange={(reason) => patch({ reason } as Partial<CreditNote>)} disabled={locked || !isOwner} />
+            <SelectField label={t('Reason')} value={credit.reason} options={CREDIT_REASONS.map((x) => ({ ...x, label: t(x.label) }))} onChange={(reason) => patch({ reason } as Partial<CreditNote>)} disabled={locked || !isOwner} />
           )}
           {kind === 'invoice' && (
             <div className="field-row">
+              {/* i18n: PAYMENT_TERMS labels (from InvoiceSettingsScreen) are translated where rendered */}
               <SelectField
-                label="Payment terms"
-                value={PAYMENT_TERMS.some((t) => t.value === doc.paymentTermsDays) ? doc.paymentTermsDays : -1}
-                options={[...PAYMENT_TERMS, { value: -1, label: 'Custom date' }]}
+                label={t('Payment terms')}
+                value={PAYMENT_TERMS.some((p) => p.value === doc.paymentTermsDays) ? doc.paymentTermsDays : -1}
+                options={[...PAYMENT_TERMS.map((x) => ({ ...x, label: t(x.label) })), { value: -1, label: t('Custom date') }]}
                 onChange={(v) => (v === -1 ? patch({ paymentTermsDays: undefined }) : setTerms(v))}
                 disabled={locked}
               />
               <label className="date-field">
-                <span>Due date</span>
+                <span>{t('Due date')}</span>
                 <input type="date" value={doc.dueDate ?? ''} min={doc.date} disabled={locked} onChange={(e) => patch({ dueDate: e.target.value || undefined, paymentTermsDays: undefined })} />
               </label>
             </div>
           )}
-          {!credit && <TextField label="Reference / PO no." value={doc.reference} onChange={(reference) => patch({ reference })} disabled={locked} />}
+          {!credit && <TextField label={t('Reference / PO no.')} value={doc.reference} onChange={(reference) => patch({ reference })} disabled={locked} />}
           {doc.customFields.map((f, i) => (
             <TextField
               key={f.label}
@@ -360,7 +386,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         </FormSection>
 
         {/* ---------- lines ---------- */}
-        <FormSection title="Items">
+        <FormSection title={t('Items')}>
           <IonList className="line-list">
             {doc.lines.map((l, i) => {
               const r = totals.lines[i]!;
@@ -371,10 +397,10 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
                     {lineSize(l) && <p>{lineSize(l)}</p>}
                     <p>
                       {l.qty} {l.unit} × {rupees(l.rate)}
-                      {l.rateIncludesTax ? ' incl.' : ''}
+                      {l.rateIncludesTax ? ` ${t('incl.')}` : ''}
                       {r.lineDiscount ? ` − ${rupees(r.lineDiscount)}` : ''}
-                      {noTax ? '' : ` · tax ${l.taxPct}%`}
-                      {l.hsn && !noTax ? ` · HSN ${l.hsn}` : ''}
+                      {noTax ? '' : ` · ${t('tax {pct}%', { pct: l.taxPct })}`}
+                      {l.hsn && !noTax ? ` · ${t('HSN {code}', { code: l.hsn })}` : ''}
                     </p>
                   </IonLabel>
                   <IonNote slot="end" className="amount-note">
@@ -390,7 +416,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
               fill="outline"
               onClick={() => setEditing({ line: { id: newId(), name: '', qty: 1, unit: settings.units[0] ?? 'pcs', rate: 0, rateIncludesTax: false, taxPct: settings.defaultTaxPct }, isNew: true })}
             >
-              <IonIcon icon={addOutline} slot="start" /> Add item
+              <IonIcon icon={addOutline} slot="start" /> {t('Add item')}
             </IonButton>
           )}
         </FormSection>
@@ -398,13 +424,15 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         {/* ---------- discount & charges ---------- */}
         {!credit && (
         <>
-        <FormSection title={noTax ? 'Discount on total' : 'Discount on total (before tax)'}>
+        <FormSection title={noTax ? t('Discount on total') : t('Discount on total (before tax)')}>
           {doc.targetTotal != null ? (
             <div className="target-chip">
               <span>
-                Final amount set to <strong>{rupees(doc.targetTotal)}</strong> → discount {rupees(totals.overallDiscount)}
+                {targetBefore}
+                <strong>{rupees(doc.targetTotal)}</strong>
+                {targetAfter}
               </span>
-              {!locked && <IonIcon icon={closeCircle} onClick={() => patch({ targetTotal: null })} aria-label="Remove final amount" />}
+              {!locked && <IonIcon icon={closeCircle} onClick={() => patch({ targetTotal: null })} aria-label={t('Remove final amount')} />}
             </div>
           ) : (
             <>
@@ -417,27 +445,27 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
                 </IonSegmentButton>
               </IonSegment>
               {(doc.overallDiscount?.type ?? 'pct') === 'pct' ? (
-                <NumberField label="Discount %" value={doc.overallDiscount?.value || null} onChange={(v) => patch({ overallDiscount: v ? { type: 'pct', value: v } : null })} min={0} max={100} suffix="%" disabled={locked} />
+                <NumberField label={t('Discount %')} value={doc.overallDiscount?.value || null} onChange={(v) => patch({ overallDiscount: v ? { type: 'pct', value: v } : null })} min={0} max={100} suffix="%" disabled={locked} />
               ) : (
-                <MoneyField label="Discount ₹" value={doc.overallDiscount?.value || null} onChange={(v) => patch({ overallDiscount: v ? { type: 'amount', value: v } : null })} disabled={locked} />
+                <MoneyField label={t('Discount ₹')} value={doc.overallDiscount?.value || null} onChange={(v) => patch({ overallDiscount: v ? { type: 'amount', value: v } : null })} disabled={locked} />
               )}
             </>
           )}
           {!locked && doc.lines.length > 0 && (
             <IonButton size="small" fill="clear" onClick={askTargetTotal}>
-              Set final amount…
+              {t('Set final amount…')}
             </IonButton>
           )}
         </FormSection>
 
-        <FormSection title="Additional charges">
+        <FormSection title={t('Additional charges')}>
           {doc.charges.map((c, i) => (
             <div key={i} className="charge-row">
-              <TextField label="Charge" value={c.label} onChange={(label) => patch((cur) => ({ charges: cur.charges.map((x, j) => (j === i ? { ...x, label } : x)) }))} disabled={locked} />
-              <MoneyField label="Amount" value={c.amount} onChange={(amount) => patch((cur) => ({ charges: cur.charges.map((x, j) => (j === i ? { ...x, amount: amount ?? 0 } : x)) }))} disabled={locked} />
+              <TextField label={t('Charge')} value={c.label} onChange={(label) => patch((cur) => ({ charges: cur.charges.map((x, j) => (j === i ? { ...x, label } : x)) }))} disabled={locked} />
+              <MoneyField label={t('Amount')} value={c.amount} onChange={(amount) => patch((cur) => ({ charges: cur.charges.map((x, j) => (j === i ? { ...x, amount: amount ?? 0 } : x)) }))} disabled={locked} />
               {!noTax && (
                 <SelectField
-                  label="Tax %"
+                  label={t('Tax %')}
                   value={c.taxPct}
                   options={settings.taxRates.map((r) => ({ value: r, label: `${r}%` }))}
                   onChange={(taxPct) => patch((cur) => ({ charges: cur.charges.map((x, j) => (j === i ? { ...x, taxPct } : x)) }))}
@@ -449,7 +477,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
           ))}
           {!locked && (
             <IonButton size="small" fill="clear" onClick={() => patch({ charges: [...doc.charges, { label: 'Delivery', amount: 0, taxPct: 0 } as ChargeInput] })}>
-              <IonIcon icon={addOutline} slot="start" /> Add charge (delivery, packing…)
+              <IonIcon icon={addOutline} slot="start" /> {t('Add charge (delivery, packing…)')}
             </IonButton>
           )}
         </FormSection>
@@ -458,42 +486,44 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
 
         {/* ---------- summary ---------- */}
         <div className="summary">
-          <Row label="Subtotal" value={totals.subtotal} />
-          {totals.itemDiscount > 0 && <Row label="Item discounts" value={-totals.itemDiscount} />}
-          {totals.overallDiscount > 0 && <Row label="Discount on total" value={-totals.overallDiscount} />}
-          {!noTax && <Row label="Taxable amount" value={totals.taxableAmount + totals.chargesTotal} />}
-          {noTax && totals.chargesTotal > 0 && <Row label="Charges" value={totals.chargesTotal} />}
+          <Row label={t('Subtotal')} value={totals.subtotal} />
+          {totals.itemDiscount > 0 && <Row label={t('Item discounts')} value={-totals.itemDiscount} />}
+          {totals.overallDiscount > 0 && <Row label={t('Discount on total')} value={-totals.overallDiscount} />}
+          {!noTax && <Row label={t('Taxable amount')} value={totals.taxableAmount + totals.chargesTotal} />}
+          {noTax && totals.chargesTotal > 0 && <Row label={t('Charges')} value={totals.chargesTotal} />}
           {taxRows(view, totals).map((t) => (
             <Row key={t.label} label={t.label} value={t.amount} />
           ))}
-          {totals.roundOff !== 0 && <Row label="Round off" value={totals.roundOff} />}
-          <Row label="Total" value={totals.grandTotal} strong />
-          {view.mode === 'gst' && view.pos && <p className="in-words">{view.interState ? 'Other state' : 'Same state'}: place of supply {view.posLabel}</p>}
-          {overCredit && <p className="in-words text-danger">More than the {rupees(room!)} left on invoice {credit!.invoiceNumber}</p>}
+          {totals.roundOff !== 0 && <Row label={t('Round off')} value={totals.roundOff} />}
+          <Row label={t('Total')} value={totals.grandTotal} strong />
+          {view.mode === 'gst' && view.pos && <p className="in-words">
+              {view.interState ? t('Other state: place of supply {place}', { place: view.posLabel }) : t('Same state: place of supply {place}', { place: view.posLabel })}
+            </p>}
+          {overCredit && <p className="in-words text-danger">{t('More than the {amount} left on invoice {number}', { amount: rupees(room!), number: credit!.invoiceNumber })}</p>}
           <p className="in-words">{amountInWords(totals.grandTotal)}</p>
         </div>
-        <ToggleRow label="Round off to nearest ₹1" checked={doc.roundOff} onChange={(roundOff) => patch({ roundOff })} disabled={locked || doc.targetTotal != null} />
+        <ToggleRow label={t('Round off to nearest ₹1')} checked={doc.roundOff} onChange={(roundOff) => patch({ roundOff })} disabled={locked || doc.targetTotal != null} />
 
         {/* ---------- footer ---------- */}
         {!credit && (
-        <FormSection title="Payment details on the PDF">
-          <SelectField label="Bank account" value={doc.bankAccountId ?? ''} options={bankOptions} onChange={(v) => patch({ bankAccountId: v || null })} disabled={locked} />
-          <SelectField label="UPI QR code" value={doc.upiIdId ?? ''} options={upiOptions} onChange={(v) => patch({ upiIdId: v || null })} disabled={locked} />
-          {bankAccounts.length === 0 && upiIds.length === 0 && <p className="section-note">Add bank / UPI details in More → Payment details.</p>}
+        <FormSection title={t('Payment details on the PDF')}>
+          <SelectField label={t('Bank account')} value={doc.bankAccountId ?? ''} options={bankOptions} onChange={(v) => patch({ bankAccountId: v || null })} disabled={locked} />
+          <SelectField label={t('UPI QR code')} value={doc.upiIdId ?? ''} options={upiOptions} onChange={(v) => patch({ upiIdId: v || null })} disabled={locked} />
+          {bankAccounts.length === 0 && upiIds.length === 0 && <p className="section-note">{t('Add bank / UPI details in More → Payment details.')}</p>}
         </FormSection>
         )}
         {!credit && (
-          <FormSection title="Delivery" note="Optional. The day before, the person delivering gets a phone alert.">
+          <FormSection title={t('Delivery')} note={t('Optional. The day before, the person delivering gets a phone alert.')}>
             <div className="field-row">
               <label className="date-field">
-                <span>Delivery date</span>
+                <span>{t('Delivery date')}</span>
                 <input type="date" value={doc.deliveryDate ?? ''} min={doc.date} disabled={locked} onChange={(e) => patch({ deliveryDate: e.target.value || null })} />
               </label>
               {doc.deliveryDate && (
                 <SelectField
-                  label="Delivered by"
+                  label={t('Delivered by')}
                   value={doc.deliveryAssignee?.userId ?? ''}
-                  options={[{ value: '', label: 'Not assigned' }, ...team.map((t) => ({ value: t.userId, label: t.userId === actor.userId ? `Me (${t.name})` : t.name }))]}
+                  options={[{ value: '', label: t('Not assigned') }, ...team.map((m) => ({ value: m.userId, label: m.userId === actor.userId ? t('Me ({name})', { name: m.name }) : m.name }))]}
                   onChange={(userId) => patch({ deliveryAssignee: userId ? { userId, name: team.find((t) => t.userId === userId)?.name ?? '' } : null })}
                   disabled={locked}
                 />
@@ -502,9 +532,9 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
           </FormSection>
         )}
 
-        <FormSection title="Notes & terms">
-          <TextArea label="Notes" value={doc.notes} onChange={(notes) => patch({ notes })} disabled={locked} />
-          <TextArea label="Terms & conditions" value={doc.terms} onChange={(terms) => patch({ terms })} disabled={locked} rows={3} />
+        <FormSection title={t('Notes & terms')}>
+          <TextArea label={t('Notes')} value={doc.notes} onChange={(notes) => patch({ notes })} disabled={locked} />
+          <TextArea label={t('Terms & conditions')} value={doc.terms} onChange={(terms) => patch({ terms })} disabled={locked} rows={3} />
         </FormSection>
       </IonContent>
 
@@ -513,16 +543,16 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
           <IonToolbar>
             <div className="save-bar-row">
               <div className="save-bar-total">
-                <span>Total</span>
+                <span>{t('Total')}</span>
                 <strong>{rupees(totals.grandTotal)}</strong>
               </div>
               {wasDraft && (
                 <IonButton fill="outline" disabled={saving} onClick={() => void persist(false)}>
-                  Save draft
+                  {t('Save draft')}
                 </IonButton>
               )}
               <IonButton disabled={saving} onClick={() => void persist(true)}>
-                {saving ? <IonSpinner name="dots" /> : wasDraft ? `Save ${label.toLowerCase()}` : 'Save changes'}
+                {saving ? <IonSpinner name="dots" /> : wasDraft ? byKind(t('Save invoice'), t('Save estimate'), t('Save credit note')) : t('Save changes')}
               </IonButton>
             </div>
           </IonToolbar>

@@ -11,6 +11,7 @@ import {
 import { OTP_LENGTH, formatIndianMobile, normalizeIndianMobile } from '@invoice/shared';
 import { useEffect, useRef, useState } from 'react';
 import { errorMessage } from '../../lib/api';
+import { t } from '../../lib/i18n';
 import { useSession } from '../../lib/session';
 import { sync } from '../../lib/sync';
 import './auth.css';
@@ -30,9 +31,9 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (step.kind !== 'otp') return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    const timer = setInterval(() => setNow(Date.now()), 1000);
     setTimeout(() => otpRef.current?.setFocus(), 300);
-    return () => clearInterval(t);
+    return () => clearInterval(timer);
   }, [step.kind]);
 
   async function sendCode(phone: string) {
@@ -52,7 +53,7 @@ export default function LoginScreen() {
   async function onPhoneSubmit(e: React.FormEvent) {
     e.preventDefault();
     const phone = normalizeIndianMobile(phoneInput);
-    if (!phone) return setError('Enter a valid 10-digit mobile number');
+    if (!phone) return setError(t('Enter a valid 10-digit mobile number'));
     await sendCode(phone);
   }
 
@@ -82,12 +83,12 @@ export default function LoginScreen() {
           <div className="auth-brand">
             <div className="auth-logo">₹</div>
             <h1>ApnaGalla</h1>
-            <p>Create, share and track invoices — even without internet.</p>
+            <p>{t('Create, share and track invoices — even without internet.')}</p>
           </div>
 
           {step.kind === 'phone' ? (
             <form onSubmit={onPhoneSubmit} className="auth-card">
-              <label className="auth-label">Mobile number</label>
+              <label className="auth-label">{t('Mobile number')}</label>
               <div className="phone-row">
                 <span className="cc">+91</span>
                 <IonInput
@@ -101,7 +102,7 @@ export default function LoginScreen() {
                     setPhoneInput(String(e.detail.value ?? ''));
                     setError(null);
                   })}
-                  aria-label="Mobile number"
+                  aria-label={t('Mobile number')}
                 />
               </div>
               {/* Lets the keyboard's Go/Enter key submit (IonButton alone doesn't). */}
@@ -109,13 +110,13 @@ export default function LoginScreen() {
               {error && <IonText color="danger" className="auth-error">{error}</IonText>}
               {!error && signOutReason && <IonText color="warning" className="auth-error">{signOutReason}</IonText>}
               <IonButton type="submit" expand="block" disabled={busy || phoneInput.replace(/\D/g, '').length < 10}>
-                {busy ? <IonSpinner name="dots" /> : 'Get OTP'}
+                {busy ? <IonSpinner name="dots" /> : t('Get OTP')}
               </IonButton>
-              <IonNote className="auth-note">We'll send a {OTP_LENGTH}-digit code by SMS.</IonNote>
+              <IonNote className="auth-note">{t('We\'ll send a {digits}-digit code by SMS.', { digits: OTP_LENGTH })}</IonNote>
             </form>
           ) : (
             <form onSubmit={onOtpSubmit} className="auth-card">
-              <label className="auth-label">Enter the code sent to {formatIndianMobile(step.phone)}</label>
+              <label className="auth-label">{t('Enter the code sent to {phone}', { phone: formatIndianMobile(step.phone) })}</label>
               <IonInput
                 ref={otpRef}
                 className="otp-input"
@@ -129,16 +130,16 @@ export default function LoginScreen() {
                   setCode(String(e.detail.value ?? '').replace(/\D/g, '').slice(0, OTP_LENGTH));
                   setError(null);
                 })}
-                aria-label="One-time code"
+                aria-label={t('One-time code')}
               />
               <button type="submit" hidden aria-hidden="true" tabIndex={-1} disabled={busy} />
               {error && <IonText color="danger" className="auth-error">{error}</IonText>}
               <IonButton type="submit" expand="block" disabled={busy || code.length !== OTP_LENGTH}>
-                {busy ? <IonSpinner name="dots" /> : 'Verify'}
+                {busy ? <IonSpinner name="dots" /> : t('Verify')}
               </IonButton>
               <div className="otp-actions">
                 <IonButton fill="clear" size="small" onClick={() => { setStep({ kind: 'phone' }); setError(null); }}>
-                  Change number
+                  {t('Change number')}
                 </IonButton>
                 <IonButton
                   fill="clear"
@@ -146,10 +147,10 @@ export default function LoginScreen() {
                   disabled={busy || now < step.resendAt}
                   onClick={async () => {
                     await sendCode(step.phone);
-                    void toast({ message: 'New code sent', duration: 1500, position: 'top' });
+                    void toast({ message: t('New code sent'), duration: 1500, position: 'top' });
                   }}
                 >
-                  {now < step.resendAt ? `Resend in ${Math.ceil((step.resendAt - now) / 1000)}s` : 'Resend code'}
+                  {now < step.resendAt ? t('Resend in {seconds}s', { seconds: Math.ceil((step.resendAt - now) / 1000) }) : t('Resend code')}
                 </IonButton>
               </div>
             </form>

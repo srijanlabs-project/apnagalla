@@ -2,6 +2,7 @@ import { IonBadge, IonButton, IonIcon, IonItem, IonLabel, IonList, IonListHeader
 import { checkmarkCircle, storefrontOutline } from 'ionicons/icons';
 import { useState } from 'react';
 import { errorMessage } from '../../lib/api';
+import { t } from '../../lib/i18n';
 import { useSession } from '../../lib/session';
 
 /** The user's stores (tap to switch) and invites waiting for them. */
@@ -32,7 +33,7 @@ export default function StoreList({ onSwitched }: { onSwitched?: () => void }) {
       )}
       <IonList inset>
         <IonListHeader>
-          <IonLabel>Your stores</IonLabel>
+          <IonLabel>{t('Your stores')}</IonLabel>
         </IonListHeader>
         {me.memberships.map((m) => {
           const current = m.businessId === membership?.businessId;
@@ -52,16 +53,16 @@ export default function StoreList({ onSwitched }: { onSwitched?: () => void }) {
               <IonLabel>
                 <h2>{m.businessName}</h2>
                 <p>
-                  {m.role === 'owner' ? 'Owner' : 'Staff'}
+                  {m.role === 'owner' ? t('Owner') : t('Staff')}
                   {m.businessCity ? ` · ${m.businessCity}` : ''}
                 </p>
               </IonLabel>
               {paused && (
                 <IonBadge slot="end" color="medium">
-                  Paused
+                  {t('Paused')}
                 </IonBadge>
               )}
-              {current && <IonIcon slot="end" icon={checkmarkCircle} color="primary" aria-label="Current store" />}
+              {current && <IonIcon slot="end" icon={checkmarkCircle} color="primary" aria-label={t('Current store')} />}
             </IonItem>
           );
         })}
@@ -70,22 +71,22 @@ export default function StoreList({ onSwitched }: { onSwitched?: () => void }) {
       {me.invites.length > 0 && (
         <IonList inset>
           <IonListHeader>
-            <IonLabel>Invites for you</IonLabel>
+            <IonLabel>{t('Invites for you')}</IonLabel>
           </IonListHeader>
           {me.invites.map((inv) => (
             <IonItem key={inv.id} lines="full">
               <IonLabel>
                 <h2>{inv.businessName}</h2>
                 <p>
-                  Join as {inv.role}
-                  {inv.invitedByName ? ` · invited by ${inv.invitedByName}` : ''}
+                  {inv.role === 'owner' ? t('Join as owner') : t('Join as staff')}
+                  {inv.invitedByName ? ` · ${t('invited by {name}', { name: inv.invitedByName })}` : ''}
                 </p>
               </IonLabel>
               <IonButton slot="end" size="small" fill="clear" color="medium" disabled={!!busy} onClick={() => void run(inv.id + 'd', () => declineInvite(inv.id))}>
-                Decline
+                {t('Decline')}
               </IonButton>
               <IonButton slot="end" size="small" disabled={!!busy} onClick={() => void run(inv.id, () => acceptInvite(inv.id))}>
-                {busy === inv.id ? <IonSpinner name="dots" /> : 'Join'}
+                {busy === inv.id ? <IonSpinner name="dots" /> : t('Join')}
               </IonButton>
             </IonItem>
           ))}

@@ -5,6 +5,7 @@ import { personAddOutline, walkOutline } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
 import { useBusiness } from '../../lib/business';
 import { db, type Customer, type PartySnapshot } from '../../lib/db';
+import { t } from '../../lib/i18n';
 import { CustomerForm, blankCustomer, saveCustomer, validateCustomer } from '../customers/CustomerEditScreen';
 
 export function snapshotOf(c: Customer): PartySnapshot {
@@ -50,9 +51,9 @@ export default function CustomerPicker({ isOpen, onClose, onPick }: Props) {
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
-            <IonButton onClick={() => (creating ? setCreating(null) : close())}>{creating ? 'Back' : 'Cancel'}</IonButton>
+            <IonButton onClick={() => (creating ? setCreating(null) : close())}>{creating ? t('Back') : t('Cancel')}</IonButton>
           </IonButtons>
-          <IonTitle>{creating ? 'New customer' : 'Select customer'}</IonTitle>
+          <IonTitle>{creating ? t('New customer') : t('Select customer')}</IonTitle>
           {creating && (
             <IonButtons slot="end">
               <IonButton
@@ -64,18 +65,18 @@ export default function CustomerPicker({ isOpen, onClose, onPick }: Props) {
                     onPick(snapshotOf(saved), saved);
                     close();
                   } catch (e) {
-                    void toast({ message: e instanceof Error ? e.message : 'Could not save', duration: 2000, color: 'danger' });
+                    void toast({ message: e instanceof Error ? e.message : t('Could not save'), duration: 2000, color: 'danger' });
                   }
                 }}
               >
-                Save
+                {t('Save')}
               </IonButton>
             </IonButtons>
           )}
         </IonToolbar>
         {!creating && (
           <IonToolbar>
-            <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder="Search name or phone" />
+            <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search name or phone')} />
           </IonToolbar>
         )}
       </IonHeader>
@@ -86,7 +87,7 @@ export default function CustomerPicker({ isOpen, onClose, onPick }: Props) {
           <IonList>
             <IonItem button detail={false} onClick={() => setCreating(blankCustomer(actor, q.trim()))}>
               <IonIcon icon={personAddOutline} slot="start" color="primary" />
-              <IonLabel color="primary">{q.trim() ? `Add "${q.trim()}" as new customer` : 'Add new customer'}</IonLabel>
+              <IonLabel color="primary">{q.trim() ? t('Add "{name}" as new customer', { name: q.trim() }) : t('Add new customer')}</IonLabel>
             </IonItem>
             <IonItem
               button
@@ -97,7 +98,7 @@ export default function CustomerPicker({ isOpen, onClose, onPick }: Props) {
               }}
             >
               <IonIcon icon={walkOutline} slot="start" />
-              <IonLabel>Walk-in / cash customer</IonLabel>
+              <IonLabel>{t('Walk-in / cash customer')}</IonLabel>
             </IonItem>
             {filtered.map((c) => (
               <IonItem

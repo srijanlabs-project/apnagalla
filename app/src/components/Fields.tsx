@@ -3,6 +3,7 @@ import { paiseToInput, parseRupees } from '@invoice/shared';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Address } from '../lib/db';
 import { INDIAN_STATES } from '../lib/format';
+import { t } from '../lib/i18n';
 import { sync } from '../lib/sync';
 
 interface TextProps {
@@ -83,7 +84,7 @@ export function MoneyField(p: { label: string; value: number | null | undefined;
       value={text}
       disabled={p.disabled}
       helperText={p.helper}
-      errorText="Enter an amount like 1250 or 1250.50"
+      errorText={t('Enter an amount like 1250 or 1250.50')}
       onIonInput={sync((e) => {
         const t = String(e.detail.value ?? '');
         setText(t);
@@ -187,13 +188,13 @@ export function AddressFields(p: { value: Address; onChange: (patch: Partial<Add
   const set = (k: keyof Address) => (v: string) => p.onChange({ [k]: v });
   return (
     <>
-      <TextField label="Address line 1" value={p.value.line1} onChange={set('line1')} disabled={p.disabled} />
-      <TextField label="Address line 2" value={p.value.line2} onChange={set('line2')} disabled={p.disabled} />
+      <TextField label={t('Address line 1')} value={p.value.line1} onChange={set('line1')} disabled={p.disabled} />
+      <TextField label={t('Address line 2')} value={p.value.line2} onChange={set('line2')} disabled={p.disabled} />
       <div className="field-row">
-        <TextField label="City" value={p.value.city} onChange={set('city')} disabled={p.disabled} autocapitalize="words" />
-        <TextField label="PIN code" value={p.value.pin} onChange={set('pin')} disabled={p.disabled} inputmode="numeric" maxlength={6} />
+        <TextField label={t('City')} value={p.value.city} onChange={set('city')} disabled={p.disabled} autocapitalize="words" />
+        <TextField label={t('PIN code')} value={p.value.pin} onChange={set('pin')} disabled={p.disabled} inputmode="numeric" maxlength={6} />
       </div>
-      <SelectField label="State" value={p.value.state} options={INDIAN_STATES.map((s) => ({ value: s, label: s }))} onChange={set('state')} disabled={p.disabled} />
+      <SelectField label={t('State')} value={p.value.state} options={INDIAN_STATES.map((s) => ({ value: s, label: s }))} onChange={set('state')} disabled={p.disabled} />
     </>
   );
 }

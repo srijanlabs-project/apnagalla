@@ -16,6 +16,7 @@ import {
   type TaxMode,
 } from '@invoice/shared';
 import type { Table } from 'dexie';
+import { t } from './i18n';
 import { buildLedger, moneyOf, type BillMoney } from './ledger';
 import {
   db,
@@ -131,6 +132,7 @@ export function defaultSettings(businessId: string): BusinessSettings {
     areaBilling: false,
     deliveryAlertTime: '09:00',
     staffSeeCost: false,
+    billLanguage: 'en',
     resetEachFinancialYear: true,
     defaultPaymentTermsDays: 0,
     defaultTaxPct: 0,
@@ -314,8 +316,13 @@ async function nextSeq(s: BusinessSettings, series: NumberSeries, actor: Pick<Ac
   if (seq != null) await setMeta(poolKey, pool);
   else seq = (await allocator(businessId, series, period).catch(() => null)) ?? undefined;
   if (seq == null) {
-    const what = { invoice: 'invoice', bill: 'bill', estimate: 'estimate', credit: 'credit note' }[series];
-    throw new NumberingError(`No ${what} numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.`);
+    const messages: Record<NumberSeries, () => string> = {
+      invoice: () => t('No invoice numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
+      bill: () => t('No bill numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
+      estimate: () => t('No estimate numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
+      credit: () => t('No credit note numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
+    };
+    throw new NumberingError(messages[series]());
   }
   await recordUse(businessId, series);
   return seq;
@@ -354,7 +361,7 @@ async function takeNextNumber(kind: DocKind, series: NumberSeries, actor: Pick<A
       return { number, numberSeries: seriesKey(series, code, period), numberSeq: seq };
     }
   }
-  throw new NumberingError('Could not find a free number. Please try again.');
+  throw new NumberingError(t('Could not find a free number. Please try again.'));
 }
 
 export async function isNumberTaken(kind: DocKind, businessId: string, number: string, exceptId?: string): Promise<boolean> {
@@ -409,8 +416,8 @@ async function numberFor(kind: DocKind, actor: Actor, doc: DocBase): Promise<Pic
  */
 export async function saveInvoice(actor: Actor, inv: Invoice, opts: { finalize: boolean; editNote?: string }): Promise<Invoice> {
   const existing = await db.invoices.get(inv.id);
-  if (existing && existing.status !== 'draft' && actor.role !== 'owner') throw new PermissionError('Only the owner can edit a saved invoice');
-  if (existing?.status === 'cancelled') throw new PermissionError('Cancelled invoices cannot be edited');
+  if (existing && existing.status !== 'draft' && actor.role !== 'owner') throw new PermissionError(t('Only the owner can edit a saved invoice'));
+  if (existing?.status === 'cancelled') throw new PermissionError(t('Cancelled invoices cannot be edited'));
 
   let next: Invoice = { ...inv, history: [...(existing?.history ?? inv.history ?? [])] };
   const finalizing = opts.finalize && next.status === 'draft';
@@ -434,7 +441,7 @@ export async function saveInvoice(actor: Actor, inv: Invoice, opts: { finalize: 
 export async function saveEstimate(actor: Actor, est: Estimate, opts: { finalize: boolean }): Promise<Estimate> {
   const existing = await db.estimates.get(est.id);
   if (existing && existing.status !== 'draft' && actor.role !== 'owner' && existing.createdBy !== actor.userId) {
-    throw new PermissionError('Only the owner can edit this estimate');
+    throw new PermissionError(t('Only the owner can edit this estimate'));
   }
   let next: Estimate = { ...est, history: [...(existing?.history ?? est.history ?? [])] };
   const finalizing = opts.finalize && next.status === 'draft';
@@ -468,7 +475,7 @@ export interface NewPayment {
 /** Money on one bill right now (from the local copy of its entries and credit notes). */
 export async function billMoney(invoiceId: string): Promise<BillMoney> {
   const inv = await db.invoices.get(invoiceId);
-  if (!inv) throw new Error('Invoice not found');
+  if (!inv) throw new Error(t('Invoice not found'));
   const [payments, notes] = await Promise.all([db.payments.where('invoiceId').equals(invoiceId).toArray(), db.creditNotes.where('invoiceId').equals(invoiceId).toArray()]);
   return moneyOf(inv, buildLedger(payments, notes));
 }
@@ -485,15 +492,17 @@ export async function recordPayments(
 ): Promise<PaymentEntry[]> {
   const kind = opts.kind ?? 'payment';
   const inv = await db.invoices.get(invoiceId);
-  if (!inv || inv.status !== 'saved') throw new PermissionError('Money can only be recorded on a saved invoice');
+  if (!inv || inv.status !== 'saved') throw new PermissionError(t('Money can only be recorded on a saved invoice'));
   const lines = parts.filter((p) => p.amount > 0).map((p) => ({ ...p, amount: Math.round(p.amount) }));
-  if (!lines.length) throw new PermissionError('Enter an amount');
+  if (!lines.length) throw new PermissionError(t('Enter an amount'));
   const total = lines.reduce((a, p) => a + p.amount, 0);
   const money = await billMoney(invoiceId);
   const limit = kind === 'payment' ? money.pending : money.refundDue;
   if (total > limit) {
     throw new PermissionError(
-      kind === 'payment' ? `Only ₹${(limit / 100).toFixed(2)} is pending on this bill` : `Only ₹${(limit / 100).toFixed(2)} can be refunded on this bill`,
+      kind === 'payment'
+        ? t('Only {amount} is pending on this bill', { amount: `₹${(limit / 100).toFixed(2)}` })
+        : t('Only {amount} can be refunded on this bill', { amount: `₹${(limit / 100).toFixed(2)}` }),
     );
   }
   const date = opts.date ?? todayISO();
@@ -520,7 +529,7 @@ export async function recordPayments(
 
 /** Owner only: marks an entry as a mistake. It stays in the history, crossed out. */
 export async function voidPayment(actor: Actor, paymentId: string, reason: string): Promise<void> {
-  if (actor.role !== 'owner') throw new PermissionError('Only the owner can void a payment');
+  if (actor.role !== 'owner') throw new PermissionError(t('Only the owner can void a payment'));
   const p = await db.payments.get(paymentId);
   if (!p || p.voidedAt) return;
   await putRecord('payments', actor, { ...p, voidedAt: nowIso(), voidedBy: actor.userId, voidedByName: actor.userName, voidReason: reason.trim() || 'Voided' });
@@ -557,18 +566,18 @@ export async function convertLegacyPayments(actor: Actor): Promise<number> {
 }
 
 export async function cancelInvoice(actor: Actor, invoiceId: string, reason?: string): Promise<void> {
-  if (actor.role !== 'owner') throw new PermissionError('Only the owner can cancel an invoice');
+  if (actor.role !== 'owner') throw new PermissionError(t('Only the owner can cancel an invoice'));
   const inv = await db.invoices.get(invoiceId);
   if (!inv || inv.status !== 'saved') return;
   const money = await billMoney(invoiceId);
-  if (money.credited > 0) throw new PermissionError('Cancel its credit notes first');
-  if (money.paid > 0) throw new PermissionError('Void or refund its payments first');
+  if (money.credited > 0) throw new PermissionError(t('Cancel its credit notes first'));
+  if (money.paid > 0) throw new PermissionError(t('Void or refund its payments first'));
   await putRecord('invoices', actor, { ...inv, status: 'cancelled', history: [...inv.history, historyEntry(actor, 'cancelled', reason)] });
 }
 
 export async function deleteDraft(actor: Actor, kind: DocKind, id: string): Promise<void> {
   const doc = await tableOfKind(kind).get(id);
-  if (!doc || (doc as DocBase & { status: string }).status !== 'draft') throw new PermissionError('Only drafts can be deleted');
+  if (!doc || (doc as DocBase & { status: string }).status !== 'draft') throw new PermissionError(t('Only drafts can be deleted'));
   await deleteRecord(kind === 'invoice' ? 'invoices' : kind === 'estimate' ? 'estimates' : 'creditNotes', actor, id);
 }
 
@@ -632,7 +641,7 @@ export async function newEstimateDraft(actor: Actor): Promise<Estimate> {
 /** Estimate → new draft invoice with everything copied (SPEC §4.6). */
 export async function convertEstimate(actor: Actor, estimateId: string): Promise<Invoice> {
   const est = await db.estimates.get(estimateId);
-  if (!est) throw new Error('Estimate not found');
+  if (!est) throw new Error(t('Estimate not found'));
   const draft = await newInvoiceDraft(actor);
   const inv: Invoice = {
     ...draft,
@@ -665,7 +674,7 @@ export async function convertEstimate(actor: Actor, estimateId: string): Promise
 
 export async function duplicateInvoice(actor: Actor, id: string): Promise<Invoice> {
   const src = await db.invoices.get(id);
-  if (!src) throw new Error('Invoice not found');
+  if (!src) throw new Error(t('Invoice not found'));
   const draft = await newInvoiceDraft(actor);
   return saveInvoice(
     actor,
@@ -710,8 +719,8 @@ export async function creditableAmount(invoiceId: string, exceptNoteId?: string)
 
 export async function newCreditNoteDraft(actor: Actor, invoiceId: string): Promise<CreditNote> {
   const inv = await db.invoices.get(invoiceId);
-  if (!inv || inv.status !== 'saved') throw new PermissionError('Credit notes are made against a saved invoice');
-  if ((await creditableAmount(invoiceId)) <= 0) throw new PermissionError('This invoice is already fully credited');
+  if (!inv || inv.status !== 'saved') throw new PermissionError(t('Credit notes are made against a saved invoice'));
+  if ((await creditableAmount(invoiceId)) <= 0) throw new PermissionError(t('This invoice is already fully credited'));
   const now = nowIso();
   const profile = await db.profiles.get(actor.businessId);
   const totalsBase = {
@@ -754,15 +763,15 @@ export async function newCreditNoteDraft(actor: Actor, invoiceId: string): Promi
 export async function saveCreditNote(actor: Actor, note: CreditNote, opts: { finalize: boolean }): Promise<CreditNote> {
   const existing = await db.creditNotes.get(note.id);
   if (actor.role !== 'owner') {
-    if (note.reason !== 'return') throw new PermissionError('Only the owner can make this credit note');
-    if (existing && existing.status !== 'draft') throw new PermissionError('Only the owner can change a saved credit note');
+    if (note.reason !== 'return') throw new PermissionError(t('Only the owner can make this credit note'));
+    if (existing && existing.status !== 'draft') throw new PermissionError(t('Only the owner can change a saved credit note'));
   }
-  if (existing?.status === 'cancelled') throw new PermissionError('Cancelled credit notes cannot be edited');
+  if (existing?.status === 'cancelled') throw new PermissionError(t('Cancelled credit notes cannot be edited'));
   const next: CreditNote = { ...note, totals: computeTotals(note), history: [...(existing?.history ?? note.history ?? [])] };
   const finalizing = opts.finalize && next.status === 'draft';
   if (finalizing || next.status === 'saved') {
     const room = await creditableAmount(next.invoiceId, next.id);
-    if (next.totals.grandTotal > room) throw new PermissionError(`The credit note can be at most ₹${(room / 100).toFixed(2)} (the invoice total less earlier credit notes)`);
+    if (next.totals.grandTotal > room) throw new PermissionError(t('The credit note can be at most {amount} (the invoice total less earlier credit notes)', { amount: `₹${(room / 100).toFixed(2)}` }));
   }
   if (!existing) next.history.push(historyEntry(actor, 'created'));
   if (finalizing) {
@@ -779,7 +788,7 @@ export async function saveCreditNote(actor: Actor, note: CreditNote, opts: { fin
 }
 
 export async function cancelCreditNote(actor: Actor, id: string, reason?: string): Promise<void> {
-  if (actor.role !== 'owner') throw new PermissionError('Only the owner can cancel a credit note');
+  if (actor.role !== 'owner') throw new PermissionError(t('Only the owner can cancel a credit note'));
   const note = await db.creditNotes.get(id);
   if (!note || note.status !== 'saved') return;
   await putRecord('creditNotes', actor, { ...note, status: 'cancelled', history: [...note.history, historyEntry(actor, 'cancelled', reason)] });

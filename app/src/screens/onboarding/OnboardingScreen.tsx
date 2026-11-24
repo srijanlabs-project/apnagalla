@@ -15,6 +15,7 @@ import {
 } from '@ionic/react';
 import { useState } from 'react';
 import { errorMessage } from '../../lib/api';
+import { t } from '../../lib/i18n';
 import { useOnline } from '../../lib/network';
 import { useSession } from '../../lib/session';
 import { sync } from '../../lib/sync';
@@ -51,9 +52,9 @@ export default function OnboardingScreen() {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>{needsName ? 'Welcome' : 'Set up your business'}</IonTitle>
+          <IonTitle>{needsName ? t('Welcome') : t('Set up your business')}</IonTitle>
           <IonButton slot="end" fill="clear" onClick={() => void logout(true)}>
-            Log out
+            {t('Log out')}
           </IonButton>
         </IonToolbar>
       </IonHeader>
@@ -61,7 +62,7 @@ export default function OnboardingScreen() {
         <div className="auth-wrap" style={{ justifyContent: 'flex-start' }}>
           {!online && (
             <IonText color="warning">
-              <p>You're offline. Business setup needs internet the first time.</p>
+              <p>{t('You\'re offline. Business setup needs internet the first time.')}</p>
             </IonText>
           )}
           {error && (
@@ -78,18 +79,18 @@ export default function OnboardingScreen() {
                 if (name.trim()) void run('name', () => setName(name.trim()));
               }}
             >
-              <label className="auth-label">What's your name?</label>
+              <label className="auth-label">{t('What\'s your name?')}</label>
               <IonInput
                 fill="outline"
-                placeholder="Your full name"
+                placeholder={t('Your full name')}
                 value={name}
                 autocapitalize="words"
                 onIonInput={sync((e) => setNameInput(String(e.detail.value ?? '')))}
-                aria-label="Your name"
+                aria-label={t('Your name')}
               />
               <button type="submit" hidden aria-hidden="true" tabIndex={-1} disabled={!name.trim() || !!busy} />
               <IonButton type="submit" expand="block" disabled={!name.trim() || !!busy}>
-                {busy === 'name' ? <IonSpinner name="dots" /> : 'Continue'}
+                {busy === 'name' ? <IonSpinner name="dots" /> : t('Continue')}
               </IonButton>
             </form>
           ) : (
@@ -97,22 +98,22 @@ export default function OnboardingScreen() {
               {me.invites.length > 0 && (
                 <IonList inset className="auth-list">
                   <IonListHeader>
-                    <IonLabel>You've been invited</IonLabel>
+                    <IonLabel>{t('You\'ve been invited')}</IonLabel>
                   </IonListHeader>
                   {me.invites.map((inv) => (
                     <IonItem key={inv.id} lines="full">
                       <IonLabel>
                         <h2>{inv.businessName}</h2>
                         <p>
-                          Join as {inv.role}
-                          {inv.invitedByName ? ` · invited by ${inv.invitedByName}` : ''}
+                          {inv.role === 'owner' ? t('Join as owner') : t('Join as staff')}
+                          {inv.invitedByName ? ` · ${t('invited by {name}', { name: inv.invitedByName })}` : ''}
                         </p>
                       </IonLabel>
                       <IonButton slot="end" size="small" fill="clear" color="medium" disabled={!!busy} onClick={() => void run(inv.id + 'd', () => declineInvite(inv.id))}>
-                        Decline
+                        {t('Decline')}
                       </IonButton>
                       <IonButton slot="end" size="small" disabled={!!busy} onClick={() => void run(inv.id, () => acceptInvite(inv.id))}>
-                        {busy === inv.id ? <IonSpinner name="dots" /> : 'Join'}
+                        {busy === inv.id ? <IonSpinner name="dots" /> : t('Join')}
                       </IonButton>
                     </IonItem>
                   ))}
@@ -127,10 +128,10 @@ export default function OnboardingScreen() {
                     void run('biz', () => createBusiness({ name: biz.name.trim(), city: biz.city.trim() || undefined, state: biz.state.trim() || undefined }));
                 }}
               >
-                <label className="auth-label">{me.invites.length ? 'Or create your own business' : 'Create your business'}</label>
+                <label className="auth-label">{me.invites.length ? t('Or create your own business') : t('Create your business')}</label>
                 <IonInput
                   fill="outline"
-                  label="Business name"
+                  label={t('Business name')}
                   labelPlacement="floating"
                   value={biz.name}
                   autocapitalize="words"
@@ -138,7 +139,7 @@ export default function OnboardingScreen() {
                 />
                 <IonInput
                   fill="outline"
-                  label="City"
+                  label={t('City')}
                   labelPlacement="floating"
                   value={biz.city}
                   autocapitalize="words"
@@ -146,7 +147,7 @@ export default function OnboardingScreen() {
                 />
                 <IonInput
                   fill="outline"
-                  label="State"
+                  label={t('State')}
                   labelPlacement="floating"
                   value={biz.state}
                   autocapitalize="words"
@@ -154,10 +155,10 @@ export default function OnboardingScreen() {
                 />
                 <button type="submit" hidden aria-hidden="true" tabIndex={-1} disabled={!biz.name.trim() || !!busy || !online} />
                 <IonButton type="submit" expand="block" disabled={!biz.name.trim() || !!busy || !online}>
-                  {busy === 'biz' ? <IonSpinner name="dots" /> : 'Create business'}
+                  {busy === 'biz' ? <IonSpinner name="dots" /> : t('Create business')}
                 </IonButton>
                 <IonText color="medium" className="auth-note">
-                  You can add your logo, address, bank and UPI details later in Settings.
+                  {t('You can add your logo, address, bank and UPI details later in Settings.')}
                 </IonText>
               </form>
             </>

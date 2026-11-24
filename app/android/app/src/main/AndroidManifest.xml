@@ -41,4 +41,11 @@
     <!-- Barcode scanning with the camera (in-app, no Google services). -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Bluetooth thermal printers: classic (paired) and BLE. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <!-- Delivery alerts (Android 13+ asks before showing notifications). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

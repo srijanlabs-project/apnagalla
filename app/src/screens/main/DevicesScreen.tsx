@@ -4,6 +4,7 @@ import { desktopOutline, phonePortraitOutline } from 'ionicons/icons';
 import { useCallback, useEffect, useState } from 'react';
 import PageShell from '../../components/PageShell';
 import { api, errorMessage } from '../../lib/api';
+import { t } from '../../lib/i18n';
 
 function when(iso: string) {
   return new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
@@ -29,12 +30,12 @@ export default function DevicesScreen() {
   }, [load]);
 
   return (
-    <PageShell title="Devices" backHref="/tabs/more" padded={false}>
+    <PageShell title={t('Devices')} backHref="/tabs/more" padded={false}>
       <IonRefresher slot="fixed" onIonRefresh={(e) => void load().finally(() => e.detail.complete())}>
         <IonRefresherContent />
       </IonRefresher>
       <p className="section-note ion-padding-horizontal">
-        Your login works on one phone at a time; logging in on a new phone signs the old one out. You can also be signed in on the web.
+        {t('Your login works on one phone at a time; logging in on a new phone signs the old one out. You can also be signed in on the web.')}
       </p>
       {error && (
         <IonText color="danger">
@@ -52,13 +53,13 @@ export default function DevicesScreen() {
             <IonItem key={s.id} lines="full">
               <IonIcon slot="start" icon={s.client === 'web' ? desktopOutline : phonePortraitOutline} />
               <IonLabel>
-                <h2>{s.deviceName || (s.client === 'web' ? 'Web browser' : 'Phone')}</h2>
+                <h2>{s.deviceName || (s.client === 'web' ? t('Web browser') : t('Phone'))}</h2>
                 <p>
-                  {s.client === 'web' ? 'Web' : 'Phone app'} · last active {when(s.lastSeenAt)}
+                  {s.client === 'web' ? t('Web') : t('Phone app')} · {t('last active {time}', { time: when(s.lastSeenAt) })}
                 </p>
               </IonLabel>
               {s.current ? (
-                <IonNote slot="end">This device</IonNote>
+                <IonNote slot="end">{t('This device')}</IonNote>
               ) : (
                 <IonButton
                   slot="end"
@@ -67,11 +68,11 @@ export default function DevicesScreen() {
                   size="small"
                   onClick={() =>
                     void alert({
-                      message: `Sign out ${s.deviceName || 'this device'}?`,
+                      message: s.deviceName ? t('Sign out {device}?', { device: s.deviceName }) : t('Sign out this device?'),
                       buttons: [
-                        { text: 'Cancel', role: 'cancel' },
+                        { text: t('Cancel'), role: 'cancel' },
                         {
-                          text: 'Sign out',
+                          text: t('Sign out'),
                           role: 'destructive',
                           handler: async () => {
                             try {
@@ -86,7 +87,7 @@ export default function DevicesScreen() {
                     })
                   }
                 >
-                  Sign out
+                  {t('Sign out')}
                 </IonButton>
               )}
             </IonItem>

@@ -8,6 +8,7 @@ import StatusBadge from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { addressLines, dateIN, rupees } from '../../lib/format';
+import { t } from '../../lib/i18n';
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
 import { moneyOf } from '../../lib/ledger';
 
@@ -47,7 +48,7 @@ export default function CustomerDetailScreen() {
             {c.phone && (
               <>
                 <IonButton size="small" fill="outline" href={`tel:${c.phone}`}>
-                  <IonIcon icon={callOutline} slot="start" /> Call
+                  <IonIcon icon={callOutline} slot="start" /> {t('Call')}
                 </IonButton>
                 <IonButton size="small" fill="outline" href={`https://wa.me/${c.phone.replace('+', '')}`} target="_blank">
                   <IonIcon icon={logoWhatsapp} slot="start" /> WhatsApp
@@ -55,7 +56,7 @@ export default function CustomerDetailScreen() {
               </>
             )}
             <IonButton size="small" fill="outline" routerLink={`/tabs/customers/${c.id}/edit`}>
-              <IonIcon icon={createOutline} slot="start" /> Edit
+              <IonIcon icon={createOutline} slot="start" /> {t('Edit')}
             </IonButton>
           </div>
         </IonCardContent>
@@ -63,34 +64,34 @@ export default function CustomerDetailScreen() {
 
       <div className="stat-grid three">
         <div className="mini-stat">
-          <span>Billed</span>
+          <span>{t('Billed')}</span>
           <strong>{rupees(billed)}</strong>
         </div>
         <div className="mini-stat">
-          <span>Paid</span>
+          <span>{t('Paid')}</span>
           <strong>{rupees(paid)}</strong>
         </div>
         <div className="mini-stat">
-          <span>Pending</span>
+          <span>{t('Pending')}</span>
           <strong className={pending > 0 ? 'text-danger' : ''}>{rupees(pending)}</strong>
         </div>
       </div>
 
       <IonList inset>
         <IonListHeader>
-          <IonLabel>Invoices</IonLabel>
-          {CAN_CREATE_INVOICES && <IonButton routerLink={`/tabs/invoices/new?customer=${c.id}`}>New invoice</IonButton>}
+          <IonLabel>{t('Invoices')}</IonLabel>
+          {CAN_CREATE_INVOICES && <IonButton routerLink={`/tabs/invoices/new?customer=${c.id}`}>{t('New invoice')}</IonButton>}
         </IonListHeader>
         {(invoices ?? []).length === 0 && (
           <IonItem lines="none">
             <IonIcon icon={documentTextOutline} slot="start" color="medium" />
-            <IonNote>No invoices yet</IonNote>
+            <IonNote>{t('No invoices yet')}</IonNote>
           </IonItem>
         )}
         {(invoices ?? []).map((inv) => (
           <IonItem key={inv.id} routerLink={`/tabs/invoices/${inv.id}`} detail={false}>
             <IonLabel>
-              <h2>{inv.number || 'Draft'}</h2>
+              <h2>{inv.number || t('Draft')}</h2>
               <p>{dateIN(inv.date)}</p>
             </IonLabel>
             <div slot="end" className="list-end">

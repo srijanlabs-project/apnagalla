@@ -28,4 +28,6 @@ export const KEYS = {
   me: 'auth.me',
   /** The store this device last worked in. */
   currentBusiness: 'auth.currentBusiness',
+  /** This phone's receipt printer (PrinterConfig). */
+  printer: 'device.printer',
 } as const;

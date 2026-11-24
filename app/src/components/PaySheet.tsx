@@ -5,7 +5,8 @@ import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
 import type { UpiId } from '../lib/db';
 import { rupees } from '../lib/format';
-import { MODE_LABEL } from '../lib/ledger';
+import { t } from '../lib/i18n';
+import { MODE_LABEL, modeLabel } from '../lib/ledger';
 import { upiLink } from '../lib/pdf/buildDoc';
 import type { NewPayment } from '../lib/repo';
 import { sync } from '../lib/sync';
@@ -37,7 +38,8 @@ interface Row extends NewPayment {
 }
 
 const QUICK: PaymentMode[] = ['cash', 'upi', 'card'];
-const ALL_MODES = Object.entries(MODE_LABEL).map(([value, label]) => ({ value: value as PaymentMode, label }));
+/** Built when shown, so the labels are in the app's language. */
+const allModes = () => (Object.keys(MODE_LABEL) as PaymentMode[]).map((value) => ({ value, label: modeLabel(value) }));
 
 /**
  * Take a payment (or give a refund): one mode or split across several. Cash shows the change to
@@ -74,17 +76,15 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
     }
   }
 
-  const verb = kind === 'refund' ? 'Refund' : 'Receive';
-
   return (
     <IonModal isOpen={isOpen} onDidDismiss={onClose}>
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
-            <IonButton onClick={onClose}>Cancel</IonButton>
+            <IonButton onClick={onClose}>{t('Cancel')}</IonButton>
           </IonButtons>
           <IonTitle>
-            {verb} {rupees(amount)}
+            {kind === 'refund' ? t('Refund {amount}', { amount: rupees(amount) }) : t('Receive {amount}', { amount: rupees(amount) })}
           </IonTitle>
         </IonToolbar>
       </IonHeader>
@@ -93,11 +93,11 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
           <IonSegment value={rows[0]!.mode} onIonChange={sync((e) => set(0, { mode: e.detail.value as PaymentMode }))}>
             {QUICK.map((m) => (
               <IonSegmentButton key={m} value={m}>
-                <IonLabel>{MODE_LABEL[m]}</IonLabel>
+                <IonLabel>{modeLabel(m)}</IonLabel>
               </IonSegmentButton>
             ))}
             <IonSegmentButton value="other">
-              <IonLabel>Other</IonLabel>
+              <IonLabel>{t('Other')}</IonLabel>
             </IonSegmentButton>
           </IonSegment>
         )}
@@ -105,31 +105,31 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
         {rows.map((r, i) => (
           <div key={i} className="pay-row">
             <div className="field-row">
-              {(split || !QUICK.includes(r.mode)) && <SelectField label="Mode" value={r.mode} options={ALL_MODES} onChange={(mode) => set(i, { mode })} />}
-              <MoneyField label={split ? `Amount ${i + 1}` : 'Amount'} value={r.amount} onChange={(v) => set(i, { amount: v ?? 0 })} />
+              {(split || !QUICK.includes(r.mode)) && <SelectField label={t('Mode')} value={r.mode} options={allModes()} onChange={(mode) => set(i, { mode })} />}
+              <MoneyField label={split ? t('Amount {number}', { number: i + 1 }) : t('Amount')} value={r.amount} onChange={(v) => set(i, { amount: v ?? 0 })} />
             </div>
             {split && (
               <IonButton fill="clear" size="small" color="medium" onClick={() => setRows((cur) => cur.filter((_, j) => j !== i))}>
-                <IonIcon icon={closeCircle} slot="start" /> Remove {MODE_LABEL[r.mode].toLowerCase()}
+                <IonIcon icon={closeCircle} slot="start" /> {t('Remove {mode}', { mode: modeLabel(r.mode).toLowerCase() })}
               </IonButton>
             )}
 
             {r.mode === 'cash' && kind === 'payment' && (
               <div className="field-row">
-                <MoneyField label="Cash received" value={r.tendered ?? null} onChange={(tendered) => set(i, { tendered })} />
+                <MoneyField label={t('Cash received')} value={r.tendered ?? null} onChange={(tendered) => set(i, { tendered })} />
                 <div className="change-box">
-                  <span>Give back</span>
+                  <span>{t('Give back')}</span>
                   <strong>{r.tendered && r.tendered >= r.amount ? rupees(r.tendered - r.amount) : '—'}</strong>
                 </div>
               </div>
             )}
 
             {r.mode === 'upi' && kind === 'payment' && upi && r.amount > 0 && <UpiQr upi={upi} amount={r.amount} note={qrNote} />}
-            {r.mode === 'upi' && kind === 'payment' && !upi && <p className="section-note">Add your UPI ID in More → Payment details to show a QR here.</p>}
+            {r.mode === 'upi' && kind === 'payment' && !upi && <p className="section-note">{t('Add your UPI ID in More → Payment details to show a QR here.')}</p>}
 
             {(r.mode === 'upi' || r.mode === 'cheque' || r.mode === 'bank' || r.mode === 'card') && (
               <TextField
-                label={r.mode === 'cheque' ? 'Cheque no.' : r.mode === 'card' ? 'Card / slip ref. (optional)' : 'Reference (optional)'}
+                label={r.mode === 'cheque' ? t('Cheque no.') : r.mode === 'card' ? t('Card / slip ref. (optional)') : t('Reference (optional)')}
                 value={r.reference}
                 onChange={(reference) => set(i, { reference })}
               />
@@ -139,33 +139,33 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
 
         {left > 0 && (
           <IonButton fill="clear" size="small" onClick={() => setRows((cur) => [...cur, { mode: cur[0]?.mode === 'cash' ? 'upi' : 'cash', amount: left }])}>
-            <IonIcon icon={addOutline} slot="start" /> Split: add another mode
+            <IonIcon icon={addOutline} slot="start" /> {t('Split: add another mode')}
           </IonButton>
         )}
 
         {allowDate && (
           <label className="date-field">
-            <span>Date</span>
+            <span>{t('Date')}</span>
             <input type="date" value={date} max={todayISO()} onChange={(e) => e.target.value && setDate(e.target.value)} />
           </label>
         )}
 
         <div className="pay-summary">
           {tooMuch ? (
-            <p className="text-danger">That is more than {rupees(amount)}.</p>
+            <p className="text-danger">{t('That is more than {amount}.', { amount: rupees(amount) })}</p>
           ) : short ? (
-            <p className="text-danger">A walk-in customer pays the full {rupees(amount)}. Pick a customer to leave a balance.</p>
+            <p className="text-danger">{t('A walk-in customer pays the full {amount}. Pick a customer to leave a balance.', { amount: rupees(amount) })}</p>
           ) : left > 0 && kind === 'payment' ? (
-            <p>{rupees(left)} stays pending on the bill.</p>
+            <p>{t('{amount} stays pending on the bill.', { amount: rupees(left) })}</p>
           ) : null}
         </div>
 
         <IonButton expand="block" size="large" disabled={busy || total <= 0 || tooMuch || short} onClick={() => void confirm()}>
-          {kind === 'refund' ? `Refunded ${rupees(total)}` : `Received ${rupees(total)}`}
+          {kind === 'refund' ? t('Refunded {amount}', { amount: rupees(total) }) : t('Received {amount}', { amount: rupees(total) })}
         </IonButton>
         {allowPayLater && (
           <IonButton expand="block" fill="clear" disabled={busy} onClick={() => void confirm(true)}>
-            Save unpaid (pay later)
+            {t('Save unpaid (pay later)')}
           </IonButton>
         )}
       </IonContent>
@@ -183,14 +183,18 @@ function UpiQr({ upi, amount, note }: { upi: UpiId; amount: number; note: string
       alive = false;
     };
   }, [upi, amount, note]);
+  // The amount is shown in bold, wherever the language puts it in the sentence.
+  const [payBefore, payAfter = ''] = t('Scan to pay {amount}').split('{amount}');
   return (
     <div className="upi-qr">
-      {src && <img src={src} alt={`UPI QR for ${rupees(amount)}`} />}
+      {src && <img src={src} alt={t('UPI QR for {amount}', { amount: rupees(amount) })} />}
       <p>
-        Scan to pay <strong>{rupees(amount)}</strong>
+        {payBefore}
+        <strong>{rupees(amount)}</strong>
+        {payAfter}
       </p>
       <p className="section-note">{upi.upiId}</p>
-      <p className="section-note">Tap “Received” only after the money shows in your UPI app.</p>
+      <p className="section-note">{t('Tap “Received” only after the money shows in your UPI app.')}</p>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import FormPage from '../../components/FormPage';
 import PdfPreview from '../../components/PdfPreview';
 import { useBusiness } from '../../lib/business';
 import type { DesignSettings, Invoice, TemplateId } from '../../lib/db';
+import { t } from '../../lib/i18n';
 import { renderPdf } from '../../lib/pdf';
 import { computeTotals, putRecord } from '../../lib/repo';
 import { sync } from '../../lib/sync';
@@ -15,6 +16,7 @@ const TEMPLATES: { id: TemplateId; name: string; hint: string }[] = [
   { id: 'modern', name: 'Modern', hint: 'Colour header band' },
   { id: 'minimal', name: 'Minimal', hint: 'Black & white, saves ink' },
 ];
+// i18n: labels above are translated where rendered
 const COLORS = ['#3b5bdb', '#0b7285', '#2b8a3e', '#c2255c', '#e8590c', '#5f3dc4', '#212529'];
 
 const TOGGLES: { key: keyof DesignSettings['show']; label: string }[] = [
@@ -32,6 +34,7 @@ const TOGGLES: { key: keyof DesignSettings['show']; label: string }[] = [
   { key: 'amountInWords', label: 'Amount in words' },
   { key: 'mrpColumn', label: 'MRP column' },
 ];
+// i18n: labels above are translated where rendered
 
 /** A realistic sample invoice for the live preview. */
 function sampleInvoice(businessId: string): Invoice {
@@ -83,7 +86,7 @@ export default function DesignScreen() {
 
   // Re-render the preview (debounced) whenever the design changes.
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       const { id: _i, businessId: _b, createdAt: _c, updatedAt: _u, updatedBy: _ub, deleted: _d, ...business } = profile;
       void renderPdf({
         kind: 'invoice',
@@ -95,14 +98,14 @@ export default function DesignScreen() {
         otherPaymentInstructions: settings.otherPaymentInstructions,
       }).then((r) => setBlob(r.blob));
     }, 300);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [d, profile, sample, bankAccounts, upiIds, settings.otherPaymentInstructions]);
 
   const dirty = JSON.stringify(d) !== JSON.stringify(settings.design);
 
   return (
     <FormPage
-      title="Invoice design"
+      title={t('Invoice design')}
       backHref="/tabs/more"
       onSave={
         isOwner
@@ -113,42 +116,42 @@ export default function DesignScreen() {
             }
           : undefined
       }
-      saveLabel={dirty ? 'Save design' : 'Saved'}
+      saveLabel={dirty ? t('Save design') : t('Saved')}
       canSave={dirty}
       saving={saving}
     >
-      {!isOwner && <p className="section-note">Only the owner can change the invoice design.</p>}
-      <p className="section-note">One design is used for all invoices and estimates.</p>
+      {!isOwner && <p className="section-note">{t('Only the owner can change the invoice design.')}</p>}
+      <p className="section-note">{t('One design is used for all invoices and estimates.')}</p>
 
       <div className="template-grid">
-        {TEMPLATES.map((t) => (
-          <button key={t.id} className={d.template === t.id ? 'template-card selected' : 'template-card'} disabled={!isOwner} onClick={() => set({ template: t.id })}>
-            <strong>{t.name}</strong>
-            <span>{t.hint}</span>
+        {TEMPLATES.map((tpl) => (
+          <button key={tpl.id} className={d.template === tpl.id ? 'template-card selected' : 'template-card'} disabled={!isOwner} onClick={() => set({ template: tpl.id })}>
+            <strong>{t(tpl.name)}</strong>
+            <span>{t(tpl.hint)}</span>
           </button>
         ))}
       </div>
 
       {d.template !== 'minimal' && (
-        <FormSection title="Colour">
+        <FormSection title={t('Colour')}>
           <div className="color-row">
             {COLORS.map((c) => (
-              <button key={c} className={d.color === c ? 'color-dot selected' : 'color-dot'} style={{ background: c }} aria-label={`Colour ${c}`} disabled={!isOwner} onClick={() => set({ color: c })} />
+              <button key={c} className={d.color === c ? 'color-dot selected' : 'color-dot'} style={{ background: c }} aria-label={t('Colour {color}', { color: c })} disabled={!isOwner} onClick={() => set({ color: c })} />
             ))}
           </div>
         </FormSection>
       )}
 
-      <FormSection title="Text size & paper">
+      <FormSection title={t('Text size & paper')}>
         <IonSegment value={d.fontSize} disabled={!isOwner} onIonChange={sync((e) => set({ fontSize: e.detail.value as DesignSettings['fontSize'] }))}>
           <IonSegmentButton value="S">
-            <IonLabel>Small</IonLabel>
+            <IonLabel>{t('Small')}</IonLabel>
           </IonSegmentButton>
           <IonSegmentButton value="M">
-            <IonLabel>Medium</IonLabel>
+            <IonLabel>{t('Medium')}</IonLabel>
           </IonSegmentButton>
           <IonSegmentButton value="L">
-            <IonLabel>Large</IonLabel>
+            <IonLabel>{t('Large')}</IonLabel>
           </IonSegmentButton>
         </IonSegment>
         <IonSegment value={d.paper} disabled={!isOwner} onIonChange={sync((e) => set({ paper: e.detail.value as DesignSettings['paper'] }))} style={{ marginTop: 8 }}>
@@ -161,19 +164,19 @@ export default function DesignScreen() {
         </IonSegment>
       </FormSection>
 
-      <FormSection title="Preview (sample invoice)">
+      <FormSection title={t('Preview (sample invoice)')}>
         <PdfPreview blob={blob} />
       </FormSection>
 
-      <FormSection title="Show on invoice">
-        {TOGGLES.map((t) => (
-          <ToggleRow key={t.key} label={t.label} checked={d.show[t.key]} disabled={!isOwner} onChange={(v) => set({ show: { ...d.show, [t.key]: v } })} />
+      <FormSection title={t('Show on invoice')}>
+        {TOGGLES.map((tg) => (
+          <ToggleRow key={tg.key} label={t(tg.label)} checked={d.show[tg.key]} disabled={!isOwner} onChange={(v) => set({ show: { ...d.show, [tg.key]: v } })} />
         ))}
       </FormSection>
 
       {dirty && isOwner && (
         <IonButton fill="clear" expand="block" onClick={() => setD(settings.design)}>
-          Discard changes
+          {t('Discard changes')}
         </IonButton>
       )}
     </FormPage>

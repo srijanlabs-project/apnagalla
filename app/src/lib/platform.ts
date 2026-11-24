@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import type { ClientKind } from '@invoice/shared';
+import { t } from './i18n';
 
 /**
  * The Android app is a 'mobile' login (one phone at a time); the browser is a 'web' login.
@@ -16,4 +17,4 @@ export const CLIENT_KIND: ClientKind =
  */
 export const CAN_CREATE_INVOICES = CLIENT_KIND === 'mobile' || import.meta.env.VITE_ALLOW_WEB_INVOICING === 'true';
 
-export const WEB_INVOICE_NOTE = 'Invoices are created in the ApnaGalla phone app. On the web you can view, share and record payments.';
+export const webInvoiceNote = (): string => t('Invoices are created in the ApnaGalla phone app. On the web you can view, share and record payments.');

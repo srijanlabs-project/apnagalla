@@ -7,6 +7,7 @@ import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { rupees } from '../../lib/format';
+import { t } from '../../lib/i18n';
 import { flattenCategories, useCategories, withDescendants } from '../../lib/categories';
 
 export default function ItemsScreen() {
@@ -37,8 +38,8 @@ export default function ItemsScreen() {
   }, [items, q, catId, cats]);
 
   return (
-    <PageShell title="Items" padded={false}>
-      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder="Search name, code or barcode" />
+    <PageShell title={t('Items')} padded={false}>
+      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search name, code or barcode')} />
       {(cats.length > 0 || isOwner) && (
         <div className="filter-chips">
           {current && (
@@ -55,17 +56,17 @@ export default function ItemsScreen() {
           {isOwner && (
             <>
               <IonButton size="small" fill="clear" routerLink="/tabs/items/categories">
-                <IonIcon icon={folderOpenOutline} slot="start" /> Categories
+                <IonIcon icon={folderOpenOutline} slot="start" /> {t('Categories')}
               </IonButton>
               <IonButton size="small" fill="clear" routerLink="/tabs/items/import">
-                <IonIcon icon={cloudUploadOutline} slot="start" /> Import
+                <IonIcon icon={cloudUploadOutline} slot="start" /> {t('Import')}
               </IonButton>
             </>
           )}
         </div>
       )}
       {items && items.length === 0 ? (
-        <EmptyState icon={cubeOutline} title="No items yet" text="Save your products and services with their price and tax, then pick them while billing." />
+        <EmptyState icon={cubeOutline} title={t('No items yet')} text={t('Save your products and services with their price and tax, then pick them while billing.')} />
       ) : (
         <IonList>
           {filtered.map((i) => (
@@ -73,7 +74,8 @@ export default function ItemsScreen() {
               <IonLabel>
                 <h2>{i.name}</h2>
                 <p>
-                  {i.code ? `${i.code} · ` : ''}per {i.unit} · tax {i.taxPct}%{i.rateIncludesTax ? ' incl.' : ''}
+                  {i.code ? `${i.code} · ` : ''}
+                  {i.rateIncludesTax ? t('per {unit} · tax {taxPct}% incl.', { unit: i.unit, taxPct: i.taxPct }) : t('per {unit} · tax {taxPct}%', { unit: i.unit, taxPct: i.taxPct })}
                   {i.categoryId && !catId && paths.get(i.categoryId) ? ` · ${paths.get(i.categoryId)}` : ''}
                 </p>
               </IonLabel>
@@ -85,7 +87,7 @@ export default function ItemsScreen() {
         </IonList>
       )}
       <IonFab slot="fixed" vertical="bottom" horizontal="end">
-        <IonFabButton routerLink="/tabs/items/new" aria-label="Add item">
+        <IonFabButton routerLink="/tabs/items/new" aria-label={t('Add item')}>
           <IonIcon icon={add} />
         </IonFabButton>
       </IonFab>

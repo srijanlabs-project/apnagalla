@@ -11,9 +11,11 @@
     "typecheck": "tsc -b",
     "android:sync": "npm run build && cap sync android",
     "android:open": "cap open android",
-    "test": "vitest run"
+    "test": "vitest run",
+    "i18n": "node scripts/i18n.mjs"
   },
   "dependencies": {
+    "@capacitor-community/bluetooth-le": "^8.4.0",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.6.2",
     "@capacitor/device": "^8.0.3",

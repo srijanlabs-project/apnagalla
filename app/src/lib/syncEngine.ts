@@ -2,6 +2,7 @@ import { NUMBER_SERIES, SYNC_PUSH_MAX, financialYearLabel, todayISO, type MeResp
 import type { Table } from 'dexie';
 import { ApiError, NetworkError, api } from './api';
 import { db, getMeta, setMeta, type SyncedRecord } from './db';
+import { t } from './i18n';
 import { CAN_CREATE_INVOICES } from './platform';
 import { blockTarget, effectiveGstType, isPersonalSeries, noteUsedNumber, numberPoolKey, setNumberAllocator, settingsOf } from './repo';
 import { KEYS, kv } from './storage';
@@ -79,7 +80,7 @@ export function syncNow(businessIds: string[], current: string | null): Promise<
       setState({ lastSyncAt: new Date().toISOString(), lastError: null });
     } catch (e) {
       const message =
-        e instanceof NetworkError ? null : e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Sync failed';
+        e instanceof NetworkError ? null : e instanceof ApiError ? e.message : e instanceof Error ? e.message : t('Sync failed');
       setState({ lastError: message });
     } finally {
       setState({ running: false });
@@ -122,7 +123,7 @@ async function pushStore(businessId: string) {
         // The server's copy wins (newer edit, or our change wasn't allowed) — unless the record was
         // edited again while we were syncing, in which case that new edit goes out next round.
         if (r.current && !(await hasPending(r.table, r.id))) await table(r.table).put(r.current as unknown as SyncedRecord);
-        if (r.status === 'rejected') rejected.push({ table: r.table, id: r.id, reason: r.reason ?? 'Not allowed', at: new Date().toISOString() });
+        if (r.status === 'rejected') rejected.push({ table: r.table, id: r.id, reason: r.reason ?? t('Not allowed'), at: new Date().toISOString() });
       }
     });
     if (rejected.length) setState({ rejected: [...rejected, ...state.rejected].slice(0, 50) });

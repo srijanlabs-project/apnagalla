@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FormSection, SelectField, TextField } from '../../components/Fields';
 import { errorMessage } from '../../lib/api';
 import { INDIAN_STATES } from '../../lib/format';
+import { t } from '../../lib/i18n';
 import { useOnline } from '../../lib/network';
 import { useSession } from '../../lib/session';
 
@@ -37,12 +38,12 @@ export default function AddStoreModal({ isOpen, onClose, onCreated }: { isOpen: 
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
-            <IonButton onClick={onClose}>Cancel</IonButton>
+            <IonButton onClick={onClose}>{t('Cancel')}</IonButton>
           </IonButtons>
-          <IonTitle>New store</IonTitle>
+          <IonTitle>{t('New store')}</IonTitle>
           <IonButtons slot="end">
             <IonButton strong disabled={!form.name.trim() || busy || !online || atLimit} onClick={() => void create()}>
-              {busy ? <IonSpinner name="dots" /> : 'Create'}
+              {busy ? <IonSpinner name="dots" /> : t('Create')}
             </IonButton>
           </IonButtons>
         </IonToolbar>
@@ -50,12 +51,12 @@ export default function AddStoreModal({ isOpen, onClose, onCreated }: { isOpen: 
       <IonContent className="ion-padding">
         {!online && (
           <IonText color="warning">
-            <p>You're offline. Creating a store needs internet.</p>
+            <p>{t('You\'re offline. Creating a store needs internet.')}</p>
           </IonText>
         )}
         {atLimit && (
           <IonText color="warning">
-            <p>You already have {MAX_OWNED_STORES} stores, the most allowed.</p>
+            <p>{t('You already have {count} stores, the most allowed.', { count: MAX_OWNED_STORES })}</p>
           </IonText>
         )}
         {error && (
@@ -64,11 +65,11 @@ export default function AddStoreModal({ isOpen, onClose, onCreated }: { isOpen: 
           </IonText>
         )}
         <FormSection>
-          <TextField label="Store name" required value={form.name} onChange={(name) => setForm((f) => ({ ...f, name }))} autocapitalize="words" />
-          <TextField label="City" value={form.city} onChange={(city) => setForm((f) => ({ ...f, city }))} autocapitalize="words" />
-          <SelectField label="State" value={form.state} options={INDIAN_STATES.map((s) => ({ value: s, label: s }))} onChange={(state) => setForm((f) => ({ ...f, state }))} />
+          <TextField label={t('Store name')} required value={form.name} onChange={(name) => setForm((f) => ({ ...f, name }))} autocapitalize="words" />
+          <TextField label={t('City')} value={form.city} onChange={(city) => setForm((f) => ({ ...f, city }))} autocapitalize="words" />
+          <SelectField label={t('State')} value={form.state} options={INDIAN_STATES.map((s) => ({ value: s, label: s }))} onChange={(state) => setForm((f) => ({ ...f, state }))} />
         </FormSection>
-        <IonNote>Each store has its own customers, items, invoice numbers, GST details and team. You can add the logo, address, bank and UPI details after creating it.</IonNote>
+        <IonNote>{t('Each store has its own customers, items, invoice numbers, GST details and team. You can add the logo, address, bank and UPI details after creating it.')}</IonNote>
       </IonContent>
     </IonModal>
   );

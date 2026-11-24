@@ -3,6 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { requestPersistentStorage } from './lib/db';
+import { loadAppLanguage } from './lib/i18n';
 
 /* Ionic core + utility CSS */
 import '@ionic/react/css/core.css';
@@ -19,8 +20,11 @@ import './theme.css';
 setupIonicReact({ mode: 'md' });
 void requestPersistentStorage();
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+// The language must be known before anything is drawn.
+void loadAppLanguage().then(() =>
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  ),
 );

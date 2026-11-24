@@ -17,7 +17,7 @@ import {
 } from '@ionic/react';
 import { formatDateIN } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { createOutline, ellipsisVertical, eyeOutline, logoWhatsapp, shareSocialOutline, walletOutline } from 'ionicons/icons';
+import { createOutline, ellipsisVertical, eyeOutline, logoWhatsapp, shareSocialOutline, walletOutline, printOutline } from 'ionicons/icons';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import PageShell from '../../components/PageShell';
@@ -25,8 +25,10 @@ import PdfPreview from '../../components/PdfPreview';
 import StatusBadge from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
 import { db, type CreditNote, type Estimate, type Invoice } from '../../lib/db';
-import { gstViewOf } from '../../lib/gstView';
+import { gstViewOf, titleIn } from '../../lib/gstView';
+import { appLanguage } from '../../lib/i18n';
 import { dateIN, lineSize, rupees } from '../../lib/format';
+import { t } from '../../lib/i18n';
 import { pdfFileName, pdfInputFor, renderPdf, sharePdf } from '../../lib/pdf';
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
 import {
@@ -44,8 +46,9 @@ import {
 } from '../../lib/repo';
 import PaySheet from '../../components/PaySheet';
 import { markDelivered } from '../../lib/deliveries';
-import { MODE_LABEL, moneyOf } from '../../lib/ledger';
-import { DOC_BASE, DOC_LABEL } from './DocEditorScreen';
+import { usePrint } from '../../lib/usePrint';
+import { modeLabel, moneyOf } from '../../lib/ledger';
+import { DOC_BASE } from './DocEditorScreen';
 
 export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const { id } = useParams<{ id: string }>();
@@ -55,10 +58,11 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const [alert] = useIonAlert();
   const [menu, setMenu] = useState(false);
   const [payOpen, setPayOpen] = useState<'payment' | 'refund' | null>(null);
+  const printer = usePrint();
+  const [receipt, setReceipt] = useState<string | null>(null);
   const [preview, setPreview] = useState<Blob | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const base = DOC_BASE[kind];
-  const label = DOC_LABEL[kind];
 
   const doc = useLiveQuery(
     () => (kind === 'invoice' ? db.invoices.get(id!) : kind === 'estimate' ? db.estimates.get(id!) : db.creditNotes.get(id!)) as Promise<Invoice | Estimate | CreditNote | undefined>,
@@ -87,7 +91,10 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
     (kind === 'estimate' || CAN_CREATE_INVOICES) &&
     (doc.status === 'draft' || (doc.status !== 'cancelled' && doc.status !== 'converted' && (isOwner || (est != null && doc.createdBy === actor.userId))));
 
-  const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : 'Something went wrong', duration: 2500, color: 'danger' });
+  // The invoice link is placed wherever the language puts it in the sentence.
+  const [againstBefore, againstAfter = ''] = note ? t('Against invoice {number} of {date}', { date: dateIN(note.invoiceDate) }).split('{number}') : ['', ''];
+
+  const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : t('Something went wrong'), duration: 2500, color: 'danger' });
 
   async function makePdf() {
     return renderPdf(await pdfInputFor(kind, doc!, settings));
@@ -101,7 +108,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
         ? `${profile.name}: ${view.title} ${doc!.number} for ${rupees(inv.totals.grandTotal)}${pending > 0 ? `. Pending ${rupees(pending)}.` : '.'}`
         : `${profile.name}: ${view.title} ${doc!.number}`;
       const r = await sharePdf(pdfFileName(kind, doc!), pdf, text);
-      if (r === 'downloaded') void toast({ message: 'PDF downloaded', duration: 1500 });
+      if (r === 'downloaded') void toast({ message: t('PDF downloaded'), duration: 1500 });
     } catch (e) {
       fail(e);
     } finally {
@@ -133,11 +140,11 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   }
 
   const menuButtons = [
-    ...(canEdit ? [{ text: 'Edit', handler: () => router.push(`${base}/${doc.id}/edit`) }] : []),
+    ...(canEdit ? [{ text: t('Edit'), handler: () => router.push(`${base}/${doc.id}/edit`) }] : []),
     ...(inv && inv.status === 'saved' && CAN_CREATE_INVOICES && (money?.due ?? 0) > 0
       ? [
           {
-            text: isOwner ? 'Return items / credit note' : 'Return items',
+            text: isOwner ? t('Return items / credit note') : t('Return items'),
             handler: () =>
               void newCreditNoteDraft(actor, doc.id)
                 .then((n) => saveCreditNote(actor, n, { finalize: false }))
@@ -149,16 +156,16 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
     ...(note && note.status === 'saved' && isOwner
       ? [
           {
-            text: 'Cancel credit note',
+            text: t('Cancel credit note'),
             role: 'destructive' as const,
             handler: () =>
               void alert({
-                header: `Cancel ${doc.number}?`,
-                message: `The number is kept and the amount goes back onto invoice ${note.invoiceNumber}. This cannot be undone.`,
-                inputs: [{ name: 'reason', placeholder: 'Reason (optional)' }],
+                header: t('Cancel {number}?', { number: doc.number }),
+                message: t('The number is kept and the amount goes back onto invoice {number}. This cannot be undone.', { number: note.invoiceNumber }),
+                inputs: [{ name: 'reason', placeholder: t('Reason (optional)') }],
                 buttons: [
-                  { text: 'Keep', role: 'cancel' },
-                  { text: 'Cancel credit note', role: 'destructive', handler: (v: { reason?: string }) => void cancelCreditNote(actor, doc.id, v.reason).catch(fail) },
+                  { text: t('Keep'), role: 'cancel' },
+                  { text: t('Cancel credit note'), role: 'destructive', handler: (v: { reason?: string }) => void cancelCreditNote(actor, doc.id, v.reason).catch(fail) },
                 ],
               }),
           },
@@ -167,7 +174,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
     ...(inv && CAN_CREATE_INVOICES
       ? [
           {
-            text: 'Duplicate',
+            text: t('Duplicate'),
             handler: () =>
               void duplicateInvoice(actor, doc.id)
                 .then((d) => router.push(`/tabs/invoices/${d.id}/edit`))
@@ -177,23 +184,23 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
       : []),
     ...(est && est.status !== 'draft' && est.status !== 'converted'
       ? [
-          { text: 'Mark accepted', handler: () => void setEstimateStatus(actor, doc.id, 'accepted') },
-          { text: 'Mark declined', handler: () => void setEstimateStatus(actor, doc.id, 'declined') },
+          { text: t('Mark accepted'), handler: () => void setEstimateStatus(actor, doc.id, 'accepted') },
+          { text: t('Mark declined'), handler: () => void setEstimateStatus(actor, doc.id, 'declined') },
         ]
       : []),
     ...(inv && inv.status === 'saved' && isOwner
       ? [
           {
-            text: 'Cancel invoice',
+            text: t('Cancel invoice'),
             role: 'destructive' as const,
             handler: () =>
               void alert({
-                header: `Cancel ${doc.number}?`,
-                message: 'The number is kept and the invoice is marked CANCELLED. This cannot be undone.',
-                inputs: [{ name: 'reason', placeholder: 'Reason (optional)' }],
+                header: t('Cancel {number}?', { number: doc.number }),
+                message: t('The number is kept and the invoice is marked CANCELLED. This cannot be undone.'),
+                inputs: [{ name: 'reason', placeholder: t('Reason (optional)') }],
                 buttons: [
-                  { text: 'Keep', role: 'cancel' },
-                  { text: 'Cancel invoice', role: 'destructive', handler: (v: { reason?: string }) => void cancelInvoice(actor, doc.id, v.reason).catch(fail) },
+                  { text: t('Keep'), role: 'cancel' },
+                  { text: t('Cancel invoice'), role: 'destructive', handler: (v: { reason?: string }) => void cancelInvoice(actor, doc.id, v.reason).catch(fail) },
                 ],
               }),
           },
@@ -202,7 +209,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
     ...(doc.status === 'draft'
       ? [
           {
-            text: 'Delete draft',
+            text: t('Delete draft'),
             role: 'destructive' as const,
             handler: () =>
               void deleteDraft(actor, kind, doc.id)
@@ -211,92 +218,112 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
           },
         ]
       : []),
-    { text: 'Close', role: 'cancel' as const },
+    { text: t('Close'), role: 'cancel' as const },
   ];
 
   return (
-    <PageShell title={doc.number || `${label} draft`} backHref={base} padded={false}>
+    <PageShell title={doc.number || (kind === 'invoice' ? t('Invoice draft') : kind === 'estimate' ? t('Estimate draft') : t('Credit note draft'))} backHref={base} padded={false}>
       <IonCard>
         <IonCardContent>
           <div className="detail-head">
             <div>
-              <h2>{doc.billTo?.name ?? 'No customer'}</h2>
+              <h2>{doc.billTo?.name ?? t('No customer')}</h2>
               <p>
-                {view.title} {doc.number || '(draft)'} · {dateIN(doc.date)}
-                {inv?.dueDate ? ` · due ${dateIN(inv.dueDate)}` : ''}
+                {titleIn(view.title, appLanguage())} {doc.number || t('(draft)')} · {dateIN(doc.date)}
+                {inv?.dueDate ? ` · ${t('due {date}', { date: dateIN(inv.dueDate) })}` : ''}
               </p>
               {view.mode === 'gst' && view.pos && (
                 <p>
-                  Place of supply {view.posLabel} · {view.interState ? 'IGST' : `CGST + ${view.sgstName}`}
+                  {t('Place of supply {place}', { place: view.posLabel })} · {view.interState ? 'IGST' : `CGST + ${view.sgstName}`}
                 </p>
               )}
               {doc.deliveryDate && (
                 <p>
-                  Delivery {dateIN(doc.deliveryDate)}
+                  {t('Delivery {date}', { date: dateIN(doc.deliveryDate) })}
                   {doc.deliveryAssignee ? ` · ${doc.deliveryAssignee.name}` : ''}
-                  {doc.deliveredAt ? ` · delivered${doc.deliveredByName ? ` by ${doc.deliveredByName}` : ''}` : ''}
+                  {doc.deliveredAt ? ` · ${doc.deliveredByName ? t('delivered by {name}', { name: doc.deliveredByName }) : t('delivered')}` : ''}
                 </p>
               )}
               {note && (
                 <p>
-                  Against invoice <a onClick={() => router.push(`/tabs/invoices/${note.invoiceId}`)}>{note.invoiceNumber}</a> of {dateIN(note.invoiceDate)}
+                  {againstBefore}
+                  <a onClick={() => router.push(`/tabs/invoices/${note.invoiceId}`)}>{note.invoiceNumber}</a>
+                  {againstAfter}
                 </p>
               )}
             </div>
             {inv ? <StatusBadge invoice={inv} /> : est ? <StatusBadge estimate={est} /> : <StatusBadge creditNote={note!} />}
           </div>
           <div className="detail-total">
-            <span>Total</span>
+            <span>{t('Total')}</span>
             <strong>{rupees(doc.totals.grandTotal)}</strong>
           </div>
           {money && money.credited > 0 && (
             <div className="detail-pay">
               <div>
-                <span>Credit notes</span> <strong>−{rupees(money.credited)}</strong>
+                <span>{t('Credit notes')}</span> <strong>−{rupees(money.credited)}</strong>
               </div>
             </div>
           )}
           {money && inv?.status === 'saved' && (
             <div className="detail-pay">
               <div>
-                <span>Paid</span> <strong>{rupees(money.paid)}</strong>
+                <span>{t('Paid')}</span> <strong>{rupees(money.paid)}</strong>
               </div>
               <div>
-                <span>Pending</span> <strong className={pending ? 'text-danger' : ''}>{rupees(pending)}</strong>
+                <span>{t('Pending')}</span> <strong className={pending ? 'text-danger' : ''}>{rupees(pending)}</strong>
               </div>
             </div>
           )}
           {refundDue > 0 && (
             <p className="text-danger">
-              {rupees(refundDue)} was paid more than is now due{note ? ` on invoice ${note.invoiceNumber}` : ''}: refund it to the customer.
+              {note
+                ? t('{amount} was paid more than is now due on invoice {number}: refund it to the customer.', { amount: rupees(refundDue), number: note.invoiceNumber })
+                : t('{amount} was paid more than is now due: refund it to the customer.', { amount: rupees(refundDue) })}
             </p>
           )}
 
           <div className="detail-actions">
             <IonButton onClick={() => void onShare()} disabled={!!busy}>
-              {busy === 'share' ? <IonSpinner name="dots" /> : <IonIcon icon={shareSocialOutline} slot="start" />} Share PDF
+              {busy === 'share' ? <IonSpinner name="dots" /> : <IonIcon icon={shareSocialOutline} slot="start" />} {t('Share PDF')}
             </IonButton>
+            {doc.status !== 'draft' && kind !== 'estimate' && (
+              <IonButton
+                fill="outline"
+                disabled={printer.busy}
+                onClick={() =>
+                  printer.canPrint
+                    ? void printer.print(kind, doc)
+                    : void printer
+                        .preview(kind, doc)
+                        .then(setReceipt)
+                        .catch(fail)
+                }
+              >
+                {printer.busy ? <IonSpinner name="dots" /> : <IonIcon icon={printOutline} slot="start" />} {printer.canPrint ? t('Print') : t('Receipt')}
+              </IonButton>
+            )}
             <IonButton fill="outline" onClick={() => void onPreview()} disabled={!!busy}>
-              {busy === 'preview' ? <IonSpinner name="dots" /> : <IonIcon icon={eyeOutline} slot="start" />} Preview
+              {busy === 'preview' ? <IonSpinner name="dots" /> : <IonIcon icon={eyeOutline} slot="start" />} {t('Preview')}
             </IonButton>
             {inv && inv.status === 'saved' && pending > 0 && (
               <IonButton fill="outline" onClick={() => setPayOpen('payment')}>
-                <IonIcon icon={walletOutline} slot="start" /> Record payment
+                <IonIcon icon={walletOutline} slot="start" /> {t('Record payment')}
               </IonButton>
             )}
             {doc.deliveryDate && !doc.deliveredAt && (inv?.status === 'saved' || (est && est.status !== 'draft')) && (
               <IonButton fill="outline" color="success" onClick={() => void markDelivered(actor, kind as 'invoice' | 'estimate', doc.id).catch(fail)}>
-                Mark delivered
+                {t('Mark delivered')}
               </IonButton>
             )}
             {refundDue > 0 && CAN_CREATE_INVOICES && (
               <IonButton fill="outline" color="danger" onClick={() => setPayOpen('refund')}>
-                <IonIcon icon={walletOutline} slot="start" /> Refund {rupees(refundDue)}
+                <IonIcon icon={walletOutline} slot="start" /> {t('Refund {amount}', { amount: rupees(refundDue) })}
               </IonButton>
             )}
             {inv && pending > 0 && (
               <IonButton fill="outline" color="success" onClick={onReminder}>
-                <IonIcon icon={logoWhatsapp} slot="start" /> Remind
+                <IonIcon icon={logoWhatsapp} slot="start" /> {t('Remind')}
               </IonButton>
             )}
             {est && est.status !== 'draft' && est.status !== 'converted' && CAN_CREATE_INVOICES && (
@@ -308,17 +335,17 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                     .catch(fail)
                 }
               >
-                Convert to invoice
+                {t('Convert to invoice')}
               </IonButton>
             )}
             {est?.convertedInvoiceId && (
               <IonButton fill="outline" routerLink={`/tabs/invoices/${est.convertedInvoiceId}`}>
-                Open invoice
+                {t('Open invoice')}
               </IonButton>
             )}
             {canEdit && (
               <IonButton fill="clear" routerLink={`${base}/${doc.id}/edit`}>
-                <IonIcon icon={createOutline} slot="start" /> Edit
+                <IonIcon icon={createOutline} slot="start" /> {t('Edit')}
               </IonButton>
             )}
           </div>
@@ -326,17 +353,23 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
       </IonCard>
 
       {preview && <PdfPreview blob={preview} />}
+      {receipt && (
+        <div className="receipt-preview" onClick={() => setReceipt(null)}>
+          <img src={receipt} alt={t('Receipt')} />
+          <p className="section-note">{t('Thermal receipt preview. Printing works in the Android app. Tap to close.')}</p>
+        </div>
+      )}
 
       {money && money.entries.length > 0 && (
         <IonList inset>
           <IonListHeader>
-            <IonLabel>Payments</IonLabel>
+            <IonLabel>{t('Payments')}</IonLabel>
           </IonListHeader>
           {money.entries.map((e) => (
             <IonItem key={e.id} lines="full">
               <IonLabel className={e.voidedAt ? 'voided' : undefined}>
                 <h3>
-                  {e.kind === 'refund' ? 'Refund' : 'Received'} · {MODE_LABEL[e.mode]}
+                  {e.kind === 'refund' ? t('Refund') : t('Received')} · {modeLabel(e.mode)}
                   {e.reference ? ` · ${e.reference}` : ''}
                 </h3>
                 <p>
@@ -346,7 +379,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 </p>
                 {e.voidedAt && (
                   <p className="text-danger">
-                    Voided{e.voidedByName ? ` by ${e.voidedByName}` : ''}: {e.voidReason}
+                    {e.voidedByName ? t('Voided by {name}: {reason}', { name: e.voidedByName, reason: e.voidReason ?? '' }) : t('Voided: {reason}', { reason: e.voidReason ?? '' })}
                   </p>
                 )}
               </IonLabel>
@@ -362,17 +395,17 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                   color="medium"
                   onClick={() =>
                     void alert({
-                      header: `Void ${rupees(e.amount)} ${MODE_LABEL[e.mode]}?`,
-                      message: 'Use this for a mistake. The entry stays in the history, crossed out.',
-                      inputs: [{ name: 'reason', placeholder: 'Reason' }],
+                      header: t('Void {amount} {mode}?', { amount: rupees(e.amount), mode: modeLabel(e.mode) }),
+                      message: t('Use this for a mistake. The entry stays in the history, crossed out.'),
+                      inputs: [{ name: 'reason', placeholder: t('Reason') }],
                       buttons: [
-                        { text: 'Keep', role: 'cancel' },
-                        { text: 'Void', role: 'destructive', handler: (v: { reason?: string }) => void voidPayment(actor, e.id, v.reason ?? '').catch(fail) },
+                        { text: t('Keep'), role: 'cancel' },
+                        { text: t('Void'), role: 'destructive', handler: (v: { reason?: string }) => void voidPayment(actor, e.id, v.reason ?? '').catch(fail) },
                       ],
                     })
                   }
                 >
-                  Void
+                  {t('Void')}
                 </IonButton>
               )}
             </IonItem>
@@ -383,12 +416,12 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
       {creditNotes && creditNotes.length > 0 && (
         <IonList inset>
           <IonListHeader>
-            <IonLabel>Credit notes</IonLabel>
+            <IonLabel>{t('Credit notes')}</IonLabel>
           </IonListHeader>
           {creditNotes.map((n) => (
             <IonItem key={n.id} routerLink={`/tabs/credit-notes/${n.id}`} detail={false}>
               <IonLabel>
-                <h3>{n.number || 'Draft'}</h3>
+                <h3>{n.number || t('Draft')}</h3>
                 <p>
                   {dateIN(n.date)} · {n.status}
                 </p>
@@ -401,7 +434,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
 
       <IonList inset>
         <IonListHeader>
-          <IonLabel>Items</IonLabel>
+          <IonLabel>{t('Items')}</IonLabel>
         </IonListHeader>
         {doc.lines.map((l, i) => (
           <IonItem key={l.id}>
@@ -410,8 +443,8 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
               {lineSize(l) && <p>{lineSize(l)}</p>}
               <p>
                 {l.qty} {l.unit} × {rupees(l.rate)}
-                {view.mode === 'none' ? '' : ` · tax ${l.taxPct}%`}
-                {l.hsn && view.mode !== 'none' ? ` · HSN ${l.hsn}` : ''}
+                {view.mode === 'none' ? '' : ` · ${t('tax {pct}%', { pct: l.taxPct })}`}
+                {l.hsn && view.mode !== 'none' ? ` · ${t('HSN {code}', { code: l.hsn })}` : ''}
               </p>
             </IonLabel>
             <IonNote slot="end">{rupees(doc.totals.lines[i]?.amount ?? 0)}</IonNote>
@@ -421,7 +454,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
 
       <IonList inset>
         <IonListHeader>
-          <IonLabel>History</IonLabel>
+          <IonLabel>{t('History')}</IonLabel>
         </IonListHeader>
         {[...doc.history].reverse().map((h, i) => (
           <IonItem key={i} lines="none">
@@ -431,7 +464,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 {h.detail ? ` — ${h.detail}` : ''}
               </p>
               <p>
-                {h.byName || 'Someone'} · {new Date(h.at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                {h.byName || t('Someone')} · {new Date(h.at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
               </p>
             </IonLabel>
           </IonItem>
@@ -440,7 +473,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
 
       <IonButtons className="detail-more">
         <IonButton onClick={() => setMenu(true)}>
-          <IonIcon icon={ellipsisVertical} slot="start" /> More actions
+          <IonIcon icon={ellipsisVertical} slot="start" /> {t('More actions')}
         </IonButton>
       </IonButtons>
       <IonActionSheet isOpen={menu} onDidDismiss={() => setMenu(false)} buttons={menuButtons} />
@@ -458,7 +491,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
             recordPayments(actor, billForMoney.id, parts, { date, kind: payOpen ?? 'payment', creditNoteId: note?.id })
               .then(() => {
                 setPayOpen(null);
-                void toast({ message: payOpen === 'refund' ? 'Refund recorded' : 'Payment recorded', duration: 1200, color: 'success' });
+                void toast({ message: payOpen === 'refund' ? t('Refund recorded') : t('Payment recorded'), duration: 1200, color: 'success' });
               })
               .catch(fail)
           }

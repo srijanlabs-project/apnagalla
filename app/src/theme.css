@@ -227,3 +227,7 @@
 @media (min-aspect-ratio: 3/4) {
   .app-splash img { object-fit: contain; }
 }
+
+/* ---------- thermal receipt preview (web) ---------- */
+.receipt-preview { margin: 12px; text-align: center; }
+.receipt-preview img { max-width: 100%; width: 384px; border: 1px solid var(--ion-color-medium); background: #fff; image-rendering: pixelated; }

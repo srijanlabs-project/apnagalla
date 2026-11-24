@@ -1,6 +1,8 @@
 import { halfRate, splitGst, stateLabel, type GstSplit, type GstType, type InvoiceTotals } from '@invoice/shared';
 import type { BusinessProfile, DocBase } from './db';
 import { effectiveGstType, placeOfSupplyOf, storeStateCode, type DocKind } from './repo';
+import { translate } from './i18n';
+import type { Lang } from '@invoice/shared';
 
 /** Chandigarh, Andaman and Nicobar, Lakshadweep, Dadra and Nagar Haveli and Daman and Diu, Ladakh. */
 const UTGST_TERRITORIES = ['04', '35', '31', '26', '38'];
@@ -59,4 +61,27 @@ export function taxRows(view: GstView, totals: InvoiceTotals): { label: string; 
             { label: `${view.sgstName} @${halfRate(r.taxPct)}%`, amount: r.sgst },
           ],
     );
+}
+
+/**
+ * A bill title or the composition declaration in a language (PDFs stay English: they use
+ * view.title directly). Literal phrases so the translation tooling finds them.
+ */
+export function titleIn(text: string, lang: Lang): string {
+  switch (text) {
+    case 'Tax Invoice':
+      return translate(lang, 'Tax Invoice');
+    case 'Bill of Supply':
+      return translate(lang, 'Bill of Supply');
+    case 'Credit Note':
+      return translate(lang, 'Credit Note');
+    case 'Estimate':
+      return translate(lang, 'Estimate');
+    case 'Invoice':
+      return translate(lang, 'Invoice');
+    case 'Composition taxable person, not eligible to collect tax on supplies':
+      return translate(lang, 'Composition taxable person, not eligible to collect tax on supplies');
+    default:
+      return text;
+  }
 }

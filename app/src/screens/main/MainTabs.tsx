@@ -2,6 +2,7 @@ import { IonIcon, IonLabel, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } 
 import { cubeOutline, documentTextOutline, ellipsisHorizontal, homeOutline, peopleOutline } from 'ionicons/icons';
 import { Navigate, Route } from 'react-router-dom';
 import { BusinessProvider } from '../../lib/business';
+import { t } from '../../lib/i18n';
 import CustomerDetailScreen from '../customers/CustomerDetailScreen';
 import CustomerEditScreen from '../customers/CustomerEditScreen';
 import CustomersScreen from '../customers/CustomersScreen';
@@ -10,6 +11,7 @@ import DocEditorScreen from '../docs/DocEditorScreen';
 import SaleScreen from '../sale/SaleScreen';
 import CategoriesScreen from '../items/CategoriesScreen';
 import ImportScreen from '../items/ImportScreen';
+import PrinterScreen from '../settings/PrinterScreen';
 import DocListScreen from '../docs/DocListScreen';
 import ItemEditScreen from '../items/ItemEditScreen';
 import ItemsScreen from '../items/ItemsScreen';
@@ -58,6 +60,7 @@ export default function MainTabs() {
           <Route path="more/team" element={<TeamScreen />} />
           <Route path="more/stores" element={<StoresScreen />} />
           <Route path="more/devices" element={<DevicesScreen />} />
+          <Route path="more/printer" element={<PrinterScreen />} />
           <Route path="more/business" element={<BusinessProfileScreen />} />
           <Route path="more/payment" element={<PaymentDetailsScreen />} />
           <Route path="more/invoice-settings" element={<InvoiceSettingsScreen />} />
@@ -68,23 +71,23 @@ export default function MainTabs() {
         <IonTabBar slot="bottom">
           <IonTabButton tab="home" href="/tabs/home">
             <IonIcon icon={homeOutline} />
-            <IonLabel>Home</IonLabel>
+            <IonLabel>{t('Home')}</IonLabel>
           </IonTabButton>
           <IonTabButton tab="invoices" href="/tabs/invoices">
             <IonIcon icon={documentTextOutline} />
-            <IonLabel>Invoices</IonLabel>
+            <IonLabel>{t('Invoices')}</IonLabel>
           </IonTabButton>
           <IonTabButton tab="customers" href="/tabs/customers">
             <IonIcon icon={peopleOutline} />
-            <IonLabel>Customers</IonLabel>
+            <IonLabel>{t('Customers')}</IonLabel>
           </IonTabButton>
           <IonTabButton tab="items" href="/tabs/items">
             <IonIcon icon={cubeOutline} />
-            <IonLabel>Items</IonLabel>
+            <IonLabel>{t('Items')}</IonLabel>
           </IonTabButton>
           <IonTabButton tab="more" href="/tabs/more">
             <IonIcon icon={ellipsisHorizontal} />
-            <IonLabel>More</IonLabel>
+            <IonLabel>{t('More')}</IonLabel>
           </IonTabButton>
         </IonTabBar>
       </IonTabs>

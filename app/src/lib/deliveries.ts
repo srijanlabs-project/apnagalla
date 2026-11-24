@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { addDaysISO, todayISO } from '@invoice/shared';
 import { db, type DocBase, type Estimate, type Invoice } from './db';
+import { t } from './i18n';
 import { putRecord, type Actor } from './repo';
 
 /** A bill or estimate (job-work order) with a delivery date, not yet delivered. */
@@ -72,11 +73,11 @@ export async function scheduleDeliveryAlerts(actor: Actor, alertTime: string): P
     .map(({ kind, doc }) => {
       const [y, m, d] = addDaysISO(doc.deliveryDate!, -1).split('-').map(Number) as [number, number, number];
       const at = new Date(y, m - 1, d, hh, mm);
-      const who = doc.billTo?.name ?? 'customer';
+      const who = doc.billTo?.name ?? t('customer');
       return {
         id: alertId(doc.id),
-        title: 'Delivery tomorrow',
-        body: `${who}${doc.number ? ` · ${kind === 'invoice' ? 'Bill' : 'Order'} ${doc.number}` : ''}${doc.deliveryAssignee ? ` · ${doc.deliveryAssignee.name}` : ''}`,
+        title: t('Delivery tomorrow'),
+        body: `${who}${doc.number ? ` · ${kind === 'invoice' ? t('Bill {number}', { number: doc.number }) : t('Order {number}', { number: doc.number })}` : ''}${doc.deliveryAssignee ? ` · ${doc.deliveryAssignee.name}` : ''}`,
         schedule: { at, allowWhileIdle: true },
         extra: { kind, id: doc.id },
       };

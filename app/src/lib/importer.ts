@@ -2,6 +2,7 @@ import { checkGstin, checkHsn, normalizeIndianMobile, parseRupees, stateName } f
 import { INDIAN_STATES } from './format';
 import { ensureCategoryPath } from './categories';
 import { db, type Category, type Customer, type Item } from './db';
+import { t } from './i18n';
 import { newId, putRecord, type Actor } from './repo';
 
 /*
@@ -98,7 +99,7 @@ export function parseCsv(text: string): Cell[][] {
 /** Reads the first sheet of an .xlsx, or a .csv file. */
 export async function readRows(file: File): Promise<Cell[][]> {
   if (/\.csv$/i.test(file.name) || file.type === 'text/csv') return parseCsv(await file.text());
-  if (!/\.xlsx$/i.test(file.name)) throw new Error('Choose an Excel (.xlsx) or CSV file. Older .xls files: open in Excel and "Save as" .xlsx.');
+  if (!/\.xlsx$/i.test(file.name)) throw new Error(t('Choose an Excel (.xlsx) or CSV file. Older .xls files: open in Excel and "Save as" .xlsx.'));
   const { readSheet } = await import('read-excel-file/browser');
   return (await readSheet(file)) as Cell[][];
 }
@@ -156,17 +157,17 @@ export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item |
     const line = i + 2;
     const errors: string[] = [];
     const name = text(get(r, 'name'));
-    if (!name) errors.push('Name is missing');
+    if (!name) errors.push(t('Name is missing'));
 
     if (kind === 'items') {
       const values: Partial<Item> = { name };
       const price = money(get(r, 'price'));
-      if (price === 'bad' || price == null) errors.push('Price is missing or not a number');
+      if (price === 'bad' || price == null) errors.push(t('Price is missing or not a number'));
       else values.rate = price;
       const tax = text(get(r, 'tax')).replace('%', '');
       if (tax) {
         const n = Number(tax);
-        if (!Number.isFinite(n) || n < 0 || n > 100) errors.push(`GST % "${tax}" is not a number`);
+        if (!Number.isFinite(n) || n < 0 || n > 100) errors.push(t('GST % "{value}" is not a number', { value: tax }));
         else values.taxPct = n;
       }
       if (index.has('incl')) values.rateIncludesTax = yes(get(r, 'incl'));
@@ -175,18 +176,18 @@ export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item |
       const hsn = text(get(r, 'hsn')).replace(/\D/g, '');
       if (hsn) {
         if (checkHsn(hsn)) values.hsn = hsn;
-        else errors.push(`HSN "${hsn}" should be 4, 6 or 8 digits`);
+        else errors.push(t('HSN "{value}" should be 4, 6 or 8 digits', { value: hsn }));
       }
       const code = text(get(r, 'code'));
       if (code) values.code = code.slice(0, 30);
       const barcode = text(get(r, 'barcode'));
       if (barcode) values.barcode = barcode;
-      for (const [key, field, label] of [
-        ['mrp', 'mrp', 'MRP'],
-        ['cost', 'purchasePrice', 'Purchase price'],
+      for (const [key, field] of [
+        ['mrp', 'mrp'],
+        ['cost', 'purchasePrice'],
       ] as const) {
         const m = money(get(r, key));
-        if (m === 'bad') errors.push(`${label} is not a number`);
+        if (m === 'bad') errors.push(key === 'mrp' ? t('MRP is not a number') : t('Purchase price is not a number'));
         else if (m != null) values[field] = m;
       }
       const priced = norm(text(get(r, 'priced')));
@@ -206,7 +207,7 @@ export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item |
         items.find((x) => x.name.toLowerCase() === name.toLowerCase()) ||
         undefined;
       const key = (values.barcode || values.code || name).toLowerCase();
-      if (name && seen.has(key)) errors.push('Same item appears earlier in the file');
+      if (name && seen.has(key)) errors.push(t('Same item appears earlier in the file'));
       seen.add(key);
       out.push({ line, name, errors, values, categoryPath: text(get(r, 'category')) || undefined, match });
     } else {
@@ -215,7 +216,7 @@ export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item |
       if (mobile) {
         const m = normalizeIndianMobile(mobile);
         if (m) values.phone = m;
-        else errors.push(`Mobile "${mobile}" is not a 10-digit Indian number`);
+        else errors.push(t('Mobile "{value}" is not a 10-digit Indian number', { value: mobile }));
       }
       const gstin = text(get(r, 'gstin')).toUpperCase();
       let gstState: string | undefined;
@@ -224,20 +225,20 @@ export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item |
         if (g.ok) {
           values.taxId = g.gstin;
           gstState = stateName(g.stateCode);
-        } else errors.push(`GSTIN: ${g.message}`);
+        } else errors.push(t('GSTIN: {problem}', { problem: g.message }));
       }
       const email = text(get(r, 'email'));
       if (email) {
         if (/^\S+@\S+\.\S+$/.test(email)) values.email = email;
-        else errors.push(`Email "${email}" looks wrong`);
+        else errors.push(t('Email "{value}" looks wrong', { value: email }));
       }
       const stateRaw = text(get(r, 'state'));
       const state = INDIAN_STATES.find((s) => s.toLowerCase() === stateRaw.toLowerCase()) ?? (stateRaw ? undefined : gstState);
-      if (stateRaw && !state) errors.push(`State "${stateRaw}" is not an Indian state name`);
+      if (stateRaw && !state) errors.push(t('State "{value}" is not an Indian state name', { value: stateRaw }));
       const address = { line1: text(get(r, 'line1')) || undefined, line2: text(get(r, 'line2')) || undefined, city: text(get(r, 'city')) || undefined, state, pin: text(get(r, 'pin')) || undefined };
       if (Object.values(address).some(Boolean)) values.billingAddress = address;
       const opening = money(get(r, 'opening'));
-      if (opening === 'bad') errors.push('Opening balance is not a number');
+      if (opening === 'bad') errors.push(t('Opening balance is not a number'));
       else if (opening != null) values.openingBalance = opening;
 
       const customers = existing as Customer[];
@@ -247,7 +248,7 @@ export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item |
         customers.find((x) => x.name.toLowerCase() === name.toLowerCase()) ||
         undefined;
       const key = (values.phone || values.taxId || name).toLowerCase();
-      if (name && seen.has(key)) errors.push('Same customer appears earlier in the file');
+      if (name && seen.has(key)) errors.push(t('Same customer appears earlier in the file'));
       seen.add(key);
       out.push({ line, name, errors, values, match });
     }
@@ -274,7 +275,7 @@ export async function applyImport(
   defaults: { unit: string; taxPct: number },
   progress?: (done: number) => void,
 ): Promise<ImportResult> {
-  if (actor.role !== 'owner') throw new Error('Only the owner can import');
+  if (actor.role !== 'owner') throw new Error(t('Only the owner can import'));
   const result: ImportResult = { added: 0, updated: 0, skipped: 0, failed: 0 };
   const cats: Category[] = await db.categories.where('businessId').equals(actor.businessId).filter((c) => !c.deleted).toArray();
   let n = 0;

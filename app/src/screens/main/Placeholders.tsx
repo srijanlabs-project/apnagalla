@@ -7,7 +7,8 @@ import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { dateIN, rupees } from '../../lib/format';
 import { deliveriesFor, markDelivered } from '../../lib/deliveries';
-import { CAN_CREATE_INVOICES, WEB_INVOICE_NOTE } from '../../lib/platform';
+import { t } from '../../lib/i18n';
+import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
 import { useSession } from '../../lib/session';
 
 /** Home: quick actions + recent invoices. The full dashboard arrives in M4. */
@@ -30,43 +31,46 @@ export function HomeScreen() {
     [actor.businessId],
   );
 
+  const [step1Before, step1After] = t('Add your logo, address and tax ID in {link}.').split('{link}');
+  const [step2Before, step2After] = t('Add bank / UPI details in {link} to get paid faster.').split('{link}');
+
   return (
     <PageShell title={profile.name} titleLink="/tabs/more/stores">
-      <h2 className="greeting">Hi{first ? `, ${first}` : ''} 👋</h2>
+      <h2 className="greeting">{first ? t('Hi, {name}', { name: first }) : t('Hi')} 👋</h2>
       <div className="quick-actions">
         {CAN_CREATE_INVOICES && (
           <IonButton expand="block" size="large" routerLink="/tabs/sale">
-            <IonIcon icon={cartOutline} slot="start" /> New sale
+            <IonIcon icon={cartOutline} slot="start" /> {t('New sale')}
           </IonButton>
         )}
         {CAN_CREATE_INVOICES && (
           <IonButton expand="block" fill="outline" routerLink="/tabs/invoices/new">
-            <IonIcon icon={addOutline} slot="start" /> New invoice
+            <IonIcon icon={addOutline} slot="start" /> {t('New invoice')}
           </IonButton>
         )}
         <IonButton expand="block" fill="outline" routerLink="/tabs/estimates/new">
-          <IonIcon icon={clipboardOutline} slot="start" /> New estimate
+          <IonIcon icon={clipboardOutline} slot="start" /> {t('New estimate')}
         </IonButton>
       </div>
-      {!CAN_CREATE_INVOICES && <p className="section-note">{WEB_INVOICE_NOTE}</p>}
+      {!CAN_CREATE_INVOICES && <p className="section-note">{webInvoiceNote()}</p>}
 
       {deliveries && deliveries.length > 0 && (
         <IonList inset className="flush-list">
           <IonListHeader>
-            <IonLabel>Deliveries</IonLabel>
+            <IonLabel>{t('Deliveries')}</IonLabel>
           </IonListHeader>
           {deliveries.map(({ kind, doc, when }) => (
             <IonItem key={doc.id} detail={false}>
               <IonLabel onClick={() => router.push(`/tabs/${kind === 'invoice' ? 'invoices' : 'estimates'}/${doc.id}`)}>
-                <h2>{doc.billTo?.name ?? 'No customer'}</h2>
+                <h2>{doc.billTo?.name ?? t('No customer')}</h2>
                 <p>
-                  <span className={when === 'overdue' ? 'text-danger' : undefined}>{when === 'overdue' ? `Overdue · ${dateIN(doc.deliveryDate!)}` : when === 'today' ? 'Today' : 'Tomorrow'}</span>
+                  <span className={when === 'overdue' ? 'text-danger' : undefined}>{when === 'overdue' ? t('Overdue · {date}', { date: dateIN(doc.deliveryDate!) }) : when === 'today' ? t('Today') : t('Tomorrow')}</span>
                   {doc.number ? ` · ${doc.number}` : ''}
                   {doc.deliveryAssignee ? ` · ${doc.deliveryAssignee.name}` : ''}
                 </p>
               </IonLabel>
               <IonButton slot="end" size="small" fill="outline" color="success" onClick={() => void markDelivered(actor, kind, doc.id)}>
-                Delivered
+                {t('Delivered')}
               </IonButton>
             </IonItem>
           ))}
@@ -76,15 +80,15 @@ export function HomeScreen() {
       {recent && recent.length > 0 ? (
         <IonList inset className="flush-list">
           <IonListHeader>
-            <IonLabel>Recent invoices</IonLabel>
-            <IonButton routerLink="/tabs/invoices">See all</IonButton>
+            <IonLabel>{t('Recent invoices')}</IonLabel>
+            <IonButton routerLink="/tabs/invoices">{t('See all')}</IonButton>
           </IonListHeader>
           {recent.map((inv) => (
             <IonItem key={inv.id} routerLink={`/tabs/invoices/${inv.id}`} detail={false}>
               <IonLabel>
-                <h2>{inv.billTo?.name ?? 'No customer'}</h2>
+                <h2>{inv.billTo?.name ?? t('No customer')}</h2>
                 <p>
-                  {inv.number || 'Draft'} · {dateIN(inv.date)}
+                  {inv.number || t('Draft')} · {dateIN(inv.date)}
                 </p>
               </IonLabel>
               <div slot="end" className="list-end">
@@ -97,18 +101,22 @@ export function HomeScreen() {
       ) : (
         <IonCard>
           <IonCardHeader>
-            <IonCardSubtitle>Get started</IonCardSubtitle>
-            <IonCardTitle>Set up in 3 steps</IonCardTitle>
+            <IonCardSubtitle>{t('Get started')}</IonCardSubtitle>
+            <IonCardTitle>{t('Set up in 3 steps')}</IonCardTitle>
           </IonCardHeader>
           <IonCardContent>
             <ol className="steps">
               <li>
-                Add your logo, address and tax ID in <IonRouterLink routerLink="/tabs/more/business">Business profile</IonRouterLink>.
+                {step1Before}
+                <IonRouterLink routerLink="/tabs/more/business">{t('Business profile')}</IonRouterLink>
+                {step1After}
               </li>
               <li>
-                Add bank / UPI details in <IonRouterLink routerLink="/tabs/more/payment">Payment details</IonRouterLink> to get paid faster.
+                {step2Before}
+                <IonRouterLink routerLink="/tabs/more/payment">{t('Payment details')}</IonRouterLink>
+                {step2After}
               </li>
-              <li>Create your first invoice and share it on WhatsApp.</li>
+              <li>{t('Create your first invoice and share it on WhatsApp.')}</li>
             </ol>
           </IonCardContent>
         </IonCard>

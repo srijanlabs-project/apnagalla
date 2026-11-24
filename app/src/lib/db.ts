@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { ChargeInput, DiscountInput, Dims, GstType, InvoiceTotals, NumberingMode, PaymentMode, TaxMode } from '@invoice/shared';
+import type { ChargeInput, DiscountInput, Dims, GstType, InvoiceTotals, Lang, NumberingMode, PaymentMode, TaxMode } from '@invoice/shared';
 
 /**
  * Local offline database (IndexedDB via Dexie). The app reads and writes here first;
@@ -98,6 +98,8 @@ export interface BusinessSettings extends SyncedRecord {
   numberingMode: NumberingMode;
   /** Job-work shops: items priced per sq ft or running foot, with sizes on the bill. */
   areaBilling: boolean;
+  /** Language of printed receipts (labels and amount in words). PDFs stay English for now. */
+  billLanguage: Lang;
   /** Staff may see items' purchase price. Off: the server never sends it to staff phones. */
   staffSeeCost: boolean;
   /** "HH:MM": when the day-before delivery alert rings. */

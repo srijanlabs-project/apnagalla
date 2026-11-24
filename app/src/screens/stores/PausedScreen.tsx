@@ -1,4 +1,5 @@
 import { IonButton, IonContent, IonHeader, IonPage, IonText, IonTitle, IonToolbar, useIonAlert } from '@ionic/react';
+import { t } from '../../lib/i18n';
 import { useSession } from '../../lib/session';
 import StoreList from './StoreList';
 
@@ -17,11 +18,11 @@ export default function PausedScreen() {
       </IonHeader>
       <IonContent className="ion-padding">
         <IonText>
-          <h2>Access paused</h2>
-          <p>The owner of {membership?.businessName} has paused your access. Ask them to turn it back on, then tap Check again.</p>
+          <h2>{t('Access paused')}</h2>
+          <p>{t('The owner of {store} has paused your access. Ask them to turn it back on, then tap Check again.', { store: membership?.businessName ?? '' })}</p>
         </IonText>
         <IonButton expand="block" onClick={() => void refreshMe()}>
-          Check again
+          {t('Check again')}
         </IonButton>
         {others.length > 0 && <StoreList />}
         <IonButton
@@ -32,17 +33,20 @@ export default function PausedScreen() {
             void logout(false).then((res) => {
               if (!res?.blockedByUnsynced) return;
               void alert({
-                header: 'Unsynced changes',
-                message: `${res.blockedByUnsynced} change(s) on this phone haven't reached the server yet. Logging out now will delete them.`,
+                header: t('Unsynced changes'),
+                message:
+                  res.blockedByUnsynced === 1
+                    ? t("1 change on this phone hasn't reached the server yet. Logging out now will delete it.")
+                    : t("{count} changes on this phone haven't reached the server yet. Logging out now will delete them.", { count: res.blockedByUnsynced }),
                 buttons: [
-                  { text: 'Cancel', role: 'cancel' },
-                  { text: 'Log out anyway', role: 'destructive', handler: () => void logout(true) },
+                  { text: t('Cancel'), role: 'cancel' },
+                  { text: t('Log out anyway'), role: 'destructive', handler: () => void logout(true) },
                 ],
               });
             })
           }
         >
-          Log out
+          {t('Log out')}
         </IonButton>
       </IonContent>
     </IonPage>

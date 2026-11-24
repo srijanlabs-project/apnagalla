@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FormSection, MoneyField, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
 import { useBusiness } from '../../lib/business';
 import { db, type DocLine, type Item } from '../../lib/db';
+import { t } from '../../lib/i18n';
 import { isAreaLine, lineSize, rupees } from '../../lib/format';
 import { newId, putRecord } from '../../lib/repo';
 import { sync } from '../../lib/sync';
@@ -135,20 +136,20 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
-            <IonButton onClick={onClose}>Cancel</IonButton>
+            <IonButton onClick={onClose}>{t('Cancel')}</IonButton>
           </IonButtons>
-          <IonTitle>{picking ? 'Choose item' : isNew ? 'Add item' : 'Edit item'}</IonTitle>
+          <IonTitle>{picking ? t('Choose item') : isNew ? t('Add item') : t('Edit item')}</IonTitle>
           {!picking && (
             <IonButtons slot="end">
               <IonButton strong disabled={!valid} onClick={() => void done()}>
-                Done
+                {t('Done')}
               </IonButton>
             </IonButtons>
           )}
         </IonToolbar>
         {picking && (
           <IonToolbar>
-            <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder="Search catalogue or type a new item" />
+            <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search catalogue or type a new item')} />
           </IonToolbar>
         )}
       </IonHeader>
@@ -164,7 +165,7 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
                 setPicking(false);
               }}
             >
-              <IonLabel color="primary">{q.trim() ? `Use "${q.trim()}" (new item)` : 'Type an item not in the catalogue'}</IonLabel>
+              <IonLabel color="primary">{q.trim() ? t('Use "{name}" (new item)', { name: q.trim() }) : t('Type an item not in the catalogue')}</IonLabel>
             </IonItem>
             {matches.map((it) => (
               <IonItem
@@ -179,7 +180,7 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
                 <IonLabel>
                   <h2>{it.name}</h2>
                   <p>
-                    per {it.unit} · tax {it.taxPct}%{it.rateIncludesTax ? ' incl.' : ''}
+                    {it.rateIncludesTax ? t('per {unit} · tax {pct}% incl.', { unit: it.unit, pct: it.taxPct }) : t('per {unit} · tax {pct}%', { unit: it.unit, pct: it.taxPct })}
                   </p>
                 </IonLabel>
                 <IonNote slot="end">{rupees(it.rate)}</IonNote>
@@ -189,16 +190,16 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
         ) : (
           <>
             <FormSection>
-              <TextField label="Item" required value={l.name} onChange={(name) => set({ name })} />
-              <TextArea label="Description" value={l.description} onChange={(description) => set({ description })} />
+              <TextField label={t('Item')} required value={l.name} onChange={(name) => set({ name })} />
+              <TextArea label={t('Description')} value={l.description} onChange={(description) => set({ description })} />
               {(settings.areaBilling || area) && (
                 <SelectField
-                  label="Charge by"
+                  label={t('Charge by')}
                   value={pricing}
                   options={[
-                    { value: 'unit', label: 'Quantity' },
-                    { value: 'sqft', label: 'Area (sq ft)' },
-                    { value: 'rft', label: 'Length (running ft)' },
+                    { value: 'unit', label: t('Quantity') },
+                    { value: 'sqft', label: t('Area (sq ft)') },
+                    { value: 'rft', label: t('Length (running ft)') },
                   ]}
                   onChange={setPricing}
                 />
@@ -206,17 +207,17 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
               {area ? (
                 <>
                   <div className="field-row">
-                    <NumberField label={`Length (${l.dims!.in})`} value={l.dims!.length || null} onChange={(length) => setDims({ length: length ?? 0 })} min={0} />
-                    {pricing === 'sqft' && <NumberField label={`Width (${l.dims!.in})`} value={l.dims!.width || null} onChange={(width) => setDims({ width: width ?? 0 })} min={0} />}
+                    <NumberField label={t('Length ({unit})', { unit: l.dims!.in })} value={l.dims!.length || null} onChange={(length) => setDims({ length: length ?? 0 })} min={0} />
+                    {pricing === 'sqft' && <NumberField label={t('Width ({unit})', { unit: l.dims!.in })} value={l.dims!.width || null} onChange={(width) => setDims({ width: width ?? 0 })} min={0} />}
                   </div>
                   <div className="field-row">
-                    <NumberField label="Pieces" value={l.dims!.pieces} onChange={(pieces) => setDims({ pieces: pieces ?? 1 })} min={1} />
+                    <NumberField label={t('Pieces')} value={l.dims!.pieces} onChange={(pieces) => setDims({ pieces: pieces ?? 1 })} min={1} />
                     <SelectField
-                      label="Measured in"
+                      label={t('Measured in')}
                       value={l.dims!.in}
                       options={[
-                        { value: 'ft' as const, label: 'Feet' },
-                        { value: 'in' as const, label: 'Inches' },
+                        { value: 'ft' as const, label: t('Feet') },
+                        { value: 'in' as const, label: t('Inches') },
                       ]}
                       onChange={(unitIn) => setDims({ in: unitIn })}
                     />
@@ -225,34 +226,34 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
                 </>
               ) : (
                 <div className="field-row">
-                  <NumberField label="Quantity" value={l.qty} onChange={(qty) => set({ qty: qty ?? 0 })} min={0} />
-                  <SelectField label="Unit" value={l.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => set({ unit })} />
+                  <NumberField label={t('Quantity')} value={l.qty} onChange={(qty) => set({ qty: qty ?? 0 })} min={0} />
+                  <SelectField label={t('Unit')} value={l.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => set({ unit })} />
                 </div>
               )}
               {noTax ? (
-                <MoneyField label={area ? `Rate per ${l.unit}` : 'Rate'} value={l.rate} onChange={(rate) => set({ rate: rate ?? 0 })} />
+                <MoneyField label={area ? t('Rate per {unit}', { unit: l.unit }) : t('Rate')} value={l.rate} onChange={(rate) => set({ rate: rate ?? 0 })} />
               ) : (
                 <>
                   <div className="field-row">
-                    <MoneyField label={`${area ? `Rate per ${l.unit}` : 'Rate'}${l.rateIncludesTax ? ' (incl. tax)' : ''}`} value={l.rate} onChange={(rate) => set({ rate: rate ?? 0 })} />
-                    <SelectField label="Tax %" value={l.taxPct} options={rates.map((r) => ({ value: r, label: `${r}%` }))} onChange={(taxPct) => set({ taxPct })} />
+                    <MoneyField label={area ? (l.rateIncludesTax ? t('Rate per {unit} (incl. tax)', { unit: l.unit }) : t('Rate per {unit}', { unit: l.unit })) : l.rateIncludesTax ? t('Rate (incl. tax)') : t('Rate')} value={l.rate} onChange={(rate) => set({ rate: rate ?? 0 })} />
+                    <SelectField label={t('Tax %')} value={l.taxPct} options={rates.map((r) => ({ value: r, label: `${r}%` }))} onChange={(taxPct) => set({ taxPct })} />
                   </div>
                   <div className="field-row">
                     <TextField
-                      label="HSN / SAC"
+                      label={t('HSN / SAC')}
                       value={l.hsn}
                       onChange={(hsn) => set({ hsn: hsn.replace(/\D/g, '') || undefined })}
                       inputmode="numeric"
                       maxlength={8}
-                      error={l.hsn && !checkHsn(l.hsn) ? '4, 6 or 8 digits' : null}
+                      error={l.hsn && !checkHsn(l.hsn) ? t('4, 6 or 8 digits') : null}
                     />
-                    <ToggleRow label="Rate includes tax" checked={l.rateIncludesTax} onChange={(rateIncludesTax) => set({ rateIncludesTax })} />
+                    <ToggleRow label={t('Rate includes tax')} checked={l.rateIncludesTax} onChange={(rateIncludesTax) => set({ rateIncludesTax })} />
                   </div>
                 </>
               )}
             </FormSection>
 
-            <FormSection title="Discount on this item">
+            <FormSection title={t('Discount on this item')}>
               <IonSegment
                 value={l.discount?.type ?? 'pct'}
                 onIonChange={sync((e) => set({ discount: { type: e.detail.value as 'pct' | 'amount', value: 0 } }))}
@@ -265,36 +266,36 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
                 </IonSegmentButton>
               </IonSegment>
               {(l.discount?.type ?? 'pct') === 'pct' ? (
-                <NumberField label="Discount %" value={l.discount?.value || null} onChange={(v) => set({ discount: v ? { type: 'pct', value: v } : null })} min={0} max={100} suffix="%" />
+                <NumberField label={t('Discount %')} value={l.discount?.value || null} onChange={(v) => set({ discount: v ? { type: 'pct', value: v } : null })} min={0} max={100} suffix="%" />
               ) : (
-                <MoneyField label="Discount ₹ (whole line)" value={l.discount?.value || null} onChange={(v) => set({ discount: v ? { type: 'amount', value: v } : null })} />
+                <MoneyField label={t('Discount ₹ (whole line)')} value={l.discount?.value || null} onChange={(v) => set({ discount: v ? { type: 'amount', value: v } : null })} />
               )}
             </FormSection>
 
-            {!l.itemId && <ToggleRow label="Save this item to my catalogue" checked={saveToCatalogue} onChange={setSaveToCatalogue} />}
+            {!l.itemId && <ToggleRow label={t('Save this item to my catalogue')} checked={saveToCatalogue} onChange={setSaveToCatalogue} />}
 
             <div className="line-preview">
               {!noTax && (
                 <>
                   <div>
-                    <span>Before tax</span>
+                    <span>{t('Before tax')}</span>
                     <strong>{rupees(calc.taxableAmount)}</strong>
                   </div>
                   <div>
-                    <span>Tax</span>
+                    <span>{t('Tax')}</span>
                     <strong>{rupees(calc.taxTotal)}</strong>
                   </div>
                 </>
               )}
               <div>
-                <span>Amount</span>
+                <span>{t('Amount')}</span>
                 <strong>{rupees(calc.taxableAmount + calc.taxTotal)}</strong>
               </div>
             </div>
 
             {!isNew && (
               <IonButton color="danger" fill="clear" expand="block" onClick={() => onDelete(l.id)}>
-                Remove item from invoice
+                {t('Remove item from invoice')}
               </IonButton>
             )}
           </>

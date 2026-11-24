@@ -1,6 +1,7 @@
 import { IonButton } from '@ionic/react';
 import { useRef } from 'react';
 import { fileToResizedDataUrl } from '../lib/format';
+import { t } from '../lib/i18n';
 
 interface Props {
   label: string;
@@ -21,11 +22,11 @@ export default function ImagePicker({ label, value, onChange, maxPx = 512, disab
       </div>
       <div className="image-picker-actions">
         <IonButton size="small" fill="outline" disabled={disabled} onClick={() => input.current?.click()}>
-          {value ? 'Change' : 'Choose image'}
+          {value ? t('Change') : t('Choose image')}
         </IonButton>
         {value && (
           <IonButton size="small" fill="clear" color="danger" disabled={disabled} onClick={() => onChange(undefined)}>
-            Remove
+            {t('Remove')}
           </IonButton>
         )}
       </div>
@@ -41,7 +42,7 @@ export default function ImagePicker({ label, value, onChange, maxPx = 512, disab
           try {
             onChange(await fileToResizedDataUrl(file, maxPx));
           } catch (err) {
-            onError?.(err instanceof Error ? err.message : 'Could not read that image');
+            onError?.(err instanceof Error ? err.message : t('Could not read that image'));
           }
         }}
       />

@@ -1,7 +1,8 @@
-import { IonBadge, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonNote, useIonAlert } from '@ionic/react';
-import { formatIndianMobile } from '@invoice/shared';
+import { IonBadge, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonNote, IonSelect, IonSelectOption, useIonAlert } from '@ionic/react';
+import { LANGS, LANG_NAMES, formatIndianMobile, type Lang } from '@invoice/shared';
 import {
   businessOutline,
+  languageOutline,
   cardOutline,
   clipboardOutline,
   colorPaletteOutline,
@@ -9,12 +10,14 @@ import {
   peopleOutline,
   personCircleOutline,
   phonePortraitOutline,
+  printOutline,
   settingsOutline,
   storefrontOutline,
 } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
 import { useSession } from '../../lib/session';
+import { appLanguage, setAppLanguage, t } from '../../lib/i18n';
 
 export default function MoreScreen() {
   const { me, membership, logout } = useSession();
@@ -27,11 +30,14 @@ export default function MoreScreen() {
     const res = await logout(false);
     if (res && res.blockedByUnsynced > 0) {
       void alert({
-        header: 'Unsynced changes',
-        message: `${res.blockedByUnsynced} change(s) on this phone haven't reached the server yet. Logging out now will delete them. Connect to the internet and wait for sync first.`,
+        header: t('Unsynced changes'),
+        message:
+          res.blockedByUnsynced === 1
+            ? t("1 change on this phone hasn't reached the server yet. Logging out now will delete it. Connect to the internet and wait for sync first.")
+            : t("{count} changes on this phone haven't reached the server yet. Logging out now will delete them. Connect to the internet and wait for sync first.", { count: res.blockedByUnsynced }),
         buttons: [
-          { text: 'Cancel', role: 'cancel' },
-          { text: 'Log out anyway', role: 'destructive', handler: () => void logout(true) },
+          { text: t('Cancel'), role: 'cancel' },
+          { text: t('Log out anyway'), role: 'destructive', handler: () => void logout(true) },
         ],
       });
       return;
@@ -39,7 +45,7 @@ export default function MoreScreen() {
   }
 
   return (
-    <PageShell title="More" padded={false}>
+    <PageShell title={t('More')} padded={false}>
       <IonList inset>
         <IonItem lines="none">
           <IonIcon icon={personCircleOutline} slot="start" />
@@ -55,11 +61,11 @@ export default function MoreScreen() {
           <IonIcon icon={storefrontOutline} slot="start" />
           <IonLabel>
             {membership?.businessName}
-            <p>{storeCount > 1 ? `Switch store (${storeCount} stores)` : 'Stores · add another store'}</p>
+            <p>{storeCount > 1 ? t('Switch store ({count} stores)', { count: storeCount }) : t('Stores · add another store')}</p>
           </IonLabel>
           {(me?.invites.length ?? 0) > 0 && (
             <IonBadge slot="end" color="primary">
-              {me!.invites.length} invite{me!.invites.length > 1 ? 's' : ''}
+              {me!.invites.length > 1 ? t('{count} invites', { count: me!.invites.length }) : t('1 invite')}
             </IonBadge>
           )}
         </IonItem>
@@ -67,48 +73,67 @@ export default function MoreScreen() {
 
       <IonList inset>
         <IonListHeader>
-          <IonLabel>Business</IonLabel>
+          <IonLabel>{t('Business')}</IonLabel>
         </IonListHeader>
         <IonItem routerLink="/tabs/more/business" detail lines="full">
           <IonIcon icon={businessOutline} slot="start" />
           <IonLabel>
             {profile.name}
-            <p>Business profile</p>
+            <p>{t('Business profile')}</p>
           </IonLabel>
-          <IonNote slot="end">{membership?.role === 'owner' ? 'Owner' : 'Staff'}</IonNote>
+          <IonNote slot="end">{membership?.role === 'owner' ? t('Owner') : t('Staff')}</IonNote>
         </IonItem>
         <IonItem routerLink="/tabs/more/payment" detail lines="full">
           <IonIcon icon={cardOutline} slot="start" />
-          <IonLabel>Payment details (bank, UPI)</IonLabel>
+          <IonLabel>{t('Payment details (bank, UPI)')}</IonLabel>
         </IonItem>
         <IonItem routerLink="/tabs/more/invoice-settings" detail lines="full">
           <IonIcon icon={settingsOutline} slot="start" />
-          <IonLabel>Invoice settings</IonLabel>
+          <IonLabel>{t('Invoice settings')}</IonLabel>
         </IonItem>
         <IonItem routerLink="/tabs/more/design" detail lines="full">
           <IonIcon icon={colorPaletteOutline} slot="start" />
-          <IonLabel>Invoice design</IonLabel>
+          <IonLabel>{t('Invoice design')}</IonLabel>
         </IonItem>
         <IonItem routerLink="/tabs/estimates" detail lines="full">
           <IonIcon icon={clipboardOutline} slot="start" />
-          <IonLabel>Estimates</IonLabel>
+          <IonLabel>{t('Estimates')}</IonLabel>
         </IonItem>
         {isOwner && (
           <IonItem routerLink="/tabs/more/team" detail lines="none">
             <IonIcon icon={peopleOutline} slot="start" />
-            <IonLabel>Team</IonLabel>
+            <IonLabel>{t('Team')}</IonLabel>
           </IonItem>
         )}
       </IonList>
 
       <IonList inset>
+        <IonItem lines="full">
+          <IonIcon icon={languageOutline} slot="start" />
+          <IonSelect
+            label={t('Language')}
+            interface="popover"
+            value={appLanguage()}
+            onIonChange={(e) => e.detail.value !== appLanguage() && void setAppLanguage(e.detail.value as Lang)}
+          >
+            {LANGS.map((l) => (
+              <IonSelectOption key={l} value={l}>
+                {LANG_NAMES[l]}
+              </IonSelectOption>
+            ))}
+          </IonSelect>
+        </IonItem>
+        <IonItem routerLink="/tabs/more/printer" detail lines="full">
+          <IonIcon icon={printOutline} slot="start" />
+          <IonLabel>{t('Printer')}</IonLabel>
+        </IonItem>
         <IonItem routerLink="/tabs/more/devices" detail lines="full">
           <IonIcon icon={phonePortraitOutline} slot="start" />
-          <IonLabel>Devices</IonLabel>
+          <IonLabel>{t('Devices')}</IonLabel>
         </IonItem>
         <IonItem button onClick={() => void onLogout()} lines="none">
           <IonIcon icon={logOutOutline} slot="start" color="danger" />
-          <IonLabel color="danger">Log out</IonLabel>
+          <IonLabel color="danger">{t('Log out')}</IonLabel>
         </IonItem>
       </IonList>
     </PageShell>
