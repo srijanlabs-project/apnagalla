@@ -4,6 +4,7 @@ import type { DB } from '../db/client';
 import { gstinCache, gstinLookups } from '../db/schema';
 import type { Env } from '../env';
 import { HttpError, badRequest, tooMany } from '../errors';
+import { gstzenProvider } from './gstzen';
 
 /**
  * A GST data provider. The client's API plugs in here (see createGstProvider); tests use a fake.
@@ -15,10 +16,19 @@ export interface GstProvider {
 }
 
 /** The configured provider, or null when GST_API_PROVIDER is not set. */
-export function createGstProvider(env: Env): GstProvider | null {
+export function createGstProvider(env: Env, warn?: (msg: string) => void): GstProvider | null {
   if (!env.GST_API_PROVIDER) return null;
-  // Adapters are added per provider once its API documentation is available.
-  throw new Error(`GST_API_PROVIDER "${env.GST_API_PROVIDER}" is not supported yet`);
+  if (env.GST_API_PROVIDER === 'gstzen') {
+    if (!env.GST_API_KEY) throw new Error('GST_API_PROVIDER=gstzen needs GST_API_KEY');
+    return gstzenProvider({
+      url: env.GST_API_URL ?? 'https://my.gstzen.in/api/gstin-validator/',
+      key: env.GST_API_KEY,
+      apiVersion: env.GST_API_VERSION,
+      timeoutMs: env.GST_API_TIMEOUT_MS,
+      warn,
+    });
+  }
+  throw new Error(`GST_API_PROVIDER "${env.GST_API_PROVIDER}" is not supported (use gstzen)`);
 }
 
 const CACHE_DAYS = 30;

@@ -32,6 +32,8 @@ const schema = z.object({
   GST_API_PROVIDER: z.string().optional().transform((v) => (v ? v : undefined)),
   GST_API_URL: z.string().optional().transform((v) => (v ? v : undefined)),
   GST_API_KEY: z.string().optional().transform((v) => (v ? v : undefined)),
+  GST_API_VERSION: z.string().default('1.0'),
+  GST_API_TIMEOUT_MS: z.coerce.number().int().positive().default(12000),
   /** Most GSTIN lookups per store per day (each may cost money). */
   GST_LOOKUPS_PER_DAY: z.coerce.number().int().positive().default(200),
 });

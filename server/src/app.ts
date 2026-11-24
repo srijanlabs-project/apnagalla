@@ -232,7 +232,7 @@ export async function buildApp({ env, database, otpSender, gstProvider, logger =
   });
 
   /* ---------- GSTIN lookup ---------- */
-  const gst = new GstLookupService(db, gstProvider === undefined ? createGstProvider(env) : gstProvider, env.GST_LOOKUPS_PER_DAY);
+  const gst = new GstLookupService(db, gstProvider === undefined ? createGstProvider(env, (m) => app.log.warn(m)) : gstProvider, env.GST_LOOKUPS_PER_DAY);
   app.get<{ Params: BizParams & { gstin: string } }>('/v1/businesses/:businessId/gstin/:gstin', authed, async (req): Promise<{ found: boolean; info: GstinInfo | null }> => {
     await accounts.requireRole(uid(req), req.params.businessId);
     const info = await gst.lookup(req.params.businessId, req.params.gstin);

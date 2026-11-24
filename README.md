@@ -16,7 +16,7 @@ Release 1 is in progress; see PLAN.md §10 for the step list.
 - **R1.5 Catalogue:**
   - category tree (3 levels), item code, MRP (optional bill column), purchase price hidden from staff by default;
   - import items and customers from Excel / CSV with a preview, update-or-skip for matches;
-  - GSTIN check with the GST records through the client's GST API (adapter pending the API docs).
+  - GSTIN check with the GST records through GSTZen (server-side; the key is a Railway variable).
 - **R1.4 Counter:**
   - New sale screen: search, tap or scan items, quantities, hold and resume bills;
   - payments as dated entries (cash / UPI / card / bank / cheque, split, change to give back, UPI QR on screen); the owner voids mistakes;
@@ -117,7 +117,7 @@ The Android package ID is **`in.apnagalla.app`** (in `app/capacitor.config.ts` a
    - `JWT_SECRET` = a long random string
    - `CORS_ORIGINS` = the web app URL, once it exists
    - `OTP_PROVIDER` = `console` and `ALLOW_CONSOLE_OTP` = `true` **until DLT approval** (codes appear in Railway logs). After approval: `OTP_PROVIDER` = `msg91`, plus `MSG91_AUTH_KEY` and `MSG91_OTP_TEMPLATE_ID`.
-   - `GST_API_PROVIDER`, `GST_API_URL`, `GST_API_KEY` for the GSTIN lookup (optional; `GST_LOOKUPS_PER_DAY` defaults to 200)
+   - GSTIN lookup (optional): `GST_API_PROVIDER` = `gstzen` and `GST_API_KEY` = the GSTZen secret key. Optional: `GST_API_URL` (default `https://my.gstzen.in/api/gstin-validator/`), `GST_API_VERSION` (1.0), `GST_API_TIMEOUT_MS` (12000), `GST_LOOKUPS_PER_DAY` (200)
 5. Database migrations run automatically when the server starts.
 
 ## API (v1)
