@@ -187,9 +187,10 @@ R1.5 decisions (25 Nov 2026) and gaps:
   (POST https://my.gstzen.in/api/gstin-validator/, headers Token + x-api-version 1.0, body
   {"gstin"}). Its response schema isn't public, so fields are read by name (GSTZen-style and GST
   portal names); if the legal name isn't found, the server logs the response's field names only.
-  Confirmed with a real answer (25 Nov 2026): {valid, profile{gstNumber, legalName, tradeName,
-  address (one line)}}. It reports no active/cancelled status, so a valid GSTIN shows as
-  "Registered"; the one-line address is split into lines, city and PIN.
+  Confirmed live on Railway (25 Nov 2026): GSTZen answers {status, gstin, valid,
+  company_details{legal_name, trade_name, company_status, gst_type, registration_date, pradr{addr1,
+  street, city, pincode…}}}, mapped exactly. Railway reads the key from GST_VALIDATION_API_KEY;
+  the plain endpoint + Token header is used (the other project's "j" endpoint needs a login).
 
 ## 11. Your action items (can run in parallel with the build)
 - [ ] Start **TRAI DLT registration** with an SMS provider (business entity, sender ID, OTP template). Takes days to weeks; until it's done, OTP runs in test mode.
