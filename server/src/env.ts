@@ -40,8 +40,18 @@ const schema = z.object({
 
 export type Env = z.infer<typeof schema>;
 
+/** GSTZen settings are also read under the GST_VALIDATION_* names (as set up for another project). */
+const GST_ALIASES: Record<string, string> = {
+  GST_API_KEY: 'GST_VALIDATION_API_KEY',
+  GST_API_URL: 'GST_VALIDATION_API_URL',
+  GST_API_VERSION: 'GST_VALIDATION_API_VERSION',
+  GST_API_TIMEOUT_MS: 'GST_VALIDATION_TIMEOUT_MS',
+};
+
 export function loadEnv(overrides: Record<string, string | undefined> = {}): Env {
-  const env = schema.parse({ ...process.env, ...overrides });
+  const raw: Record<string, string | undefined> = { ...process.env, ...overrides };
+  for (const [name, alias] of Object.entries(GST_ALIASES)) if (!raw[name] && raw[alias]) raw[name] = raw[alias];
+  const env = schema.parse(raw);
 
   if (env.NODE_ENV === 'production') {
     if (env.OTP_PROVIDER === 'console' && !env.ALLOW_CONSOLE_OTP) {
