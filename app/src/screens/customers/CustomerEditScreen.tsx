@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { AddressFields, FormSection, MoneyField, TextField, ToggleRow } from '../../components/Fields';
 import FormPage from '../../components/FormPage';
+import GstinCheck from '../../components/GstinCheck';
 import { useBusiness } from '../../lib/business';
 import { db, type Address, type Customer } from '../../lib/db';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
@@ -67,6 +68,17 @@ export function CustomerForm({ value: c, update }: { value: Customer; update: (f
             }));
           }}
           error={c.taxId && err && !err.includes('mobile') && !err.includes('email') && !err.includes('Name') ? err : null}
+        />
+        <GstinCheck
+          businessId={c.businessId}
+          gstin={c.taxId}
+          onUse={(info) =>
+            update((cur) => ({
+              ...cur,
+              name: info.tradeName || info.legalName,
+              billingAddress: { ...cur.billingAddress, ...Object.fromEntries(Object.entries(info.address ?? {}).filter(([, v]) => v)) },
+            }))
+          }
         />
       </FormSection>
       <FormSection title="Billing address">

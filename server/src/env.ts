@@ -28,6 +28,12 @@ const schema = z.object({
     .transform((v) => v === 'true'),
   MSG91_AUTH_KEY: z.string().optional(),
   MSG91_OTP_TEMPLATE_ID: z.string().optional(),
+  /** GSTIN lookup through the client's GST API. Unset = lookups answer "not set up". */
+  GST_API_PROVIDER: z.string().optional().transform((v) => (v ? v : undefined)),
+  GST_API_URL: z.string().optional().transform((v) => (v ? v : undefined)),
+  GST_API_KEY: z.string().optional().transform((v) => (v ? v : undefined)),
+  /** Most GSTIN lookups per store per day (each may cost money). */
+  GST_LOOKUPS_PER_DAY: z.coerce.number().int().positive().default(200),
 });
 
 export type Env = z.infer<typeof schema>;

@@ -237,3 +237,20 @@ export function checkNumberPattern(pattern: string, prefixes: string[], digits: 
   }
   return null;
 }
+
+/** What the GST lookup returns for a GSTIN (from the store's GST API, through our server). */
+export interface GstinInfo {
+  gstin: string;
+  legalName: string;
+  tradeName?: string;
+  /** e.g. Active, Cancelled, Suspended — as the GST system reports it. */
+  status: string;
+  active: boolean;
+  /** Regular, Composition, … */
+  taxpayerType?: string;
+  registeredOn?: string;
+  address?: { line1?: string; line2?: string; city?: string; state?: string; pin?: string };
+  stateCode: string;
+  /** When our server fetched it (answers are cached for 30 days). */
+  checkedAt: string;
+}

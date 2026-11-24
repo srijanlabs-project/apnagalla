@@ -16,8 +16,10 @@ import {
   type ReserveNumbersResponse,
   type SyncPushResponse,
   type VerifyOtpResponse,
+  type GstinInfo,
 } from '@invoice/shared';
 import { OtpService } from './auth/otp';
+import { GstLookupService, createGstProvider, type GstProvider } from './gst/lookup';
 import { TokenService, type AuthContext } from './auth/tokens';
 import type { Database } from './db/client';
 import type { Env } from './env';
@@ -40,10 +42,12 @@ export interface BuildAppOptions {
   database: Database;
   /** Tests inject a fake sender to capture codes. */
   otpSender?: OtpSender;
+  /** Tests inject a fake GST data provider. */
+  gstProvider?: GstProvider | null;
   logger?: boolean;
 }
 
-export async function buildApp({ env, database, otpSender, logger = true }: BuildAppOptions): Promise<FastifyInstance> {
+export async function buildApp({ env, database, otpSender, gstProvider, logger = true }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger ? { redact: ['req.headers.authorization'] } : false,
     trustProxy: true, // Railway sits behind a proxy; needed for the real client IP
@@ -225,6 +229,14 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
     await accounts.requireRole(uid(req), req.params.businessId);
     await syncService.returnNumbers(req.params.businessId, parse(returnNumbersBody, req.body));
     return reply.status(204).send();
+  });
+
+  /* ---------- GSTIN lookup ---------- */
+  const gst = new GstLookupService(db, gstProvider === undefined ? createGstProvider(env) : gstProvider, env.GST_LOOKUPS_PER_DAY);
+  app.get<{ Params: BizParams & { gstin: string } }>('/v1/businesses/:businessId/gstin/:gstin', authed, async (req): Promise<{ found: boolean; info: GstinInfo | null }> => {
+    await accounts.requireRole(uid(req), req.params.businessId);
+    const info = await gst.lookup(req.params.businessId, req.params.gstin);
+    return { found: !!info, info };
   });
 
   /* ---------- invites (as the invited user) ---------- */

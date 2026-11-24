@@ -9,6 +9,7 @@ import type {
   MeResponse,
   ReserveNumbersBody,
   ReturnNumbersBody,
+  GstinInfo,
   ReserveNumbersResponse,
   SessionDto,
   SyncPullResponse,
@@ -142,6 +143,7 @@ export const api = {
   reserveNumbers: (id: string, body: ReserveNumbersBody, timeoutMs?: number) =>
     request<ReserveNumbersResponse>('POST', `/v1/businesses/${id}/numbers/reserve`, body, { timeoutMs }),
   returnNumbers: (id: string, body: ReturnNumbersBody) => request<void>('POST', `/v1/businesses/${id}/numbers/return`, body),
+  gstinLookup: (id: string, gstin: string) => request<{ found: boolean; info: GstinInfo | null }>('GET', `/v1/businesses/${id}/gstin/${encodeURIComponent(gstin)}`, undefined, { timeoutMs: 15_000 }),
   setSeriesCode: (id: string, userId: string, code: string) => request<TeamResponse>('POST', `/v1/businesses/${id}/members/${userId}/series-code`, { code }),
 
   acceptInvite: (inviteId: string) => request<MeResponse>('POST', `/v1/invites/${inviteId}/accept`),

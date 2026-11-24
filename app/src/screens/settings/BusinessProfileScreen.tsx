@@ -2,6 +2,7 @@ import { useIonToast } from '@ionic/react';
 import { checkGstin, stateCode, stateName, type GstType } from '@invoice/shared';
 import { AddressFields, FormSection, SelectField, TextField } from '../../components/Fields';
 import FormPage from '../../components/FormPage';
+import GstinCheck from '../../components/GstinCheck';
 import ImagePicker from '../../components/ImagePicker';
 import { useBusiness } from '../../lib/business';
 import type { BusinessProfile } from '../../lib/db';
@@ -70,8 +71,9 @@ export default function BusinessProfileScreen() {
           disabled={ro}
         />
         {registered ? (
-          <TextField
-            label="GSTIN"
+          <>
+            <TextField
+              label="GSTIN"
             required
             value={p.taxIdValue}
             onChange={(taxIdValue) => patch({ taxIdValue: taxIdValue.toUpperCase().trim() })}
@@ -80,7 +82,18 @@ export default function BusinessProfileScreen() {
             autocapitalize="characters"
             error={p.taxIdValue ? gstinError : null}
             helper={stateMismatch && gstin?.ok ? `This GSTIN is registered in ${stateName(gstin.stateCode)}, but the address below is in ${p.address.state}.` : undefined}
-          />
+            />
+            {!ro && (
+              <GstinCheck
+                businessId={actor.businessId}
+                gstin={p.taxIdValue}
+                onUse={(info) => {
+                  patch({ legalName: info.legalName, ...(info.tradeName && !p.name ? { name: info.tradeName } : {}) });
+                  if (info.address) patchIn('address', Object.fromEntries(Object.entries(info.address).filter(([, v]) => v)));
+                }}
+              />
+            )}
+          </>
         ) : (
           <div className="field-row">
             <TextField label="Other tax ID label" placeholder="e.g. PAN" value={p.taxIdLabel === 'GSTIN' ? '' : p.taxIdLabel} onChange={(taxIdLabel) => patch({ taxIdLabel })} disabled={ro} />

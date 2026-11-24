@@ -29,6 +29,13 @@
       "when": 1795545985442,
       "tag": "0003_series_per_person",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795548829573,
+      "tag": "0004_gstin_lookup",
+      "breakpoints": true
     }
   ]
 }

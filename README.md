@@ -13,6 +13,10 @@ Product docs: `PLAN.md` (phase 1 plan) and `SPEC.md` (functional spec).
 
 ## Milestone status
 Release 1 is in progress; see PLAN.md §10 for the step list.
+- **R1.5 Catalogue:**
+  - category tree (3 levels), item code, MRP (optional bill column), purchase price hidden from staff by default;
+  - import items and customers from Excel / CSV with a preview, update-or-skip for matches;
+  - GSTIN check with the GST records through the client's GST API (adapter pending the API docs).
 - **R1.4 Counter:**
   - New sale screen: search, tap or scan items, quantities, hold and resume bills;
   - payments as dated entries (cash / UPI / card / bank / cheque, split, change to give back, UPI QR on screen); the owner voids mistakes;
@@ -113,6 +117,7 @@ The Android package ID is **`in.apnagalla.app`** (in `app/capacitor.config.ts` a
    - `JWT_SECRET` = a long random string
    - `CORS_ORIGINS` = the web app URL, once it exists
    - `OTP_PROVIDER` = `console` and `ALLOW_CONSOLE_OTP` = `true` **until DLT approval** (codes appear in Railway logs). After approval: `OTP_PROVIDER` = `msg91`, plus `MSG91_AUTH_KEY` and `MSG91_OTP_TEMPLATE_ID`.
+   - `GST_API_PROVIDER`, `GST_API_URL`, `GST_API_KEY` for the GSTIN lookup (optional; `GST_LOOKUPS_PER_DAY` defaults to 200)
 5. Database migrations run automatically when the server starts.
 
 ## API (v1)
@@ -134,6 +139,7 @@ The Android package ID is **`in.apnagalla.app`** (in `app/capacitor.config.ts` a
 | POST | `/v1/businesses/:id/numbers/reserve` | active member; shared series `invoice`, `bill`, `credit`, `estimate` (the web gets estimate numbers only); returned numbers first |
 | POST | `/v1/businesses/:id/numbers/return` | active member (unused numbers a phone gives back) |
 | POST | `/v1/businesses/:id/members/:userId/series-code` | owner (change a staff member's series letter before it is used) |
+| GET | `/v1/businesses/:id/gstin/:gstin` | active member (GSTIN lookup, cached 30 days, daily limit per store) |
 | POST | `/v1/invites/:id/accept` · `/v1/invites/:id/decline` | the invited phone number |
 
 ### OTP security limits

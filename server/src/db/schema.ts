@@ -119,6 +119,27 @@ export const syncRecords = pgTable(
   ],
 );
 
+/** GST API answers, kept 30 days so the same GSTIN isn't paid for twice. */
+export const gstinCache = pgTable('gstin_cache', {
+  gstin: text('gstin').primaryKey(),
+  data: jsonb('data').$type<Record<string, unknown>>().notNull(),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** One row per GST API call, for the daily limit per store. */
+export const gstinLookups = pgTable(
+  'gstin_lookups',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    gstin: text('gstin').notNull(),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('gstin_lookups_business_at_idx').on(t.businessId, t.at)],
+);
+
 /** Numbers a phone gave back unused; handed out again before new ones. */
 export const returnedNumbers = pgTable(
   'returned_numbers',
