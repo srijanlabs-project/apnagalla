@@ -37,6 +37,7 @@
     "react-dom": "^19.3.1",
     "react-router": "^6.30.6",
     "react-router-dom": "^6.30.6",
+    "read-excel-file": "^9.3.20",
     "zod": "^4.6.7"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
-import { IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
+import { IonButton, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
 import { formatIndianMobile } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { add, peopleOutline } from 'ionicons/icons';
+import { add, peopleOutline, cloudUploadOutline } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
@@ -11,7 +11,7 @@ import { rupees } from '../../lib/format';
 import { moneyOf } from '../../lib/ledger';
 
 export default function CustomersScreen() {
-  const { actor, ledger } = useBusiness();
+  const { actor, ledger, isOwner } = useBusiness();
   const [q, setQ] = useState('');
   const customers = useLiveQuery(
     () =>
@@ -42,6 +42,13 @@ export default function CustomersScreen() {
   return (
     <PageShell title="Customers" padded={false}>
       <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder="Search name or phone" />
+      {isOwner && (
+        <div className="filter-chips">
+          <IonButton size="small" fill="clear" routerLink="/tabs/items/import?kind=customers">
+            <IonIcon icon={cloudUploadOutline} slot="start" /> Import from Excel
+          </IonButton>
+        </div>
+      )}
       {customers && customers.length === 0 ? (
         <EmptyState icon={peopleOutline} title="No customers yet" text="Add customers here, or directly while creating an invoice." />
       ) : (
