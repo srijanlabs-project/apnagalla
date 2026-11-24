@@ -8,6 +8,7 @@ import type {
   InviteDto,
   MeResponse,
   ReserveNumbersBody,
+  ReturnNumbersBody,
   ReserveNumbersResponse,
   SessionDto,
   SyncPullResponse,
@@ -140,6 +141,8 @@ export const api = {
   syncPull: (id: string, since: number) => request<SyncPullResponse>('GET', `/v1/businesses/${id}/sync/pull?since=${since}`),
   reserveNumbers: (id: string, body: ReserveNumbersBody, timeoutMs?: number) =>
     request<ReserveNumbersResponse>('POST', `/v1/businesses/${id}/numbers/reserve`, body, { timeoutMs }),
+  returnNumbers: (id: string, body: ReturnNumbersBody) => request<void>('POST', `/v1/businesses/${id}/numbers/return`, body),
+  setSeriesCode: (id: string, userId: string, code: string) => request<TeamResponse>('POST', `/v1/businesses/${id}/members/${userId}/series-code`, { code }),
 
   acceptInvite: (inviteId: string) => request<MeResponse>('POST', `/v1/invites/${inviteId}/accept`),
   declineInvite: (inviteId: string) => request<MeResponse>('POST', `/v1/invites/${inviteId}/decline`),

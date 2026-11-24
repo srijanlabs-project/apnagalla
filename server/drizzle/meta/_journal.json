@@ -22,6 +22,13 @@
       "when": 1795537174923,
       "tag": "0002_sync_records",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795545985442,
+      "tag": "0003_series_per_person",
+      "breakpoints": true
     }
   ]
 }

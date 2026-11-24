@@ -18,7 +18,8 @@ Release 1 is in progress; see PLAN.md §10 for the step list.
   - tax invoices and bills without GST, each with its own number series; HSN/SAC on items and lines;
   - place of supply from the shipping or billing address; CGST + SGST within the state, IGST outside;
   - credit notes against a saved invoice (owner only), which lower what the customer owes;
-  - number pattern and digits in Invoice settings (GST limit: 16 characters).
+  - number pattern and digits in Invoice settings (GST limit: 16 characters);
+  - numbering: each person has their own series by default (staff letters on the Team screen, works offline without limits), or one shared series with blocks per phone.
 - **R1.2 Sync:**
   - every phone and the web share the store's data;
   - sync runs on app open, when the internet returns, 2 s after each save and every 3 minutes;
@@ -123,7 +124,9 @@ The Android package ID is **`in.apnagalla.app`** (in `app/capacitor.config.ts` a
 | POST | `/v1/businesses/:id/members/:userId/deactivate` · `/activate` | owner (pause / turn on a staff member) |
 | POST | `/v1/businesses/:id/sync/push` | active member (rules per role / client) |
 | GET | `/v1/businesses/:id/sync/pull?since=N` | active member |
-| POST | `/v1/businesses/:id/numbers/reserve` | active member; series `invoice`, `bill`, `credit`, `estimate` (the web gets estimate numbers only) |
+| POST | `/v1/businesses/:id/numbers/reserve` | active member; shared series `invoice`, `bill`, `credit`, `estimate` (the web gets estimate numbers only); returned numbers first |
+| POST | `/v1/businesses/:id/numbers/return` | active member (unused numbers a phone gives back) |
+| POST | `/v1/businesses/:id/members/:userId/series-code` | owner (change a staff member's series letter before it is used) |
 | POST | `/v1/invites/:id/accept` · `/v1/invites/:id/decline` | the invited phone number |
 
 ### OTP security limits

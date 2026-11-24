@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calculateInvoice } from './calc';
-import { checkGstin, checkNumberPattern, formatNumber, resolvePlaceOfSupply, splitGst, stateCode } from './gst';
+import { checkGstin, checkNumberPattern, formatNumber, nextSeriesCode, parseSeriesKey, resolvePlaceOfSupply, seriesKey, splitGst, stateCode } from './gst';
 
 describe('GSTIN check', () => {
   it('accepts a valid GSTIN and reads its state', () => {
@@ -60,5 +60,29 @@ describe('number pattern', () => {
     expect(checkNumberPattern('{PREFIX}/{FY4}/{SEQ}', ['INVOICE'], 6, true)).toMatch(/16 characters/);
     expect(checkNumberPattern('{PREFIX} {FY} {SEQ}', ['INV'], 4, true)).toMatch(/Only letters/);
     expect(checkNumberPattern('{PREFIX}/{FY}/{SEQ}/{X}', ['INV'], 4, true)).toMatch(/Unknown/);
+  });
+});
+
+describe('series per person', () => {
+  it('drops the letter and its separator for the owner', () => {
+    expect(formatNumber('{PREFIX}-{CODE}/{FY}/{SEQ}', 'INV', '26-27', '2026-11-24', 1, 4)).toBe('INV/26-27/0001');
+    expect(formatNumber('{PREFIX}-{CODE}/{FY}/{SEQ}', 'INV', '26-27', '2026-11-24', 1, 4, 'B')).toBe('INV-B/26-27/0001');
+    expect(formatNumber('{PREFIX}/{CODE}/{SEQ}', 'CN', '26-27', '2026-11-24', 7, 3, 'C')).toBe('CN/C/007');
+  });
+  it('needs {CODE} when each person has a series, and checks the length with a letter', () => {
+    expect(checkNumberPattern('{PREFIX}/{FY}/{SEQ}', ['INV'], 4, true, 'perPerson')).toMatch(/CODE/);
+    expect(checkNumberPattern('{PREFIX}-{CODE}/{FY}/{SEQ}', ['INV'], 4, true, 'perPerson')).toBeNull();
+    expect(checkNumberPattern('{PREFIX}-{CODE}/{FY}/{SEQ}', ['BILL'], 4, true, 'perPerson')).toMatch(/16 characters/);
+  });
+  it('hands out letters B…Z, then two letters, never A', () => {
+    expect(nextSeriesCode([])).toBe('B');
+    expect(nextSeriesCode(['B', 'C', 'E'])).toBe('D');
+    expect(nextSeriesCode('BCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''))).toBe('AA');
+  });
+  it('series keys round-trip', () => {
+    expect(seriesKey('invoice', '', '26-27')).toBe('invoice:26-27');
+    expect(seriesKey('credit', 'B', 'all')).toBe('credit-B:all');
+    expect(parseSeriesKey('bill-AB:26-27')).toEqual({ series: 'bill', code: 'AB', period: '26-27' });
+    expect(parseSeriesKey('nope:26-27')).toBeNull();
   });
 });

@@ -9,6 +9,8 @@ import {
   otpVerifyBody,
   refreshBody,
   reserveNumbersBody,
+  returnNumbersBody,
+  setSeriesCodeBody,
   syncPushBody,
   updateMeBody,
   type ReserveNumbersResponse,
@@ -180,6 +182,13 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
     return reply.status(204).send();
   });
 
+  app.post<{ Params: BizParams & { userId: string } }>('/v1/businesses/:businessId/members/:userId/series-code', authed, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
+    const { code } = parse(setSeriesCodeBody, req.body);
+    await accounts.setSeriesCode(req.params.businessId, req.params.userId, code);
+    return accounts.getTeam(req.params.businessId);
+  });
+
   for (const [action, active] of [['deactivate', false], ['activate', true]] as const) {
     app.post<{ Params: BizParams & { userId: string } }>(`/v1/businesses/:businessId/members/:userId/${action}`, authed, async (req) => {
       await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
@@ -192,7 +201,8 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/sync/push', { ...authed, bodyLimit: 8_000_000 }, async (req): Promise<SyncPushResponse> => {
     const role = await accounts.requireRole(uid(req), req.params.businessId);
     const { changes } = parse(syncPushBody, req.body);
-    const results = await syncService.push({ businessId: req.params.businessId, userId: uid(req), role, client: req.auth!.client }, changes);
+    const seriesCode = await accounts.seriesCodeOf(req.params.businessId, uid(req));
+    const results = await syncService.push({ businessId: req.params.businessId, userId: uid(req), role, client: req.auth!.client, seriesCode }, changes);
     return { results };
   });
 
@@ -207,6 +217,12 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
     const body = parse(reserveNumbersBody, req.body);
     if (body.kind !== 'estimate' && req.auth!.client === 'web') throw forbidden('Invoices, bills and credit notes are made in the phone app');
     return { numbers: await syncService.reserveNumbers(req.params.businessId, body) };
+  });
+
+  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/numbers/return', authed, async (req, reply) => {
+    await accounts.requireRole(uid(req), req.params.businessId);
+    await syncService.returnNumbers(req.params.businessId, parse(returnNumbersBody, req.body));
+    return reply.status(204).send();
   });
 
   /* ---------- invites (as the invited user) ---------- */

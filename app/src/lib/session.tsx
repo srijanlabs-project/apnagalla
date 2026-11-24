@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { ApiError, api, loadTokens, saveTokens, subscribeSignedOut } from './api';
 import { clearLocalData, pendingChangesCount } from './db';
 import { CLIENT_KIND } from './platform';
-import { syncNow } from './syncEngine';
+import { returnAllNumbers, syncNow } from './syncEngine';
 import { KEYS, kv } from './storage';
 
 type Status = 'loading' | 'signedOut' | 'signedIn';
@@ -146,6 +146,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         }
         const unsynced = await pendingChangesCount();
         if (unsynced > 0 && !force) return { blockedByUnsynced: unsynced };
+        // Unused numbers go back to the server so the series has no gaps.
+        await returnAllNumbers((me?.memberships ?? []).map((m) => m.businessId));
         try {
           await api.logout();
         } catch {

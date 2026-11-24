@@ -1,16 +1,17 @@
-import { SYNC_PUSH_MAX, financialYearLabel, todayISO, type MeResponse, type NumberSeries, type SyncPushResult, type SyncTable } from '@invoice/shared';
+import { NUMBER_SERIES, SYNC_PUSH_MAX, financialYearLabel, todayISO, type MeResponse, type NumberSeries, type SyncPushResult, type SyncTable } from '@invoice/shared';
 import type { Table } from 'dexie';
 import { ApiError, NetworkError, api } from './api';
 import { db, getMeta, setMeta, type SyncedRecord } from './db';
 import { CAN_CREATE_INVOICES } from './platform';
-import { effectiveGstType, numberPoolKey, setNumberAllocator, settingsOf } from './repo';
+import { blockTarget, effectiveGstType, isPersonalSeries, noteUsedNumber, numberPoolKey, setNumberAllocator, settingsOf } from './repo';
 import { KEYS, kv } from './storage';
 
 /**
  * Phone side of offline sync:
  *   push: send queued local changes (outbox) for every store this person works in;
  *   pull: fetch every change after this phone's cursor, per store;
- *   numbers: keep a block of 10 numbers per series this phone may use, for offline saving.
+ *   numbers: for shared series, keep a block sized to this phone's use; give back blocks it no
+ *   longer needs (series per person needs no block). See repo numbering.
  * Runs on app open, when the internet returns, a few seconds after each save, and every few
  * minutes. Only one run at a time.
  */
@@ -23,8 +24,7 @@ export interface SyncState {
   rejected: { table: SyncTable; id: string; reason: string; at: string }[];
 }
 
-const POOL_SIZE = 10;
-const POOL_LOW = 3;
+const NUMBERED: readonly SyncTable[] = ['invoices', 'estimates', 'creditNotes'];
 
 let state: SyncState = { running: false, lastSyncAt: null, lastError: null, rejected: [] };
 const listeners = new Set<(s: SyncState) => void>();
@@ -148,6 +148,11 @@ async function pullStore(businessId: string) {
     await db.transaction('rw', [db.outbox, db.meta, ...tables], async () => {
       for (const ch of page.changes) {
         // A local edit not yet pushed is newer than what we know; it goes out on the next push.
+        // Never reuse a number seen on another phone (or this person's old phone).
+        const { numberSeries, numberSeq } = ch.data as { numberSeries?: unknown; numberSeq?: unknown };
+        if (NUMBERED.includes(ch.table) && typeof numberSeries === 'string' && typeof numberSeq === 'number') {
+          await noteUsedNumber(businessId, numberSeries, numberSeq);
+        }
         if (await hasPending(ch.table, ch.id)) continue;
         await table(ch.table).put(ch.data as unknown as SyncedRecord);
       }
@@ -158,7 +163,7 @@ async function pullStore(businessId: string) {
   }
 }
 
-/** Keeps POOL_SIZE numbers per series on the phone for offline saving. */
+/** Keeps a block of numbers for each shared series this phone may use; tops up when half is gone. */
 async function topUpNumbers(businessId: string) {
   const s = await settingsOf(businessId);
   const period = s.resetEachFinancialYear ? financialYearLabel(todayISO()) : 'all';
@@ -169,12 +174,16 @@ async function topUpNumbers(businessId: string) {
     if (effectiveGstType(await db.profiles.get(businessId)) === 'regular') kinds.push('bill');
     if (await isOwnerOf(businessId)) kinds.push('credit');
   }
-  for (const kind of kinds) {
+  const shared = kinds.filter((k) => !isPersonalSeries(s, k));
+  // Blocks this phone no longer needs (store switched to series per person, or a past year) go back.
+  await returnNumbers(businessId, (k) => !shared.includes(k.series) || k.period !== period);
+  for (const kind of shared) {
     const key = numberPoolKey(businessId, kind, period);
     const pool = (await getMeta<number[]>(key)) ?? [];
-    if (pool.length >= POOL_LOW) continue;
+    const target = await blockTarget(businessId, kind);
+    if (pool.length >= target / 2) continue;
     try {
-      const { numbers } = await api.reserveNumbers(businessId, { kind, period, count: POOL_SIZE - pool.length });
+      const { numbers } = await api.reserveNumbers(businessId, { kind, period, count: target - pool.length });
       // Re-read: a save may have used a number meanwhile.
       const now = (await getMeta<number[]>(key)) ?? [];
       await setMeta(key, [...now, ...numbers]);
@@ -191,5 +200,38 @@ async function isOwnerOf(businessId: string): Promise<boolean> {
     return me?.memberships.some((m) => m.businessId === businessId && m.role === 'owner') ?? false;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Gives unused numbers of this phone's blocks back to the server, so another phone uses them and
+ * the series has no gaps. `which` picks the blocks (default: all). Offline, they stay for later.
+ */
+async function returnNumbers(businessId: string, which: (k: { series: NumberSeries; period: string }) => boolean = () => true) {
+  const prefix = `numpool:${businessId}:`;
+  const entries = await db.meta.where('key').startsWith(prefix).toArray();
+  for (const e of entries) {
+    const [series, period] = e.key.slice(prefix.length).split(':') as [NumberSeries, string];
+    if (!NUMBER_SERIES.includes(series) || !period || !which({ series, period })) continue;
+    const numbers = (e.value as number[] | undefined) ?? [];
+    try {
+      if (numbers.length) await api.returnNumbers(businessId, { kind: series, period, numbers });
+      await db.meta.delete(e.key);
+    } catch (err) {
+      if (err instanceof NetworkError) return;
+      if (err instanceof ApiError && err.status === 403) return;
+      throw err;
+    }
+  }
+}
+
+/** Before logging out: hand back every unused number this phone holds, in all its stores. */
+export async function returnAllNumbers(businessIds: string[]): Promise<void> {
+  for (const id of businessIds) {
+    try {
+      await returnNumbers(id);
+    } catch {
+      // Best effort: a failure only leaves a gap in the series.
+    }
   }
 }

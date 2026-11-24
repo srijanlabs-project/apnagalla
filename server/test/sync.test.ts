@@ -262,3 +262,58 @@ describe('credit notes', () => {
     expect((await pull(biz.id, sH)).changes.some((c) => c.table === 'creditNotes' && c.id === 'cn1')).toBe(true);
   });
 });
+
+describe('number series per person', () => {
+  async function addStaff(bizId: string, oH: Record<string, string>, phone: string) {
+    await app.inject({ method: 'POST', url: `/v1/businesses/${bizId}/invites`, headers: oH, payload: { phone } });
+    const s = await login(phone);
+    const h = bearer(s.accessToken);
+    const me = (await app.inject({ method: 'POST', url: `/v1/invites/${s.me.invites[0]!.id}/accept`, headers: h })).json<VerifyOtpResponse['me']>();
+    return { s, h, me };
+  }
+
+  it('staff get letters B, C… in join order; the owner has none; the owner can change an unused letter', async () => {
+    const { biz, oH, sH, owner } = await setupStore('960000012');
+    const c = await addStaff(biz.id, oH, '9600000123');
+    expect(c.me.memberships.find((m) => m.businessId === biz.id)?.seriesCode).toBe('C');
+    const team = (await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/team`, headers: oH })).json<{ members: { userId: string; seriesCode: string }[] }>();
+    expect(team.members.map((m) => m.seriesCode)).toEqual(['', 'B', 'C']);
+
+    const change = (userId: string, code: string) =>
+      app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/members/${userId}/series-code`, headers: oH, payload: { code } });
+    expect((await change(c.s.me.user.id, 'b')).statusCode).toBe(409); // B is taken
+    expect((await change(owner.me.user.id, 'Z')).statusCode).toBe(400);
+    expect((await change(c.s.me.user.id, 'r')).statusCode).toBe(200);
+
+    // Once R is on a saved bill it can no longer change.
+    await pushOk(biz.id, c.h, [{ table: 'invoices', id: 'r1', data: invoice('r1', { number: 'INV-R/26-27/0001', numberSeries: 'invoice-R:26-27', numberSeq: 1 }) }]);
+    expect((await change(c.s.me.user.id, 'Q')).json()).toMatchObject({ error: 'code_used' });
+
+    // Staff can't number a bill in someone else's series.
+    const other = await pushOk(biz.id, sH, [{ table: 'invoices', id: 'x1', data: invoice('x1', { number: 'INV-R/26-27/0002', numberSeries: 'invoice-R:26-27', numberSeq: 2 }) }]);
+    expect(other[0]).toMatchObject({ status: 'rejected', reason: "That is another person's number series" });
+  });
+
+  it('refuses a number that another document already has', async () => {
+    const { biz, oH } = await setupStore('960000013');
+    await pushOk(biz.id, oH, [{ table: 'invoices', id: 'a', data: invoice('a', { number: 'INV/26-27/0007' }) }]);
+    const dup = await pushOk(biz.id, oH, [{ table: 'invoices', id: 'b', data: invoice('b', { number: 'INV/26-27/0007' }) }]);
+    expect(dup[0]).toMatchObject({ status: 'rejected', reason: 'Number INV/26-27/0007 is already used' });
+    // Editing the first one again is fine.
+    expect((await pushOk(biz.id, oH, [{ table: 'invoices', id: 'a', data: invoice('a', { number: 'INV/26-27/0007', updatedAt: at(1) }) }]))[0]!.status).toBe('ok');
+  });
+
+  it('numbers given back are handed out again first; used or unknown ones are ignored', async () => {
+    const { biz, oH, sH } = await setupStore('960000014');
+    const reserve = async (count: number) =>
+      (await app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/numbers/reserve`, headers: oH, payload: { kind: 'invoice', period: '26-27', count } })).json<{ numbers: number[] }>()
+        .numbers;
+    expect(await reserve(10)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    await pushOk(biz.id, oH, [{ table: 'invoices', id: 'u3', data: invoice('u3', { number: 'INV/26-27/0003', numberSeries: 'invoice:26-27', numberSeq: 3 }) }]);
+    const back = await app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/numbers/return`, headers: oH, payload: { kind: 'invoice', period: '26-27', numbers: [3, 4, 5, 99] } });
+    expect(back.statusCode).toBe(204);
+    // Another phone gets 4 and 5 (3 was used, 99 never handed out), then new numbers.
+    const r = await app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/numbers/reserve`, headers: sH, payload: { kind: 'invoice', period: '26-27', count: 3 } });
+    expect(r.json()).toEqual({ numbers: [4, 5, 11] });
+  });
+});

@@ -7,6 +7,7 @@ const server = vi.hoisted(() => ({
   log: [] as { table: string; id: string; data: Record<string, unknown>; seq: number }[],
   seq: 0,
   next: {} as Record<string, number>,
+  returned: [] as { kind: string; numbers: number[] }[],
   online: true,
   rejectTables: new Set<string>(),
 }));
@@ -49,6 +50,10 @@ vi.mock('./api', async () => {
         const changes = server.log.filter((l) => l.seq > since);
         return { changes, cursor: changes.length ? changes[changes.length - 1]!.seq : since, more: false };
       },
+      returnNumbers: async (_biz: string, body: { kind: string; numbers: number[] }) => {
+        offline();
+        server.returned.push(body);
+      },
       reserveNumbers: async (_biz: string, body: { kind: string; count: number }) => {
         offline();
         const numbers = Array.from({ length: body.count }, () => (server.next[body.kind] = (server.next[body.kind] ?? 0) + 1));
@@ -60,7 +65,7 @@ vi.mock('./api', async () => {
 
 const { db, getMeta } = await import('./db');
 const repo = await import('./repo');
-const { syncNow } = await import('./syncEngine');
+const { returnAllNumbers, syncNow } = await import('./syncEngine');
 
 const owner = { businessId: 'b1', userId: 'u1', userName: 'Owner', role: 'owner' as const };
 const line = { id: 'l1', name: 'Rice', qty: 1, unit: 'bag', rate: 10000, rateIncludesTax: false, taxPct: 0 };
@@ -75,6 +80,7 @@ beforeEach(async () => {
   server.log.length = 0;
   server.seq = 0;
   server.next = {};
+  server.returned.length = 0;
   server.online = true;
   server.rejectTables.clear();
   await repo.ensureBusinessRecords('b1', 'Test Co');
@@ -128,24 +134,53 @@ describe('sync engine', () => {
     expect(await db.outbox.count()).toBe(0);
   });
 
-  it('keeps a block of numbers for offline saving and refuses to invent numbers when it runs out', async () => {
-    await syncNow(['b1'], 'b1'); // tops up invoice + estimate blocks
-    server.online = false;
-    const save = async () => repo.saveInvoice(owner, { ...(await repo.newInvoiceDraft(owner)), lines: [line] }, { finalize: true });
+  const save = async (actor: import('./repo').Actor = owner) => repo.saveInvoice(actor, { ...(await repo.newInvoiceDraft(actor)), lines: [line] }, { finalize: true });
 
-    const first = await save();
-    expect(first.number).toMatch(/\/0001$/);
-    // Offline: the rest of the block is used in order.
-    const numbers = [first.number];
-    for (let i = 0; i < 9; i++) numbers.push((await save()).number);
-    expect(new Set(numbers).size).toBe(10);
+  it('series per person (default): numbers on the phone, never runs out offline, carries on after numbers seen elsewhere', async () => {
+    // Another phone of the owner already used INV/26-27/0007 (e.g. the old phone).
+    remote('invoices', { id: 'old', businessId: 'b1', status: 'saved', number: 'INV/26-27/0007', numberSeries: 'invoice:26-27', numberSeq: 7, date: '2026-11-20', lines: [], totals: { grandTotal: 0 }, updatedAt: '2026-11-20T10:00:00.000Z' });
+    await syncNow(['b1'], 'b1');
+    server.online = false;
+    const numbers: string[] = [];
+    for (let i = 0; i < 30; i++) numbers.push((await save()).number);
+    expect(numbers[0]).toMatch(/^INV\/\d{2}-\d{2}\/0008$/);
+    expect(new Set(numbers).size).toBe(30);
+    // A staff member's numbers carry their letter, in their own series.
+    const staff = { ...owner, userId: 'u2', role: 'staff' as const, seriesCode: 'B' };
+    const b = await save(staff);
+    expect(b.number).toMatch(/^INV-B\/\d{2}-\d{2}\/0001$/);
+    expect(b.numberSeries).toMatch(/^invoice-B:/);
+  });
+
+  it('one shared series: a block sized to use, used first, refused when empty offline, given back on logout', async () => {
+    const s = (await db.settings.get('b1'))!;
+    await db.settings.put({ ...s, numberingMode: 'shared' });
+    await syncNow(['b1'], 'b1'); // block of 20 (the minimum)
+    expect(((await getMeta<number[]>(repo.numberPoolKey('b1', 'invoice', '26-27'))) ?? []).length).toBe(20);
+
+    // Online, the block is still used first, so numbers stay dense.
+    expect((await save()).number).toMatch(/\/0001$/);
+    server.online = false;
+    for (let i = 0; i < 19; i++) await save();
     await expect(save()).rejects.toBeInstanceOf(repo.NumberingError);
 
-    // Back online: numbers come straight from the server again.
     server.online = true;
-    const online = await save();
-    expect(online.number).not.toBe('');
-    expect(numbers).not.toContain(online.number);
-    expect((await getMeta<number[]>(repo.numberPoolKey('b1', 'invoice', '26-27'))) ?? []).toEqual([]);
+    expect((await save()).number).toMatch(/\/0021$/); // straight from the server
+    await syncNow(['b1'], 'b1'); // tops up again
+    const held = (await getMeta<number[]>(repo.numberPoolKey('b1', 'invoice', '26-27'))) ?? [];
+    expect(held.length).toBeGreaterThan(0);
+    await returnAllNumbers(['b1']);
+    expect(server.returned.find((r) => r.kind === 'invoice')?.numbers).toEqual(held);
+    expect(await getMeta(repo.numberPoolKey('b1', 'invoice', '26-27'))).toBeUndefined();
+  });
+
+  it('switching to series per person gives the shared block back', async () => {
+    const s = (await db.settings.get('b1'))!;
+    await db.settings.put({ ...s, numberingMode: 'shared' });
+    await syncNow(['b1'], 'b1');
+    await db.settings.put({ ...s, numberingMode: 'perPerson' });
+    await syncNow(['b1'], 'b1');
+    expect(server.returned.map((r) => r.kind)).toContain('invoice');
+    expect(await getMeta(repo.numberPoolKey('b1', 'invoice', '26-27'))).toBeUndefined();
   });
 });

@@ -47,12 +47,13 @@ function ChipList<T extends string | number>(p: { values: T[]; onChange: (v: T[]
   );
 }
 
+/** Styles offered; the letter part only shows on staff numbers when each person has a series. */
 const PATTERNS = [
-  { value: '{PREFIX}/{FY}/{SEQ}', label: 'INV/26-27/0001' },
-  { value: '{PREFIX}-{FY}-{SEQ}', label: 'INV-26-27-0001' },
-  { value: '{PREFIX}/{FY4}/{SEQ}', label: 'INV/2026-27/0001' },
-  { value: '{PREFIX}/{SEQ}', label: 'INV/0001 (never restarts)' },
-  { value: '{PREFIX}-{SEQ}', label: 'INV-0001 (never restarts)' },
+  { value: '{PREFIX}-{CODE}/{FY}/{SEQ}', label: 'INV/26-27/0001', staff: 'INV-B/26-27/0001' },
+  { value: '{PREFIX}{CODE}/{FY}/{SEQ}', label: 'INV/26-27/0001', staff: 'INVB/26-27/0001' },
+  { value: '{PREFIX}-{CODE}-{FY}-{SEQ}', label: 'INV-26-27-0001', staff: 'INV-B-26-27-0001' },
+  { value: '{PREFIX}-{CODE}/{FY4}/{SEQ}', label: 'INV/2026-27/0001', staff: 'INV-B/2026-27/0001' },
+  { value: '{PREFIX}-{CODE}/{SEQ}', label: 'INV/0001 (never restarts)', staff: 'INV-B/0001' },
 ];
 
 export default function InvoiceSettingsScreen() {
@@ -72,8 +73,13 @@ export default function InvoiceSettingsScreen() {
   ];
   const prefixes = series.map((x) => s[x.field]);
   const prefixError = prefixes.every(prefixOk) ? (new Set(prefixes).size < prefixes.length ? 'Each series needs a different prefix' : null) : null;
-  const patternError = checkNumberPattern(s.numberPattern, prefixes.filter(prefixOk), s.numberDigits, s.resetEachFinancialYear);
+  const perPerson = s.numberingMode !== 'shared';
+  const patternError = checkNumberPattern(s.numberPattern, prefixes.filter(prefixOk), s.numberDigits, s.resetEachFinancialYear, s.numberingMode);
   const custom = customOpen || !PATTERNS.some((x) => x.value === s.numberPattern);
+  // Only offer styles that fit the GST limits with the current prefixes and digits.
+  const styles = PATTERNS.filter(
+    (x) => x.value === s.numberPattern || !checkNumberPattern(x.value, prefixes.filter(prefixOk), s.numberDigits, s.resetEachFinancialYear, s.numberingMode),
+  );
   const today = todayISO();
 
   return (
@@ -87,6 +93,21 @@ export default function InvoiceSettingsScreen() {
       {ro && <p className="section-note">Only the owner can change these settings.</p>}
 
       <FormSection title="Numbering" note="GST allows at most 16 characters: letters, digits, - and /. Numbers are never reused.">
+        <SelectField
+          label="Who shares a number series"
+          value={s.numberingMode}
+          options={[
+            { value: 'perPerson', label: 'Each person has their own series (works offline)' },
+            { value: 'shared', label: 'One series for everyone' },
+          ]}
+          onChange={(numberingMode) => patch({ numberingMode })}
+          disabled={ro}
+        />
+        <p className="section-note">
+          {perPerson
+            ? "Your numbers have no letter; each staff member's numbers carry their letter (see Team). Phones never run out of numbers offline."
+            : 'Every phone keeps a block of numbers sized to how much it bills, and gives unused ones back on logout. Best switched on 1 April.'}
+        </p>
         <div className="field-row">
           {series.slice(0, 2).map((x) => (
             <TextField
@@ -122,7 +143,7 @@ export default function InvoiceSettingsScreen() {
                 ...cur,
                 resetEachFinancialYear,
                 // Keep the numbers unique: a restarting series needs the year in it.
-                numberPattern: resetEachFinancialYear && !/\{FY4?\}/.test(cur.numberPattern) ? '{PREFIX}/{FY}/{SEQ}' : cur.numberPattern,
+                numberPattern: resetEachFinancialYear && !/\{FY4?\}/.test(cur.numberPattern) ? '{PREFIX}-{CODE}/{FY}/{SEQ}' : cur.numberPattern,
               },
             )
           }
@@ -132,7 +153,7 @@ export default function InvoiceSettingsScreen() {
           <SelectField
             label="Number style"
             value={custom ? 'custom' : s.numberPattern}
-            options={[...PATTERNS.filter((x) => !s.resetEachFinancialYear || x.value.includes('{FY')), { value: 'custom', label: 'Custom…' }]}
+            options={[...styles.map((x) => ({ value: x.value, label: perPerson ? `${x.label} · staff ${x.staff}` : x.label })), { value: 'custom', label: 'Custom…' }]}
             onChange={(v) => {
               setCustomOpen(v === 'custom');
               if (v !== 'custom') patch({ numberPattern: v });
@@ -155,7 +176,7 @@ export default function InvoiceSettingsScreen() {
             disabled={ro}
             maxlength={40}
             autocapitalize="characters"
-            helper="Use {PREFIX}, {FY} (26-27), {FY4} (2026-27), {YYYY} and {SEQ}"
+            helper="Use {PREFIX}, {CODE} (staff letter), {FY} (26-27), {FY4} (2026-27), {YYYY} and {SEQ}"
           />
         )}
         {prefixError || patternError ? (
@@ -163,6 +184,7 @@ export default function InvoiceSettingsScreen() {
         ) : (
           <p className="section-note">
             Next numbers look like {series.map((x) => formatDocNumber(s, x.key, today, 1)).join(' · ')}
+            {perPerson && ` — staff B: ${series.filter((x) => x.key !== 'estimate').map((x) => formatDocNumber(s, x.key, today, 1, 'B')).join(' · ')}`}
           </p>
         )}
       </FormSection>

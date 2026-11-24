@@ -142,9 +142,20 @@ R1.3 decisions and gaps:
   notes can't be cancelled until they are.
 - Default GST rates for new stores: 0, 3, 5, 18, 40 (GST 2.0 slabs).
 - Not yet: reverse charge, e-invoice (IRN) / e-way bill, debit notes, HSN summary on the PDF.
-- Open issue: online saves take a fresh number from the server while each phone also holds a
-  block of 10 for offline use, so a new series starts at 0011 and every phone's unused block
-  becomes a gap. Needs a decision (use the phone's block first when online?).
+- Numbering (decided 25 Nov 2026, replaces the block of 10 from R1.2), set in Invoice settings:
+  - **Each person has their own series (default).** The owner's numbers have no letter
+    (INV/26-27/0001); staff get B, C, D… in join order (INV-B/26-27/0001), which the owner can
+    change on the Team screen until it is on a saved bill. Re-joining gives the old letter back.
+    The phone numbers bills itself, continuing after the highest number it has seen in its
+    series, so it never runs out offline. Estimates stay one shared series.
+  - **One series for everyone.** Each phone holds a block sized to its own use (about 3 days,
+    20–200), uses it first even when online, tops up at half. Unused numbers go back to the
+    server on logout (and when the store switches mode or the year ends); the server hands
+    them out again first, so gaps fill.
+  - The server refuses a document whose number another document already has, and staff can
+    only number bills in their own series.
+  - Default bill-without-GST prefix is BOS so staff numbers fit GST's 16 characters.
+  - Remaining gap: a removed or lost phone's unused block (shared mode) can't be returned.
 
 ## 11. Your action items (can run in parallel with the build)
 - [ ] Start **TRAI DLT registration** with an SMS provider (business entity, sender ID, OTP template). Takes days to weeks; until it's done, OTP runs in test mode.

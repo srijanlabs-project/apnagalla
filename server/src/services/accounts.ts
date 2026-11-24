@@ -1,7 +1,7 @@
-import { and, asc, count, eq, isNull } from 'drizzle-orm';
-import { MAX_OWNED_STORES, type BusinessDto, type CreateBusinessInput, type InviteDto, type MeResponse, type MemberDto, type Role, type TeamResponse } from '@invoice/shared';
+import { and, asc, count, eq, isNull, like, or } from 'drizzle-orm';
+import { MAX_OWNED_STORES, nextSeriesCode, type BusinessDto, type CreateBusinessInput, type InviteDto, type MeResponse, type MemberDto, type Role, type TeamResponse } from '@invoice/shared';
 import type { DB } from '../db/client';
-import { businesses, invites, memberships, users } from '../db/schema';
+import { businesses, invites, memberships, numberCounters, users } from '../db/schema';
 import { badRequest, conflict, forbidden, notFound } from '../errors';
 
 /** Accounts: users, businesses, memberships and staff invites. */
@@ -34,6 +34,7 @@ export class AccountService {
         businessState: businesses.state,
         role: memberships.role,
         deactivatedAt: memberships.deactivatedAt,
+        seriesCode: memberships.seriesCode,
       })
       .from(memberships)
       .innerJoin(businesses, eq(businesses.id, memberships.businessId))
@@ -68,7 +69,7 @@ export class AccountService {
 
   private async membershipIn(businessId: string, userId: string) {
     const [m] = await this.db
-      .select({ id: memberships.id, role: memberships.role, deactivatedAt: memberships.deactivatedAt })
+      .select({ id: memberships.id, role: memberships.role, deactivatedAt: memberships.deactivatedAt, seriesCode: memberships.seriesCode })
       .from(memberships)
       .where(and(eq(memberships.businessId, businessId), eq(memberships.userId, userId), isNull(memberships.removedAt)))
       .limit(1);
@@ -109,6 +110,7 @@ export class AccountService {
           role: memberships.role,
           joinedAt: memberships.createdAt,
           deactivatedAt: memberships.deactivatedAt,
+          seriesCode: memberships.seriesCode,
         })
         .from(memberships)
         .innerJoin(users, eq(users.id, memberships.userId))
@@ -165,8 +167,46 @@ export class AccountService {
     }
     await this.db.transaction(async (tx) => {
       await tx.update(invites).set({ acceptedAt: new Date() }).where(eq(invites.id, inv.id));
-      await tx.insert(memberships).values({ businessId: inv.businessId, userId, role: inv.role });
+      // Staff get their own number series letter; someone re-joining gets their old letter back.
+      let seriesCode = '';
+      if (inv.role === 'staff') {
+        const rows = await tx
+          .select({ userId: memberships.userId, code: memberships.seriesCode })
+          .from(memberships)
+          .where(eq(memberships.businessId, inv.businessId));
+        seriesCode = rows.find((r) => r.userId === userId && r.code)?.code ?? nextSeriesCode(rows.map((r) => r.code).filter(Boolean));
+      }
+      await tx.insert(memberships).values({ businessId: inv.businessId, userId, role: inv.role, seriesCode });
     });
+  }
+
+  /** This person's series letter in a store ("" for the owner). */
+  async seriesCodeOf(businessId: string, userId: string): Promise<string> {
+    return (await this.membershipIn(businessId, userId))?.seriesCode ?? '';
+  }
+
+  /**
+   * Owner changes a staff member's series letter. Only before that letter has been used for a
+   * number, and never to a letter someone in the store has (or had).
+   */
+  async setSeriesCode(businessId: string, memberUserId: string, code: string) {
+    const m = await this.membershipIn(businessId, memberUserId);
+    if (!m) throw notFound('Member not found');
+    if (m.role === 'owner') throw badRequest('owner_has_no_code', "The owner's numbers have no letter");
+    if (m.seriesCode === code) return;
+    const taken = await this.db
+      .select({ id: memberships.id })
+      .from(memberships)
+      .where(and(eq(memberships.businessId, businessId), eq(memberships.seriesCode, code)))
+      .limit(1);
+    if (taken.length) throw conflict('code_taken', `Letter ${code} is already used in this store`);
+    const used = await this.db
+      .select({ series: numberCounters.series })
+      .from(numberCounters)
+      .where(and(eq(numberCounters.businessId, businessId), or(like(numberCounters.series, `%-${m.seriesCode}:%`), like(numberCounters.series, `%-${code}:%`))))
+      .limit(1);
+    if (used.length) throw conflict('code_used', 'This letter is already on saved bills, so it can no longer change');
+    await this.db.update(memberships).set({ seriesCode: code }).where(eq(memberships.id, m.id));
   }
 
   async declineInvite(userId: string, inviteId: string) {

@@ -4,6 +4,9 @@ import {
   financialYearLabel,
   formatNumber,
   gstinState,
+  parseDocNumber,
+  parseSeriesKey,
+  seriesKey,
   resolvePlaceOfSupply,
   stateCode,
   todayISO,
@@ -36,6 +39,8 @@ export interface Actor {
   userId: string;
   userName: string;
   role: 'owner' | 'staff';
+  /** Letter of this person's own number series in the store ("" / missing for the owner). */
+  seriesCode?: string;
 }
 
 export function newId(): string {
@@ -113,11 +118,13 @@ export function defaultSettings(businessId: string): BusinessSettings {
     updatedAt: EPOCH,
     updatedBy: '',
     invoicePrefix: 'INV',
-    billPrefix: 'BILL',
+    // Short enough for staff numbers like BOS-B/26-27/0001 to stay within GST's 16 characters.
+    billPrefix: 'BOS',
     estimatePrefix: 'EST',
     creditNotePrefix: 'CN',
     numberPattern: DEFAULT_NUMBER_PATTERN,
     numberDigits: 4,
+    numberingMode: 'perPerson',
     resetEachFinancialYear: true,
     defaultPaymentTermsDays: 0,
     defaultTaxPct: 0,
@@ -141,7 +148,7 @@ export function defaultSettings(businessId: string): BusinessSettings {
 export function withDefaults(businessId: string, stored: BusinessSettings | undefined): BusinessSettings {
   const d = defaultSettings(businessId);
   if (!stored) return d;
-  const legacyPattern = !stored.numberPattern && stored.resetEachFinancialYear === false ? '{PREFIX}/{SEQ}' : undefined;
+  const legacyPattern = !stored.numberPattern && stored.resetEachFinancialYear === false ? '{PREFIX}-{CODE}/{SEQ}' : undefined;
   return { ...d, ...stored, numberPattern: stored.numberPattern || legacyPattern || d.numberPattern, design: { ...d.design, ...stored.design } };
 }
 
@@ -191,11 +198,15 @@ export async function ensureBusinessRecords(businessId: string, businessName: st
 
 /* ---------- numbering ---------- */
 /*
- * The server hands out numbers per store and series, so two phones never use the same one.
- * Online, a save asks the server for the next number (keeps them in order across phones).
- * Offline, the phone uses its reserved block (topped up to 10 by sync). With no network and an
- * empty block the save is refused; the document can still be kept as a draft.
- * Tests run without a server: then numbers come from a local counter (the M2 behaviour).
+ * Two ways to number tax invoices, bills and credit notes (Invoice settings):
+ *  - perPerson (default): each person has their own series (the owner's has no letter, staff
+ *    member B gets INV-B/…). The phone numbers them itself, so offline saving never runs out.
+ *    The phone continues after the highest number it has seen in its series (its own saves and
+ *    everything pulled from the server, so a new phone carries on where the old one stopped).
+ *  - shared: one series for everyone. Each phone holds a block from the server sized to its own
+ *    use (about 3 days, 20–200) and uses it first, online or not; unused numbers go back on logout.
+ * Estimates always use one shared series.
+ * Tests run without a server: shared series then count locally too.
  */
 
 export type NumberAllocator = (businessId: string, series: NumberSeries, period: string) => Promise<number | null>;
@@ -214,7 +225,8 @@ export const seriesPeriod = (date: string, resetEachFY: boolean) => (resetEachFY
 
 export const numberPoolKey = (businessId: string, series: NumberSeries, period: string) => `numpool:${businessId}:${series}:${period}`;
 
-const localCounterKey = (series: NumberSeries, businessId: string, period: string) => `seq:${businessId}:${series}:${period}`;
+/** Highest number this phone has used or seen in a series ("invoice-B:26-27"). */
+export const localCounterKey = (businessId: string, key: string) => `seq:${businessId}:${key}`;
 
 /** Which series a document is numbered in. A regular GST store numbers non-GST bills separately. */
 export function seriesOf(kind: DocKind, taxMode: TaxMode | undefined, gstType: GstType): NumberSeries {
@@ -222,58 +234,118 @@ export function seriesOf(kind: DocKind, taxMode: TaxMode | undefined, gstType: G
   return gstType === 'regular' && taxMode === 'none' ? 'bill' : 'invoice';
 }
 
+/** True when this series is numbered per person on the phone. */
+export const isPersonalSeries = (s: BusinessSettings, series: NumberSeries) => s.numberingMode !== 'shared' && series !== 'estimate';
+
+/** The letter a person's numbers carry in this series ("" for the owner and for shared series). */
+export const codeFor = (s: BusinessSettings, series: NumberSeries, actor: Pick<Actor, 'seriesCode'>) => (isPersonalSeries(s, series) ? (actor.seriesCode ?? '') : '');
+
 export function prefixOf(s: BusinessSettings, series: NumberSeries): string {
   return { invoice: s.invoicePrefix, bill: s.billPrefix, estimate: s.estimatePrefix, credit: s.creditNotePrefix }[series];
 }
 
-export function formatDocNumber(s: BusinessSettings, series: NumberSeries, date: string, seq: number): string {
-  return formatNumber(s.numberPattern, prefixOf(s, series), financialYearLabel(date), date, seq, s.numberDigits);
+export function formatDocNumber(s: BusinessSettings, series: NumberSeries, date: string, seq: number, code = ''): string {
+  let pattern = s.numberPattern;
+  // Safety net: a staff letter must always show, or two people could print the same number.
+  if (code && !pattern.includes('{CODE}')) pattern = pattern.includes('{PREFIX}') ? pattern.replace('{PREFIX}', '{PREFIX}-{CODE}') : `{CODE}-${pattern}`;
+  return formatNumber(pattern, prefixOf(s, series), financialYearLabel(date), date, seq, s.numberDigits, code);
+}
+
+/** Remembers that `seq` is used in a series, so this phone never hands it out again. */
+export async function noteUsedNumber(businessId: string, key: string, seq: number): Promise<void> {
+  const k = localCounterKey(businessId, key);
+  if (((await getMeta<number>(k)) ?? 0) < seq) await setMeta(k, seq);
 }
 
 /** Peek at the number the next saved document will get (shown in the editor; not reserved). */
-export async function previewNextNumber(series: NumberSeries, businessId: string, date: string): Promise<string> {
-  const s = await settingsOf(businessId);
+export async function previewNextNumber(series: NumberSeries, actor: Pick<Actor, 'businessId' | 'seriesCode'>, date: string): Promise<string> {
+  const s = await settingsOf(actor.businessId);
   const period = seriesPeriod(date, s.resetEachFinancialYear);
-  if (allocator) {
-    // The real number is decided at save time; show the next one this phone holds, if any.
-    const pool = (await getMeta<number[]>(numberPoolKey(businessId, series, period))) ?? [];
+  const code = codeFor(s, series, actor);
+  if (allocator && !isPersonalSeries(s, series)) {
+    const pool = (await getMeta<number[]>(numberPoolKey(actor.businessId, series, period))) ?? [];
     return pool.length ? formatDocNumber(s, series, date, pool[0]!) : '';
   }
-  const last = (await getMeta<number>(localCounterKey(series, businessId, period))) ?? 0;
-  return formatDocNumber(s, series, date, last + 1);
+  const key = seriesKey(series, code, period);
+  const last = (await getMeta<number>(localCounterKey(actor.businessId, key))) ?? (await highestOnPhone(actor.businessId, series, key));
+  return formatDocNumber(s, series, date, last + 1, code);
 }
 
-async function nextSeq(series: NumberSeries, businessId: string, period: string): Promise<number> {
-  if (!allocator) {
-    const key = localCounterKey(series, businessId, period);
-    const seq = ((await getMeta<number>(key)) ?? 0) + 1;
-    await setMeta(key, seq);
+/* --- how many numbers this phone uses per day, to size its block of a shared series --- */
+const usageKey = (businessId: string, series: NumberSeries) => `numuse:${businessId}:${series}`;
+const USAGE_DAYS = 7;
+
+async function recordUse(businessId: string, series: NumberSeries) {
+  const today = todayISO();
+  const days = (await getMeta<Record<string, number>>(usageKey(businessId, series))) ?? {};
+  days[today] = (days[today] ?? 0) + 1;
+  const keep = Object.keys(days).sort().slice(-USAGE_DAYS);
+  await setMeta(usageKey(businessId, series), Object.fromEntries(keep.map((d) => [d, days[d]!])));
+}
+
+export const MIN_BLOCK = 20;
+export const MAX_BLOCK = 200;
+
+/** Numbers to keep on this phone for a shared series: about 3 days of its own use, 20–200. */
+export async function blockTarget(businessId: string, series: NumberSeries): Promise<number> {
+  const days = (await getMeta<Record<string, number>>(usageKey(businessId, series))) ?? {};
+  const perDay = Object.values(days).reduce((a, b) => a + b, 0) / USAGE_DAYS;
+  return Math.min(MAX_BLOCK, Math.max(MIN_BLOCK, Math.ceil(perDay * 3)));
+}
+
+async function nextSeq(s: BusinessSettings, series: NumberSeries, actor: Pick<Actor, 'businessId' | 'seriesCode'>, period: string): Promise<number> {
+  const businessId = actor.businessId;
+  const key = seriesKey(series, codeFor(s, series, actor), period);
+  if (isPersonalSeries(s, series) || !allocator) {
+    const seq = ((await getMeta<number>(localCounterKey(businessId, key))) ?? (await highestOnPhone(businessId, series, key))) + 1;
+    await setMeta(localCounterKey(businessId, key), seq);
     return seq;
   }
-  const fromServer = await allocator(businessId, series, period).catch(() => null);
-  if (fromServer != null) return fromServer;
-  const key = numberPoolKey(businessId, series, period);
-  const pool = (await getMeta<number[]>(key)) ?? [];
-  const seq = pool.shift();
+  // Shared series: this phone's block first (keeps numbers dense), then straight from the server.
+  const poolKey = numberPoolKey(businessId, series, period);
+  const pool = (await getMeta<number[]>(poolKey)) ?? [];
+  let seq = pool.shift();
+  if (seq != null) await setMeta(poolKey, pool);
+  else seq = (await allocator(businessId, series, period).catch(() => null)) ?? undefined;
   if (seq == null) {
     const what = { invoice: 'invoice', bill: 'bill', estimate: 'estimate', credit: 'credit note' }[series];
     throw new NumberingError(`No ${what} numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.`);
   }
-  await setMeta(key, pool);
+  await recordUse(businessId, series);
   return seq;
+}
+
+/**
+ * Highest number of a series among documents already on this phone. Starts the counter on a
+ * phone that had documents before it kept one (an app update, or before its first save).
+ */
+async function highestOnPhone(businessId: string, series: NumberSeries, key: string): Promise<number> {
+  const { code, period } = parseSeriesKey(key)!;
+  const docs = await tableOfKind(series === 'bill' ? 'invoice' : series).where('businessId').equals(businessId).toArray();
+  let max = 0;
+  for (const d of docs) {
+    if (d.numberSeries === key && d.numberSeq) max = Math.max(max, d.numberSeq);
+    else if (!d.numberSeries && !code && d.number && series !== 'bill') {
+      // Saved before documents recorded their series: read it from the number.
+      const p = parseDocNumber(d.number);
+      if (p && p.period === period) max = Math.max(max, p.seq);
+    }
+  }
+  return max;
 }
 
 const tableOfKind = (kind: DocKind) => (kind === 'invoice' ? db.invoices : kind === 'estimate' ? db.estimates : db.creditNotes) as unknown as Table<DocBase, string>;
 
-async function takeNextNumber(kind: DocKind, series: NumberSeries, businessId: string, date: string): Promise<Pick<DocBase, 'number' | 'numberSeries' | 'numberSeq'>> {
-  const s = await settingsOf(businessId);
+async function takeNextNumber(kind: DocKind, series: NumberSeries, actor: Pick<Actor, 'businessId' | 'seriesCode'>, date: string): Promise<Pick<DocBase, 'number' | 'numberSeries' | 'numberSeq'>> {
+  const s = await settingsOf(actor.businessId);
   const period = seriesPeriod(date, s.resetEachFinancialYear);
+  const code = codeFor(s, series, actor);
   // Skip numbers already used on this phone (e.g. typed by hand).
   for (let tries = 0; tries < 50; tries++) {
-    const seq = await nextSeq(series, businessId, period);
-    const number = formatDocNumber(s, series, date, seq);
-    if (!(await tableOfKind(kind).where('[businessId+number]').equals([businessId, number]).count())) {
-      return { number, numberSeries: `${series}:${period}`, numberSeq: seq };
+    const seq = await nextSeq(s, series, actor, period);
+    const number = formatDocNumber(s, series, date, seq, code);
+    if (!(await tableOfKind(kind).where('[businessId+number]').equals([actor.businessId, number]).count())) {
+      return { number, numberSeries: seriesKey(series, code, period), numberSeq: seq };
     }
   }
   throw new NumberingError('Could not find a free number. Please try again.');
@@ -319,10 +391,10 @@ async function settleGst<D extends DocBase>(businessId: string, doc: D): Promise
   return { ...doc, taxMode, placeOfSupply: taxMode === 'gst' ? (placeOfSupplyOf(doc, profile) ?? null) : null };
 }
 
-async function numberFor(kind: DocKind, businessId: string, doc: DocBase): Promise<Pick<DocBase, 'number' | 'numberSeries' | 'numberSeq'>> {
+async function numberFor(kind: DocKind, actor: Actor, doc: DocBase): Promise<Pick<DocBase, 'number' | 'numberSeries' | 'numberSeq'>> {
   if (doc.number) return { number: doc.number, numberSeries: doc.numberSeries, numberSeq: doc.numberSeq };
-  const gstType = effectiveGstType(await db.profiles.get(businessId));
-  return takeNextNumber(kind, seriesOf(kind, doc.taxMode, gstType), businessId, doc.date);
+  const gstType = effectiveGstType(await db.profiles.get(actor.businessId));
+  return takeNextNumber(kind, seriesOf(kind, doc.taxMode, gstType), actor, doc.date);
 }
 
 /**
@@ -345,7 +417,7 @@ export async function saveInvoice(actor: Actor, inv: Invoice, opts: { finalize: 
   next.payment = normalisePayment(next.payment, totals.grandTotal, next.credited);
 
   if (finalizing) {
-    Object.assign(next, await numberFor('invoice', actor.businessId, next));
+    Object.assign(next, await numberFor('invoice', actor, next));
     next.status = 'saved';
     next.businessSnapshot = await snapshotBusiness(actor.businessId);
     next.history.push(historyEntry(actor, 'saved', next.number));
@@ -367,7 +439,7 @@ export async function saveEstimate(actor: Actor, est: Estimate, opts: { finalize
   next.totals = computeTotals(next);
   if (!existing) next.history.push(historyEntry(actor, 'created'));
   if (finalizing) {
-    Object.assign(next, await numberFor('estimate', actor.businessId, next));
+    Object.assign(next, await numberFor('estimate', actor, next));
     next.status = 'open';
     next.businessSnapshot = await snapshotBusiness(actor.businessId);
     next.history.push(historyEntry(actor, 'saved', next.number));
@@ -612,7 +684,7 @@ export async function saveCreditNote(actor: Actor, note: CreditNote, opts: { fin
   }
   if (!existing) next.history.push(historyEntry(actor, 'created'));
   if (finalizing) {
-    Object.assign(next, await numberFor('credit', actor.businessId, next));
+    Object.assign(next, await numberFor('credit', actor, next));
     next.status = 'saved';
     next.businessSnapshot = await snapshotBusiness(actor.businessId);
     next.history.push(historyEntry(actor, 'saved', next.number));

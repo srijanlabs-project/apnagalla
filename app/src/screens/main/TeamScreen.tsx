@@ -20,6 +20,7 @@ import { formatIndianMobile, normalizeIndianMobile, type TeamResponse } from '@i
 import { useCallback, useEffect, useState } from 'react';
 import PageShell from '../../components/PageShell';
 import { api, errorMessage } from '../../lib/api';
+import { useBusiness } from '../../lib/business';
 import { useSession } from '../../lib/session';
 import { sync } from '../../lib/sync';
 
@@ -34,6 +35,7 @@ export default function TeamScreen() {
   const [toggling, setToggling] = useState<string | null>(null);
   const [alert] = useIonAlert();
   const [toast] = useIonToast();
+  const perPerson = useBusiness().settings.numberingMode !== 'shared';
 
   const load = useCallback(async () => {
     if (!businessId) return;
@@ -76,6 +78,35 @@ export default function TeamScreen() {
     } finally {
       setToggling(null);
     }
+  }
+
+  function changeLetter(userId: string, current: string, who: string) {
+    void alert({
+      header: `Series letter for ${who}`,
+      message: `Their invoice numbers look like INV-${current}/26-27/0001. You can change the letter until their first bill is saved.`,
+      inputs: [{ name: 'code', value: current, attributes: { maxlength: 2, autocapitalize: 'characters' } }],
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Save',
+          handler: (v: { code?: string }) => {
+            const code = (v.code ?? '').trim().toUpperCase();
+            if (!/^[A-Z]{1,2}$/.test(code)) {
+              void toast({ message: 'Use one or two letters', duration: 2000, color: 'danger' });
+              return false;
+            }
+            void api
+              .setSeriesCode(businessId!, userId, code)
+              .then((t) => {
+                setTeam(t);
+                setError(null);
+              })
+              .catch((e) => setError(errorMessage(e)));
+            return true;
+          },
+        },
+      ],
+    });
   }
 
   function toggleActive(userId: string, active: boolean, who: string) {
@@ -163,7 +194,13 @@ export default function TeamScreen() {
                       {formatIndianMobile(m.phone)} · {m.role === 'owner' ? 'Owner' : 'Staff'}
                       {!m.active && <span className="text-danger"> · Paused</span>}
                     </p>
+                    {perPerson && <p>{m.seriesCode ? `Bill numbers with letter ${m.seriesCode}` : 'Bill numbers without a letter'}</p>}
                   </IonLabel>
+                  {perPerson && m.role !== 'owner' && m.seriesCode && (
+                    <IonButton slot="end" size="small" fill="clear" onClick={() => changeLetter(m.userId, m.seriesCode, m.name ?? formatIndianMobile(m.phone))}>
+                      Letter {m.seriesCode}
+                    </IonButton>
+                  )}
                   {m.role !== 'owner' && (
                     <IonButton
                       slot="end"

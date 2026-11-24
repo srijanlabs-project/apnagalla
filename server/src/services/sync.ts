@@ -1,12 +1,12 @@
-import { and, asc, eq, gt, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, ne, sql } from 'drizzle-orm';
 import {
-  NUMBER_SERIES,
   OWNER_ONLY_TABLES,
   SYNC_PULL_MAX,
   parseDocNumber,
+  parseSeriesKey,
   type ClientKind,
-  type NumberSeries,
   type ReserveNumbersBody,
+  type ReturnNumbersBody,
   type Role,
   type SyncPullResponse,
   type SyncPushBody,
@@ -14,14 +14,18 @@ import {
   type SyncTable,
 } from '@invoice/shared';
 import type { DB } from '../db/client';
-import { numberCounters, syncRecords } from '../db/schema';
+import { numberCounters, returnedNumbers, syncRecords } from '../db/schema';
 
 export interface SyncActor {
   businessId: string;
   userId: string;
   role: Role;
   client: ClientKind;
+  /** The person's own series letter ("" for the owner). */
+  seriesCode?: string;
 }
+
+const NUMBERED_TABLES: readonly SyncTable[] = ['invoices', 'estimates', 'creditNotes'];
 
 type Data = Record<string, unknown>;
 type Change = SyncPushBody['changes'][number];
@@ -89,6 +93,8 @@ export class SyncService {
 
     const denied = this.checkPermission(actor, table, data, existing);
     if (denied) return reject(denied);
+    const clash = await this.numberClash(tx, actor.businessId, table, id, data, existing);
+    if (clash) return reject(clash);
 
     const [row] = await tx
       .insert(syncRecords)
@@ -123,8 +129,34 @@ export class SyncService {
     return { table, id, status: 'ok' };
   }
 
+  /** A number already on another document of the store is refused, so no number is ever used twice. */
+  private async numberClash(tx: DB, businessId: string, table: SyncTable, id: string, data: Data, existing: Data | undefined): Promise<string | null> {
+    if (!NUMBERED_TABLES.includes(table) || data.deleted === true) return null;
+    const number = typeof data.number === 'string' ? data.number.trim() : '';
+    if (!number || existing?.number === number) return null;
+    const [other] = await tx
+      .select({ id: syncRecords.id })
+      .from(syncRecords)
+      .where(
+        and(
+          eq(syncRecords.businessId, businessId),
+          eq(syncRecords.tableName, table),
+          sql`(${syncRecords.data}->>'number') = ${number}`,
+          ne(syncRecords.id, id),
+          eq(syncRecords.deleted, false),
+        ),
+      )
+      .limit(1);
+    return other ? `Number ${number} is already used` : null;
+  }
+
   /** Returns a reason when the change is not allowed, else null. */
   private checkPermission(actor: SyncActor, table: SyncTable, data: Data, existing: Data | undefined): string | null {
+    // Staff number new documents only in their own series (or a shared one).
+    if (NUMBERED_TABLES.includes(table) && !existing && actor.role !== 'owner' && typeof data.numberSeries === 'string') {
+      const key = parseSeriesKey(data.numberSeries);
+      if (key && key.code && key.code !== (actor.seriesCode ?? '')) return "That is another person's number series";
+    }
     if ((table === 'profiles' || table === 'settings') && data.id !== actor.businessId) return 'wrong store';
     if (OWNER_ONLY_TABLES.includes(table) && actor.role !== 'owner') {
       return table === 'creditNotes' ? 'Only the owner can make credit notes' : 'Only the owner can change store details';
@@ -170,19 +202,68 @@ export class SyncService {
     };
   }
 
-  /** Hands out the next `count` numbers of a series, strictly increasing, never twice. */
+  /**
+   * Hands out `count` numbers of a shared series, never twice: numbers phones gave back come
+   * first (lowest first, so gaps fill), then new ones from the counter.
+   */
   async reserveNumbers(businessId: string, body: ReserveNumbersBody): Promise<number[]> {
     const series = `${body.kind}:${body.period}`;
-    const [row] = await this.db
-      .insert(numberCounters)
-      .values({ businessId, series, next: body.count + 1 })
-      .onConflictDoUpdate({
-        target: [numberCounters.businessId, numberCounters.series],
-        set: { next: sql`${numberCounters.next} + ${body.count}` },
-      })
-      .returning({ next: numberCounters.next });
-    const start = row!.next - body.count;
-    return Array.from({ length: body.count }, (_, i) => start + i);
+    return this.db.transaction(async (tx) => {
+      const reused = (
+        await tx.execute<{ seq: number }>(sql`
+          delete from ${returnedNumbers}
+          where (business_id, series, seq) in (
+            select business_id, series, seq from ${returnedNumbers}
+            where business_id = ${businessId} and series = ${series}
+            order by seq limit ${body.count}
+            for update skip locked)
+          returning seq`)
+      ).rows
+        .map((r) => Number(r.seq))
+        .sort((a, b) => a - b);
+      const fresh = body.count - reused.length;
+      if (!fresh) return reused;
+      const [row] = await tx
+        .insert(numberCounters)
+        .values({ businessId, series, next: fresh + 1 })
+        .onConflictDoUpdate({
+          target: [numberCounters.businessId, numberCounters.series],
+          set: { next: sql`${numberCounters.next} + ${fresh}` },
+        })
+        .returning({ next: numberCounters.next });
+      const start = row!.next - fresh;
+      return [...reused, ...Array.from({ length: fresh }, (_, i) => start + i)];
+    });
+  }
+
+  /** A phone gives back numbers it held but never used; ones already used or never handed out are ignored. */
+  async returnNumbers(businessId: string, body: ReturnNumbersBody): Promise<void> {
+    const series = `${body.kind}:${body.period}`;
+    const [counter] = await this.db
+      .select({ next: numberCounters.next })
+      .from(numberCounters)
+      .where(and(eq(numberCounters.businessId, businessId), eq(numberCounters.series, series)))
+      .limit(1);
+    if (!counter) return;
+    const candidates = [...new Set(body.numbers)].filter((n) => n < counter.next);
+    if (!candidates.length) return;
+    const used = await this.db
+      .select({ seq: sql<number>`(${syncRecords.data}->>'numberSeq')::int` })
+      .from(syncRecords)
+      .where(
+        and(
+          eq(syncRecords.businessId, businessId),
+          sql`${syncRecords.data}->>'numberSeries' = ${series}`,
+          sql`(${syncRecords.data}->>'numberSeq')::int = any(${sql.raw(`array[${candidates.join(',')}]`)})`,
+        ),
+      );
+    const usedSet = new Set(used.map((u) => Number(u.seq)));
+    const free = candidates.filter((n) => !usedSet.has(n));
+    if (!free.length) return;
+    await this.db
+      .insert(returnedNumbers)
+      .values(free.map((seq) => ({ businessId, series, seq })))
+      .onConflictDoNothing();
   }
 
   /** A number used on a phone (e.g. typed by hand, or from before sync) is never handed out again. */
@@ -197,8 +278,6 @@ export class SyncService {
   }
 }
 
-const SERIES_KEY = /^([a-z]+):(\d{2}-\d{2}|all)$/;
-
 /** The series and running number a pushed document used, if any. */
 function usedNumber(table: SyncTable, data: Data): { series: string; seq: number } | null {
   if (typeof data.number !== 'string' || !data.number) return null;
@@ -206,8 +285,7 @@ function usedNumber(table: SyncTable, data: Data): { series: string; seq: number
   const series = data.numberSeries;
   const seq = data.numberSeq;
   if (typeof series === 'string' && typeof seq === 'number') {
-    const m = SERIES_KEY.exec(series);
-    if (!m || !NUMBER_SERIES.includes(m[1] as NumberSeries) || !Number.isInteger(seq) || seq < 1 || seq > 1e9) return null;
+    if (!parseSeriesKey(series) || !Number.isInteger(seq) || seq < 1 || seq > 1e9) return null;
     return { series, seq };
   }
   // Older documents: read it back from the number itself.

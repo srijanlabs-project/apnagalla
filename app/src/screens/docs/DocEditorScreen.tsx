@@ -106,7 +106,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
   }, [id, kind]);
 
   useEffect(() => {
-    if (doc && doc.status === 'draft') void previewNextNumber(seriesOf(kind, doc.taxMode, gstType), actor.businessId, doc.date).then(setNextNumber);
+    if (doc && doc.status === 'draft') void previewNextNumber(seriesOf(kind, doc.taxMode, gstType), actor, doc.date).then(setNextNumber);
   }, [doc?.date, doc?.status, doc?.taxMode, kind, gstType, actor.businessId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A credit note can be at most what is left of its invoice.

@@ -156,7 +156,7 @@ describe('GST billing', () => {
     const bill = await saveInvoice(owner, { ...d, taxMode: 'none', lines: [{ ...line, rateIncludesTax: true }], billTo: party }, { finalize: true });
     expect(bill.totals.taxTotal).toBe(0);
     expect(bill.totals.grandTotal).toBe(100000); // the price as entered
-    expect(bill.number).toMatch(/^BILL\/\d{2}-\d{2}\/0001$/);
+    expect(bill.number).toMatch(/^BOS\/\d{2}-\d{2}\/0001$/);
     expect(bill.numberSeries).toMatch(/^bill:/);
     expect(tax.number).toMatch(/^INV\//);
     const p = (await db.profiles.get('b1'))!;
@@ -209,5 +209,14 @@ describe('credit notes', () => {
     fresh = (await db.invoices.get(inv.id))!;
     expect(fresh.credited).toBe(0);
     expect(fresh.payment.status).toBe('partial');
+  });
+});
+
+describe('series per person on a phone that already has bills', () => {
+  it('continues after the highest number already on the phone', async () => {
+    const d = await newInvoiceDraft(owner);
+    // A bill from before the phone kept a counter (e.g. synced from another phone).
+    await db.invoices.put({ ...d, id: 'old', status: 'saved', number: 'INV/26-27/0042', numberSeries: 'invoice:26-27', numberSeq: 42, date: '2026-11-24' });
+    expect((await savedInvoice(owner, '2026-11-24')).number).toBe('INV/26-27/0043');
   });
 });

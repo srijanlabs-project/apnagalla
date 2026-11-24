@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { ChargeInput, DiscountInput, GstType, InvoiceTotals, TaxMode } from '@invoice/shared';
+import type { ChargeInput, DiscountInput, GstType, InvoiceTotals, NumberingMode, TaxMode } from '@invoice/shared';
 
 /**
  * Local offline database (IndexedDB via Dexie). The app reads and writes here first;
@@ -92,6 +92,8 @@ export interface BusinessSettings extends SyncedRecord {
   /** e.g. "{PREFIX}/{FY}/{SEQ}" — see formatNumber() in shared/gst.ts. */
   numberPattern: string;
   numberDigits: number;
+  /** perPerson: each person's own series (default); shared: one series, blocks of numbers per phone. */
+  numberingMode: NumberingMode;
   resetEachFinancialYear: boolean;
   defaultPaymentTermsDays: number; // 0 = due on receipt
   defaultTaxPct: number;

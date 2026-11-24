@@ -166,15 +166,51 @@ export function checkHsn(raw: string): boolean {
 export const NUMBER_SERIES = ['invoice', 'bill', 'estimate', 'credit'] as const;
 export type NumberSeries = (typeof NUMBER_SERIES)[number];
 
-export const DEFAULT_NUMBER_PATTERN = '{PREFIX}/{FY}/{SEQ}';
+/** Owner: INV/26-27/0001; staff member B: INV-B/26-27/0001. */
+export const DEFAULT_NUMBER_PATTERN = '{PREFIX}-{CODE}/{FY}/{SEQ}';
 
 /**
- * Tokens: {PREFIX}; {FY} = 26-27; {FY4} = 2026-27; {YYYY} = calendar year; {SEQ} = the running
+ * How a store numbers its tax invoices, bills and credit notes:
+ * perPerson = each person has their own series (the owner's has no letter), numbered on the phone;
+ * shared = one series for everyone, phones hold a block of numbers from the server.
+ * Estimates always use one shared series.
+ */
+export const NUMBERING_MODES = ['perPerson', 'shared'] as const;
+export type NumberingMode = (typeof NUMBERING_MODES)[number];
+
+/** A person's series letter(s): "B", "C" … "Z", then "AA", "AB" … */
+export const SERIES_CODE = /^[A-Z]{1,2}$/;
+
+/** The first letter code not in `used`. "A" is skipped so it is never mistaken for the owner. */
+export function nextSeriesCode(used: Iterable<string>): string {
+  const taken = new Set(used);
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (const c of letters.slice(1)) if (!taken.has(c)) return c;
+  for (const a of letters) for (const b of letters) if (!taken.has(a + b)) return a + b;
+  throw new Error('No series codes left');
+}
+
+/** "invoice:26-27" (owner / shared) or "invoice-B:26-27" (staff member B). */
+export function seriesKey(series: NumberSeries, code: string, period: string): string {
+  return `${series}${code ? `-${code}` : ''}:${period}`;
+}
+
+const SERIES_KEY_RE = /^([a-z]+)(?:-([A-Z]{1,2}))?:(\d{2}-\d{2}|all)$/;
+
+export function parseSeriesKey(key: string): { series: NumberSeries; code: string; period: string } | null {
+  const m = SERIES_KEY_RE.exec(key);
+  if (!m || !NUMBER_SERIES.includes(m[1] as NumberSeries)) return null;
+  return { series: m[1] as NumberSeries, code: m[2] ?? '', period: m[3]! };
+}
+
+/**
+ * Tokens: {PREFIX}; {CODE} = the person's series letter (dropped, with the "-" or "/" before it,
+ * when there is none); {FY} = 26-27; {FY4} = 2026-27; {YYYY} = calendar year; {SEQ} = the running
  * number padded to `digits`. Anything else is copied as typed.
  */
-export function formatNumber(pattern: string, prefix: string, fyLabel: string, date: string, seq: number, digits: number): string {
+export function formatNumber(pattern: string, prefix: string, fyLabel: string, date: string, seq: number, digits: number, code = ''): string {
   const start = Number(fyLabel.slice(0, 2));
-  return pattern
+  return (code ? pattern.replaceAll('{CODE}', code) : pattern.replace(/[-/]?\{CODE\}/g, ''))
     .replaceAll('{PREFIX}', prefix)
     .replaceAll('{FY4}', `20${String(start).padStart(2, '0')}-${fyLabel.slice(3)}`)
     .replaceAll('{FY}', fyLabel)
@@ -186,13 +222,15 @@ export function formatNumber(pattern: string, prefix: string, fyLabel: string, d
  * Problems with a number pattern, or null when it is fine. GST rules: at most 16 characters,
  * only letters, digits, "-" and "/"; unique within a financial year.
  */
-export function checkNumberPattern(pattern: string, prefixes: string[], digits: number, resetEachFY: boolean): string | null {
+export function checkNumberPattern(pattern: string, prefixes: string[], digits: number, resetEachFY: boolean, mode: NumberingMode = 'shared'): string | null {
   if (!pattern.includes('{SEQ}')) return 'The pattern must contain {SEQ}';
+  if (mode === 'perPerson' && !pattern.includes('{CODE}')) return 'Each person has their own series, so the pattern needs {CODE} (their letter)';
   if (resetEachFY && !pattern.includes('{FY}') && !pattern.includes('{FY4}')) {
     return 'Numbering restarts every year, so the pattern needs {FY} or {FY4} to keep numbers unique';
   }
   for (const prefix of prefixes) {
-    const sample = formatNumber(pattern, prefix, '26-27', '2026-11-24', 10 ** digits - 1, digits);
+    // Staff numbers carry a letter, so check the longer form.
+    const sample = formatNumber(pattern, prefix, '26-27', '2026-11-24', 10 ** digits - 1, digits, 'B');
     if (/[{}]/.test(sample)) return 'Unknown {TOKEN} in the pattern';
     if (!/^[A-Za-z0-9/-]+$/.test(sample)) return 'Only letters, digits, "-" and "/" are allowed in GST invoice numbers';
     if (sample.length > 16) return `Numbers like ${sample} are longer than the 16 characters GST allows`;

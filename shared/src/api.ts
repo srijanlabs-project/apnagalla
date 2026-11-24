@@ -81,6 +81,8 @@ export interface MembershipDto {
   role: Role;
   /** false = the owner paused this person's access to the store. */
   active: boolean;
+  /** This person's series letter in the store ("" for the owner). */
+  seriesCode: string;
 }
 
 export interface InviteDto {
@@ -116,7 +118,10 @@ export interface MemberDto {
   role: Role;
   joinedAt: string;
   active: boolean;
+  seriesCode: string;
 }
+
+export const setSeriesCodeBody = z.object({ code: z.string().trim().toUpperCase().regex(/^[A-Z]{1,2}$/, 'Use one or two letters') });
 
 export interface SessionDto {
   id: string;

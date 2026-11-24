@@ -56,13 +56,24 @@ export interface SyncPullResponse {
   more: boolean;
 }
 
+/** Most numbers one phone holds for one shared series. */
+export const MAX_NUMBER_BLOCK = 200;
+
 /** A number series: kind + financial year label ("26-27"), or "all" when numbering never resets. */
 export const reserveNumbersBody = z.object({
   kind: z.enum(NUMBER_SERIES),
   period: z.string().regex(/^(\d{2}-\d{2}|all)$/, 'Invalid period'),
-  count: z.number().int().min(1).max(20),
+  count: z.number().int().min(1).max(MAX_NUMBER_BLOCK),
 });
 export type ReserveNumbersBody = z.input<typeof reserveNumbersBody>;
+
+/** Numbers a phone held but never used (e.g. on logout); the server hands them out again first. */
+export const returnNumbersBody = z.object({
+  kind: z.enum(NUMBER_SERIES),
+  period: z.string().regex(/^(\d{2}-\d{2}|all)$/, 'Invalid period'),
+  numbers: z.array(z.number().int().min(1)).min(1).max(MAX_NUMBER_BLOCK),
+});
+export type ReturnNumbersBody = z.input<typeof returnNumbersBody>;
 
 export interface ReserveNumbersResponse {
   /** Sequence numbers reserved for this device, in order (e.g. [41, 42, 43]). */

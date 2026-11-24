@@ -78,6 +78,8 @@ export const memberships = pgTable(
     /** Owner paused this person's access; their past work stays. Cleared on re-activation. */
     deactivatedAt: timestamp('deactivated_at', { withTimezone: true }),
     removedAt: timestamp('removed_at', { withTimezone: true }),
+    /** Letter(s) of this person's own number series in the store ("" for the owner). Kept after removal. */
+    seriesCode: text('series_code').notNull().default(''),
   },
   (t) => [
     index('memberships_business_idx').on(t.businessId),
@@ -109,10 +111,28 @@ export const syncRecords = pgTable(
     seq: bigint('seq', { mode: 'number' }).notNull(),
     receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.businessId, t.tableName, t.id] }), index('sync_records_business_seq_idx').on(t.businessId, t.seq)],
+  (t) => [
+    primaryKey({ columns: [t.businessId, t.tableName, t.id] }),
+    index('sync_records_business_seq_idx').on(t.businessId, t.seq),
+    // Finds a document by its number, so no number is used twice.
+    index('sync_records_number_idx').on(t.businessId, t.tableName, sql`(${t.data}->>'number')`),
+  ],
 );
 
-/** Next free number per store and series ("invoice:26-27", "estimate:all"). */
+/** Numbers a phone gave back unused; handed out again before new ones. */
+export const returnedNumbers = pgTable(
+  'returned_numbers',
+  {
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    series: text('series').notNull(),
+    seq: integer('seq').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.businessId, t.series, t.seq] })],
+);
+
+/** Next free number per store and series ("invoice:26-27", "invoice-B:26-27", "estimate:all"). */
 export const numberCounters = pgTable(
   'number_counters',
   {

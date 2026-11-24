@@ -44,7 +44,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const value = useMemo<BusinessValue | null>(() => {
     if (!ready || !profile || !me || !membership) return null;
     return {
-      actor: { businessId, userId: me.user.id, userName: me.user.name ?? '', role: membership.role },
+      actor: { businessId, userId: me.user.id, userName: me.user.name ?? '', role: membership.role, seriesCode: membership.seriesCode ?? '' },
       isOwner: membership.role === 'owner',
       profile,
       // Merge so settings added in later versions always have a value.
