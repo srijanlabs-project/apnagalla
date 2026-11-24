@@ -24,9 +24,10 @@ import {
 } from '@ionic/react';
 import { formatPaise } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { addOutline, checkmarkCircle, logoWhatsapp, personCircleOutline, removeOutline, shareSocialOutline } from 'ionicons/icons';
+import { addOutline, barcodeOutline, checkmarkCircle, logoWhatsapp, personCircleOutline, removeOutline, shareSocialOutline } from 'ionicons/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import BarcodeScanner from '../../components/BarcodeScanner';
 import PaySheet from '../../components/PaySheet';
 import { useBusiness } from '../../lib/business';
 import { db, type DocLine, type Invoice, type Item } from '../../lib/db';
@@ -63,6 +64,7 @@ export default function SaleScreen() {
   const [paying, setPaying] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<Done | null>(null);
+  const [scanning, setScanning] = useState(false);
   const regular = effectiveGstType(profile) === 'regular';
 
   const heldId = new URLSearchParams(location.search).get('held');
@@ -146,6 +148,25 @@ export default function SaleScreen() {
       return { lines: [...cur.lines, lineFromItem(it)] };
     });
     setQ('');
+  }
+
+  /** A scanned or typed barcode: add that item, or offer to create it. */
+  function byBarcode(code: string): boolean {
+    const it = (items ?? []).find((i) => i.barcode === code);
+    if (it) {
+      addItem(it);
+      return true;
+    }
+    setScanning(false);
+    void alert({
+      header: 'Not in your items',
+      message: `No item has barcode ${code}. Add it to your items?`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        { text: 'Add item', handler: () => router.push(`/tabs/items/new?barcode=${encodeURIComponent(code)}`) },
+      ],
+    });
+    return false;
   }
 
   function step(lineId: string, by: number) {
@@ -283,7 +304,25 @@ export default function SaleScreen() {
               </IonSegment>
             )}
           </div>
-          <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder="Search item or type barcode" debounce={0} />
+          <div className="search-row">
+            <IonSearchbar
+              value={q}
+              onIonInput={(e) => setQ(String(e.detail.value ?? ''))}
+              // A USB / Bluetooth scanner types the code and presses Enter.
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && q.trim()) {
+                  const code = q.trim();
+                  if ((items ?? []).some((i) => i.barcode === code)) byBarcode(code);
+                  else if (matches.length === 1) addItem(matches[0]!);
+                }
+              }}
+              placeholder="Search item or type barcode"
+              debounce={0}
+            />
+            <IonButton fill="clear" onClick={() => setScanning(true)} aria-label="Scan barcode">
+              <IonIcon icon={barcodeOutline} slot="icon-only" />
+            </IonButton>
+          </div>
 
           {q.trim() ? (
             <IonList>
@@ -400,6 +439,7 @@ export default function SaleScreen() {
         onClose={() => setPaying(false)}
         onConfirm={finish}
       />
+      <BarcodeScanner isOpen={scanning} continuous title="Scan items" onClose={() => setScanning(false)} onScan={(code) => byBarcode(code)} />
       <CustomerPicker isOpen={picker} onClose={() => setPicker(false)} onPick={(party) => patch({ billTo: party, shipTo: null })} />
       <LineEditor
         line={editing?.line ?? null}

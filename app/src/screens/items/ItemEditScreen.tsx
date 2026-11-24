@@ -1,8 +1,10 @@
-import { IonButton, useIonAlert, useIonRouter } from '@ionic/react';
+import { IonButton, IonIcon, useIonAlert, useIonRouter } from '@ionic/react';
+import { barcodeOutline } from 'ionicons/icons';
 import { calculateInvoice, checkHsn } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useLocation, useParams } from 'react-router-dom';
+import BarcodeScanner from '../../components/BarcodeScanner';
 import { FormSection, MoneyField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
 import FormPage from '../../components/FormPage';
 import { useBusiness } from '../../lib/business';
@@ -11,7 +13,7 @@ import { rupees } from '../../lib/format';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
 
-export function blankItem(actor: Actor, settings: BusinessSettings, name = ''): Item {
+export function blankItem(actor: Actor, settings: BusinessSettings, name = '', barcode?: string): Item {
   return {
     id: newId(),
     businessId: actor.businessId,
@@ -23,10 +25,17 @@ export function blankItem(actor: Actor, settings: BusinessSettings, name = ''): 
     rate: 0,
     rateIncludesTax: false,
     taxPct: settings.defaultTaxPct,
+    barcode: barcode || undefined,
   };
 }
 
 export function ItemForm({ value: it, onChange: patch, settings, priceLocked }: { value: Item; onChange: (p: Partial<Item>) => void; settings: BusinessSettings; priceLocked?: boolean }) {
+  const [scanning, setScanning] = useState(false);
+  // Another item with the same barcode would make scanning ambiguous.
+  const clash = useLiveQuery(
+    async () => (it.barcode ? (await db.items.where('[businessId+barcode]').equals([it.businessId, it.barcode]).toArray()).find((x) => x.id !== it.id && !x.deleted) : undefined),
+    [it.barcode, it.id, it.businessId],
+  );
   const preview = calculateInvoice({ lines: [{ qty: 1, rate: it.rate, rateIncludesTax: it.rateIncludesTax, taxPct: it.taxPct }], roundOff: false });
   const units = settings.units.includes(it.unit) ? settings.units : [...settings.units, it.unit];
   const rates = settings.taxRates.includes(it.taxPct) ? settings.taxRates : [...settings.taxRates, it.taxPct].sort((a, b) => a - b);
@@ -36,6 +45,21 @@ export function ItemForm({ value: it, onChange: patch, settings, priceLocked }: 
         <TextField label="Item / service name" required value={it.name} onChange={(name) => patch({ name })} />
         <TextArea label="Description (optional)" value={it.description} onChange={(description) => patch({ description })} />
         <SelectField label="Unit" value={it.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => patch({ unit })} />
+        <div className="search-row">
+          <TextField
+            label="Barcode"
+            value={it.barcode}
+            onChange={(barcode) => patch({ barcode: barcode.trim() || undefined })}
+            disabled={priceLocked}
+            error={clash ? `Already on ${clash.name}` : null}
+          />
+          {!priceLocked && (
+            <IonButton fill="clear" onClick={() => setScanning(true)} aria-label="Scan barcode">
+              <IonIcon icon={barcodeOutline} slot="icon-only" />
+            </IonButton>
+          )}
+        </div>
+        <BarcodeScanner isOpen={scanning} onClose={() => setScanning(false)} onScan={(barcode) => patch({ barcode })} />
       </FormSection>
       <FormSection title="Price & tax" note={priceLocked ? 'Only the owner can change prices.' : undefined}>
         <MoneyField label={it.rateIncludesTax ? 'Price (incl. tax)' : 'Price (before tax)'} value={it.rate} onChange={(v) => patch({ rate: v ?? 0 })} disabled={priceLocked} />
@@ -73,7 +97,12 @@ export default function ItemEditScreen() {
   const { actor, settings, isOwner } = useBusiness();
   const isNew = !id || id === 'new';
   const existing = useLiveQuery(() => (isNew ? undefined : db.items.get(id!)), [id]);
-  const initial = useMemo(() => (isNew ? blankItem(actor, settings) : existing), [isNew, existing, actor, settings]);
+  const prefill = new URLSearchParams(useLocation().search);
+  const initial = useMemo(
+    () => (isNew ? blankItem(actor, settings, prefill.get('name') ?? '', prefill.get('barcode') ?? undefined) : existing),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isNew, existing, actor, settings],
+  );
   const { value: it, patch, save, saving } = useForm<Item>(initial);
   const [alert] = useIonAlert();
   const router = useIonRouter();
