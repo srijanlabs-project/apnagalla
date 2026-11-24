@@ -103,6 +103,25 @@ Login (phone → OTP) · Business setup · Home dashboard · Invoices list / det
 | M5 | Bill scanning | Upload queue, AI adapter, review screen, matching |
 | M6 | Release | Privacy policy, account deletion, Play Store build and listing, web deploy |
 
+M1 and M2 are done. From here the work follows the client-approved **4 releases** in the
+"ApnaGalla — Retailer Requirements" doc (24 Nov 2026); M3–M6 are folded into them.
+
+### Release 1 (P0) — daily billing, shared and safe
+Built in this order; each step is tested and committed before the next.
+
+| Step | Scope | Status |
+|---|---|---|
+| R1.1 Accounts and stores | Several stores per owner (up to 10), staff in several stores with a role per store, owner pauses / turns on staff per store, one phone per login (new phone signs the old one out) + web login, device list with remote sign-out, web can't create or edit invoices, store switcher | Done (branch `feat/r1-accounts-stores`) |
+| R1.2 Sync | Push/pull of all store records, server-allocated invoice numbers per store with offline blocks, online backup, upload pending changes before a phone is signed out | Next |
+| R1.3 GST billing | Store GST type (regular / composition / unregistered), GST and non-GST bills with their own series, HSN, CGST+SGST / IGST from place of supply (shipping address), credit notes, number pattern | |
+| R1.4 Counter | Quick-sale screen, camera barcode, sq ft / running ft billing, dated part-payments with modes and split, on-screen UPI QR, returns, delivery date + day-before alert | |
+| R1.5 Catalogue | Category tree, item barcode / HSN / purchase price / MRP, Excel import of items and customers, GSTIN check via the client's GST API | |
+| R1.6 Print and languages | Bluetooth thermal printing (2" / 3"), English / Hindi / Gujarati / Punjabi | |
+| R1.7 Admin and security | Admin panel (create / suspend stores), app PIN, secure token storage, tenant-isolation tests, rate limits, backups, monitoring | |
+
+Known gap after R1.1: a phone signed out by a newer login loses changes not yet uploaded. Sync
+(R1.2) adds the "upload first" step.
+
 ## 11. Your action items (can run in parallel with the build)
 - [ ] Start **TRAI DLT registration** with an SMS provider (business entity, sender ID, OTP template). Takes days to weeks; until it's done, OTP runs in test mode.
 - [ ] Create a **Google Play developer account**.

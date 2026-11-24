@@ -27,6 +27,7 @@ import { useBusiness } from '../../lib/business';
 import { db, type Estimate, type Invoice } from '../../lib/db';
 import { dateIN, rupees } from '../../lib/format';
 import { pdfFileName, pdfInputFor, renderPdf, sharePdf } from '../../lib/pdf';
+import { CAN_CREATE_INVOICES } from '../../lib/platform';
 import { cancelInvoice, convertEstimate, deleteDraft, duplicateInvoice, pendingAmount, setEstimateStatus, updatePayment } from '../../lib/repo';
 import PaymentModal from './PaymentModal';
 
@@ -49,7 +50,9 @@ export default function DocDetailScreen({ kind }: { kind: Kind }) {
   const inv = kind === 'invoice' ? (doc as Invoice) : null;
   const est = kind === 'estimate' ? (doc as Estimate) : null;
   const pending = inv ? pendingAmount(inv) : 0;
-  const canEdit = doc.status === 'draft' || (doc.status !== 'cancelled' && doc.status !== 'converted' && (isOwner || (est != null && doc.createdBy === actor.userId)));
+  const canEdit =
+    (kind !== 'invoice' || CAN_CREATE_INVOICES) &&
+    (doc.status === 'draft' || (doc.status !== 'cancelled' && doc.status !== 'converted' && (isOwner || (est != null && doc.createdBy === actor.userId))));
 
   const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : 'Something went wrong', duration: 2500, color: 'danger' });
 
@@ -96,7 +99,7 @@ export default function DocDetailScreen({ kind }: { kind: Kind }) {
 
   const menuButtons = [
     ...(canEdit ? [{ text: 'Edit', handler: () => router.push(`${base}/${doc.id}/edit`) }] : []),
-    ...(inv
+    ...(inv && CAN_CREATE_INVOICES
       ? [
           {
             text: 'Duplicate',
@@ -192,7 +195,7 @@ export default function DocDetailScreen({ kind }: { kind: Kind }) {
                 <IonIcon icon={logoWhatsapp} slot="start" /> Remind
               </IonButton>
             )}
-            {est && est.status !== 'draft' && est.status !== 'converted' && (
+            {est && est.status !== 'draft' && est.status !== 'converted' && CAN_CREATE_INVOICES && (
               <IonButton
                 color="success"
                 onClick={() =>

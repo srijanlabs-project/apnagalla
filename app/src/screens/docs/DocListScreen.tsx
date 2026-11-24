@@ -8,6 +8,7 @@ import StatusBadge, { invoiceStatus } from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
 import { db, type Estimate, type Invoice } from '../../lib/db';
 import { dateIN, rupees } from '../../lib/format';
+import { CAN_CREATE_INVOICES } from '../../lib/platform';
 import { pendingAmount } from '../../lib/repo';
 
 type Kind = 'invoice' | 'estimate';
@@ -96,11 +97,13 @@ export default function DocListScreen({ kind }: { kind: Kind }) {
         </IonList>
       )}
 
-      <IonFab slot="fixed" vertical="bottom" horizontal="end">
-        <IonFabButton routerLink={`${base}/new`} aria-label={kind === 'invoice' ? 'New invoice' : 'New estimate'}>
-          <IonIcon icon={add} />
-        </IonFabButton>
-      </IonFab>
+      {(kind !== 'invoice' || CAN_CREATE_INVOICES) && (
+        <IonFab slot="fixed" vertical="bottom" horizontal="end">
+          <IonFabButton routerLink={`${base}/new`} aria-label={kind === 'invoice' ? 'New invoice' : 'New estimate'}>
+            <IonIcon icon={add} />
+          </IonFabButton>
+        </IonFab>
+      )}
     </PageShell>
   );
 }

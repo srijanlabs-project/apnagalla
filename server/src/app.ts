@@ -12,7 +12,7 @@ import {
   type VerifyOtpResponse,
 } from '@invoice/shared';
 import { OtpService } from './auth/otp';
-import { TokenService } from './auth/tokens';
+import { TokenService, type AuthContext } from './auth/tokens';
 import type { Database } from './db/client';
 import type { Env } from './env';
 import { HttpError, unauthorized } from './errors';
@@ -21,7 +21,7 @@ import { createOtpSender, type OtpSender } from './sms';
 
 declare module 'fastify' {
   interface FastifyRequest {
-    auth?: { userId: string; sessionId: string };
+    auth?: AuthContext;
   }
 }
 
@@ -79,9 +79,8 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
     const header = req.headers.authorization;
     if (!header?.startsWith('Bearer ')) throw unauthorized();
     const claims = await tokens.verifyAccess(header.slice(7));
-    // Logout / account removal must take effect immediately, not when the 15-min JWT expires.
-    if (!(await tokens.isSessionActive(claims.sessionId))) throw unauthorized();
-    req.auth = claims;
+    // Logout / sign-out elsewhere must take effect immediately, not when the 15-min JWT expires.
+    req.auth = await tokens.requireActiveSession(claims);
   }
   const authed = { preHandler: requireAuth };
   const uid = (req: FastifyRequest) => req.auth!.userId;
@@ -106,10 +105,10 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
   });
 
   app.post('/v1/auth/otp/verify', async (req): Promise<VerifyOtpResponse> => {
-    const { phone, code, deviceName } = parse(otpVerifyBody, req.body);
+    const { phone, code, deviceName, client } = parse(otpVerifyBody, req.body);
     await otp.verify(phone, code);
     const userId = await accounts.upsertUserByPhone(phone);
-    const t = await tokens.createSession(userId, deviceName);
+    const t = await tokens.createSession(userId, deviceName, client);
     return { ...t, me: await accounts.getMe(userId) };
   });
 
@@ -130,6 +129,14 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
     const { name } = parse(updateMeBody, req.body);
     await accounts.updateName(uid(req), name);
     return accounts.getMe(uid(req));
+  });
+
+  /* ---------- my devices ---------- */
+  app.get('/v1/me/sessions', authed, async (req) => tokens.listSessions(uid(req), req.auth!.sessionId));
+
+  app.delete<{ Params: { sessionId: string } }>('/v1/me/sessions/:sessionId', authed, async (req, reply) => {
+    await tokens.revokeOwnSession(uid(req), req.params.sessionId, req.auth!.sessionId);
+    return reply.status(204).send();
   });
 
   /* ---------- businesses ---------- */
@@ -166,6 +173,14 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
     await accounts.removeMember(req.params.businessId, uid(req), req.params.userId);
     return reply.status(204).send();
   });
+
+  for (const [action, active] of [['deactivate', false], ['activate', true]] as const) {
+    app.post<{ Params: BizParams & { userId: string } }>(`/v1/businesses/:businessId/members/:userId/${action}`, authed, async (req) => {
+      await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
+      await accounts.setMemberActive(req.params.businessId, uid(req), req.params.userId, active);
+      return accounts.getTeam(req.params.businessId);
+    });
+  }
 
   /* ---------- invites (as the invited user) ---------- */
   app.post<{ Params: { inviteId: string } }>('/v1/invites/:inviteId/accept', authed, async (req) => {

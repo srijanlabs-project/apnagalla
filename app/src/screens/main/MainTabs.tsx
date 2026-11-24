@@ -14,6 +14,8 @@ import BusinessProfileScreen from '../settings/BusinessProfileScreen';
 import DesignScreen from '../settings/DesignScreen';
 import InvoiceSettingsScreen from '../settings/InvoiceSettingsScreen';
 import PaymentDetailsScreen from '../settings/PaymentDetailsScreen';
+import StoresScreen from '../stores/StoresScreen';
+import DevicesScreen from './DevicesScreen';
 import MoreScreen from './MoreScreen';
 import { HomeScreen } from './Placeholders';
 import TeamScreen from './TeamScreen';
@@ -45,6 +47,8 @@ export default function MainTabs() {
 
           <Route path="more" element={<MoreScreen />} />
           <Route path="more/team" element={<TeamScreen />} />
+          <Route path="more/stores" element={<StoresScreen />} />
+          <Route path="more/devices" element={<DevicesScreen />} />
           <Route path="more/business" element={<BusinessProfileScreen />} />
           <Route path="more/payment" element={<PaymentDetailsScreen />} />
           <Route path="more/invoice-settings" element={<InvoiceSettingsScreen />} />

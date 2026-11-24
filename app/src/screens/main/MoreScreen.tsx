@@ -1,4 +1,4 @@
-import { IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonNote, useIonAlert } from '@ionic/react';
+import { IonBadge, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonNote, useIonAlert } from '@ionic/react';
 import { formatIndianMobile } from '@invoice/shared';
 import {
   businessOutline,
@@ -8,7 +8,9 @@ import {
   logOutOutline,
   peopleOutline,
   personCircleOutline,
+  phonePortraitOutline,
   settingsOutline,
+  storefrontOutline,
 } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
@@ -19,6 +21,7 @@ export default function MoreScreen() {
   const { profile } = useBusiness();
   const [alert] = useIonAlert();
   const isOwner = membership?.role === 'owner';
+  const storeCount = me?.memberships.length ?? 0;
 
   async function onLogout() {
     const res = await logout(false);
@@ -44,6 +47,21 @@ export default function MoreScreen() {
             <h2>{me?.user.name}</h2>
             <p>{me ? formatIndianMobile(me.user.phone) : ''}</p>
           </IonLabel>
+        </IonItem>
+      </IonList>
+
+      <IonList inset>
+        <IonItem routerLink="/tabs/more/stores" detail lines="none">
+          <IonIcon icon={storefrontOutline} slot="start" />
+          <IonLabel>
+            {membership?.businessName}
+            <p>{storeCount > 1 ? `Switch store (${storeCount} stores)` : 'Stores · add another store'}</p>
+          </IonLabel>
+          {(me?.invites.length ?? 0) > 0 && (
+            <IonBadge slot="end" color="primary">
+              {me!.invites.length} invite{me!.invites.length > 1 ? 's' : ''}
+            </IonBadge>
+          )}
         </IonItem>
       </IonList>
 
@@ -84,6 +102,10 @@ export default function MoreScreen() {
       </IonList>
 
       <IonList inset>
+        <IonItem routerLink="/tabs/more/devices" detail lines="full">
+          <IonIcon icon={phonePortraitOutline} slot="start" />
+          <IonLabel>Devices</IonLabel>
+        </IonItem>
         <IonItem button onClick={() => void onLogout()} lines="none">
           <IonIcon icon={logOutOutline} slot="start" color="danger" />
           <IonLabel color="danger">Log out</IonLabel>

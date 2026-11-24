@@ -12,6 +12,13 @@ Product docs: `PLAN.md` (phase 1 plan) and `SPEC.md` (functional spec).
 | `app/` | React + Ionic UI, Dexie (IndexedDB) local database, Capacitor Android project in `app/android` |
 
 ## Milestone status
+Release 1 is in progress; see PLAN.md §10 for the step list.
+- **R1.1 Accounts and stores:**
+  - several stores per owner, with a store switcher;
+  - staff in several stores; the owner pauses or turns on staff per store;
+  - one phone per login (a new phone signs the old one out), plus a web login;
+  - device list with remote sign-out;
+  - the web app can't create or edit invoices.
 - **M2 Core invoicing (offline):**
   - business profile with logo and signature; bank accounts and UPI IDs;
   - invoice settings: prefixes, financial-year numbering, defaults, custom fields, units, tax rates, reminder text;
@@ -92,11 +99,14 @@ The Android package ID is **`in.apnagalla.app`** (in `app/capacitor.config.ts` a
 | POST | `/v1/auth/otp/request` · `/v1/auth/otp/verify` · `/v1/auth/refresh` | public |
 | POST | `/v1/auth/logout` | signed in |
 | GET / PATCH | `/v1/me` | signed in |
-| POST | `/v1/businesses` | signed in, not yet in a business |
-| GET | `/v1/businesses/:id` | member |
+| GET | `/v1/me/sessions` | signed in (my devices) |
+| DELETE | `/v1/me/sessions/:sessionId` | signed in (sign out one of my devices) |
+| POST | `/v1/businesses` | signed in (up to 10 owned stores) |
+| GET | `/v1/businesses/:id` | active member |
 | GET | `/v1/businesses/:id/team` | owner |
 | POST / DELETE | `/v1/businesses/:id/invites[/:inviteId]` | owner |
 | DELETE | `/v1/businesses/:id/members/:userId` | owner |
+| POST | `/v1/businesses/:id/members/:userId/deactivate` · `/activate` | owner (pause / turn on a staff member) |
 | POST | `/v1/invites/:id/accept` · `/v1/invites/:id/decline` | the invited phone number |
 
 ### OTP security limits

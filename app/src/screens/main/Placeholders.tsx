@@ -6,6 +6,7 @@ import StatusBadge from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { dateIN, rupees } from '../../lib/format';
+import { CAN_CREATE_INVOICES, WEB_INVOICE_NOTE } from '../../lib/platform';
 import { useSession } from '../../lib/session';
 
 /** Home: quick actions + recent invoices. The full dashboard arrives in M4. */
@@ -26,16 +27,19 @@ export function HomeScreen() {
   );
 
   return (
-    <PageShell title={profile.name}>
+    <PageShell title={profile.name} titleLink="/tabs/more/stores">
       <h2 className="greeting">Hi{first ? `, ${first}` : ''} 👋</h2>
       <div className="quick-actions">
-        <IonButton expand="block" routerLink="/tabs/invoices/new">
-          <IonIcon icon={addOutline} slot="start" /> New invoice
-        </IonButton>
+        {CAN_CREATE_INVOICES && (
+          <IonButton expand="block" routerLink="/tabs/invoices/new">
+            <IonIcon icon={addOutline} slot="start" /> New invoice
+          </IonButton>
+        )}
         <IonButton expand="block" fill="outline" routerLink="/tabs/estimates/new">
           <IonIcon icon={clipboardOutline} slot="start" /> New estimate
         </IonButton>
       </div>
+      {!CAN_CREATE_INVOICES && <p className="section-note">{WEB_INVOICE_NOTE}</p>}
 
       {recent && recent.length > 0 ? (
         <IonList inset className="flush-list">

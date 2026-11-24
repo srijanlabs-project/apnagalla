@@ -6,6 +6,13 @@ export type Role = (typeof ROLES)[number];
 
 export const OTP_LENGTH = 6;
 
+/** Stores one person can own (plans may change this later). */
+export const MAX_OWNED_STORES = 10;
+
+/** A login on a phone (one at a time per user) or in the web app (cannot create invoices). */
+export const CLIENT_KINDS = ['mobile', 'web'] as const;
+export type ClientKind = (typeof CLIENT_KINDS)[number];
+
 const phoneField = z
   .string()
   .trim()
@@ -27,6 +34,7 @@ export const otpVerifyBody = z.object({
   phone: phoneField,
   code: z.string().trim().regex(new RegExp(`^\\d{${OTP_LENGTH}}$`), `Enter the ${OTP_LENGTH}-digit code`),
   deviceName: z.string().trim().max(100).optional(),
+  client: z.enum(CLIENT_KINDS).default('mobile'),
 });
 export type OtpVerifyBody = z.input<typeof otpVerifyBody>;
 
@@ -71,6 +79,8 @@ export interface MembershipDto {
   businessCity: string | null;
   businessState: string | null;
   role: Role;
+  /** false = the owner paused this person's access to the store. */
+  active: boolean;
 }
 
 export interface InviteDto {
@@ -105,6 +115,17 @@ export interface MemberDto {
   phone: string;
   role: Role;
   joinedAt: string;
+  active: boolean;
+}
+
+export interface SessionDto {
+  id: string;
+  deviceName: string | null;
+  client: ClientKind;
+  createdAt: string;
+  lastSeenAt: string;
+  /** The session making this request. */
+  current: boolean;
 }
 
 export interface TeamResponse {

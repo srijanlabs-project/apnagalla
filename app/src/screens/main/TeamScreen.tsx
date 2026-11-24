@@ -23,7 +23,7 @@ import { api, errorMessage } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { sync } from '../../lib/sync';
 
-/** Owner-only: invite staff by phone, see pending invites, remove staff. Needs internet. */
+/** Owner-only: invite staff by phone, pause / turn on access, see pending invites, remove staff. Needs internet. */
 export default function TeamScreen() {
   const { membership, me } = useSession();
   const businessId = membership?.businessId;
@@ -31,6 +31,7 @@ export default function TeamScreen() {
   const [error, setError] = useState<string | null>(null);
   const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
+  const [toggling, setToggling] = useState<string | null>(null);
   const [alert] = useIonAlert();
   const [toast] = useIonToast();
 
@@ -63,6 +64,30 @@ export default function TeamScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function doToggle(userId: string, active: boolean) {
+    setToggling(userId);
+    try {
+      setTeam(await api.setMemberActive(businessId!, userId, active));
+      setError(null);
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setToggling(null);
+    }
+  }
+
+  function toggleActive(userId: string, active: boolean, who: string) {
+    if (active) return doToggle(userId, true);
+    void alert({
+      header: `Pause ${who}?`,
+      message: "They are blocked from this store right away, on every device. Their past bills stay. You can turn their access back on any time.",
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        { text: 'Pause', role: 'destructive', handler: () => void doToggle(userId, false) },
+      ],
+    });
   }
 
   function confirm(message: string, action: () => Promise<void>) {
@@ -134,9 +159,23 @@ export default function TeamScreen() {
                 <IonItem lines="full">
                   <IonLabel>
                     <h2>{m.name ?? 'Not set'}</h2>
-                    <p>{formatIndianMobile(m.phone)}</p>
+                    <p>
+                      {formatIndianMobile(m.phone)} · {m.role === 'owner' ? 'Owner' : 'Staff'}
+                      {!m.active && <span className="text-danger"> · Paused</span>}
+                    </p>
                   </IonLabel>
-                  <IonNote slot="end">{m.role === 'owner' ? 'Owner' : 'Staff'}</IonNote>
+                  {m.role !== 'owner' && (
+                    <IonButton
+                      slot="end"
+                      size="small"
+                      fill="outline"
+                      color={m.active ? 'medium' : 'success'}
+                      disabled={toggling === m.userId}
+                      onClick={() => void toggleActive(m.userId, !m.active, m.name ?? formatIndianMobile(m.phone))}
+                    >
+                      {toggling === m.userId ? <IonSpinner name="dots" /> : m.active ? 'Pause' : 'Turn on'}
+                    </IonButton>
+                  )}
                 </IonItem>
                 <IonItemOptions side="end">
                   <IonItemOption color="danger" onClick={() => confirm(`Remove ${m.name ?? formatIndianMobile(m.phone)} from the team?`, () => api.removeMember(businessId!, m.userId))}>

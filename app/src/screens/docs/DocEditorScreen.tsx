@@ -33,6 +33,7 @@ import { PAYMENT_TERMS } from '../settings/InvoiceSettingsScreen';
 import CustomerPicker, { snapshotOf } from './CustomerPicker';
 import LineEditor from './LineEditor';
 import { sync } from '../../lib/sync';
+import { CAN_CREATE_INVOICES, WEB_INVOICE_NOTE } from '../../lib/platform';
 
 type Kind = 'invoice' | 'estimate';
 type Doc = Invoice | Estimate;
@@ -82,6 +83,24 @@ export default function DocEditorScreen({ kind }: { kind: Kind }) {
   }, [doc?.date, doc?.status, kind, actor.businessId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totals = useMemo(() => (doc ? computeTotals(doc) : null), [doc]);
+
+  if (kind === 'invoice' && !CAN_CREATE_INVOICES) {
+    return (
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonBackButton defaultHref={base} />
+            </IonButtons>
+            <IonTitle>Invoice</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ion-padding">
+          <p>{WEB_INVOICE_NOTE}</p>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   if (!doc || !totals) {
     return (

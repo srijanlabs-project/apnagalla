@@ -18,7 +18,7 @@ import './auth.css';
 type Step = { kind: 'phone' } | { kind: 'otp'; phone: string; resendAt: number };
 
 export default function LoginScreen() {
-  const { requestOtp, verifyOtp } = useSession();
+  const { requestOtp, verifyOtp, signOutReason } = useSession();
   const [step, setStep] = useState<Step>({ kind: 'phone' });
   const [phoneInput, setPhoneInput] = useState('');
   const [code, setCode] = useState('');
@@ -107,6 +107,7 @@ export default function LoginScreen() {
               {/* Lets the keyboard's Go/Enter key submit (IonButton alone doesn't). */}
               <button type="submit" hidden aria-hidden="true" tabIndex={-1} disabled={busy} />
               {error && <IonText color="danger" className="auth-error">{error}</IonText>}
+              {!error && signOutReason && <IonText color="warning" className="auth-error">{signOutReason}</IonText>}
               <IonButton type="submit" expand="block" disabled={busy || phoneInput.replace(/\D/g, '').length < 10}>
                 {busy ? <IonSpinner name="dots" /> : 'Get OTP'}
               </IonButton>

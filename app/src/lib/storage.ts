@@ -26,4 +26,6 @@ export const kv = {
 export const KEYS = {
   tokens: 'auth.tokens',
   me: 'auth.me',
+  /** The store this device last worked in. */
+  currentBusiness: 'auth.currentBusiness',
 } as const;

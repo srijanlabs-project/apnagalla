@@ -8,6 +8,7 @@ import StatusBadge from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { addressLines, dateIN, rupees } from '../../lib/format';
+import { CAN_CREATE_INVOICES } from '../../lib/platform';
 import { pendingAmount } from '../../lib/repo';
 
 export default function CustomerDetailScreen() {
@@ -76,7 +77,7 @@ export default function CustomerDetailScreen() {
       <IonList inset>
         <IonListHeader>
           <IonLabel>Invoices</IonLabel>
-          <IonButton routerLink={`/tabs/invoices/new?customer=${c.id}`}>New invoice</IonButton>
+          {CAN_CREATE_INVOICES && <IonButton routerLink={`/tabs/invoices/new?customer=${c.id}`}>New invoice</IonButton>}
         </IonListHeader>
         {(invoices ?? []).length === 0 && (
           <IonItem lines="none">

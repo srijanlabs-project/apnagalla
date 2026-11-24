@@ -2,10 +2,12 @@ import type {
   ApiErrorBody,
   AuthTokens,
   BusinessDto,
+  ClientKind,
   CreateBusinessBody,
   CreateInviteBody,
   InviteDto,
   MeResponse,
+  SessionDto,
   TeamResponse,
   VerifyOtpResponse,
 } from '@invoice/shared';
@@ -29,7 +31,8 @@ export class NetworkError extends Error {
   }
 }
 
-type Listener = () => void;
+/** Receives the server's reason (e.g. "You logged in on another phone…") when known. */
+type Listener = (reason?: string) => void;
 let tokens: AuthTokens | null = null;
 let refreshing: Promise<AuthTokens | null> | null = null;
 const onSignedOut = new Set<Listener>();
@@ -73,8 +76,10 @@ async function refreshTokens(): Promise<AuthTokens | null> {
         body: JSON.stringify({ refreshToken: tokens!.refreshToken }),
       });
       if (res.status === 401) {
+        const body = (await res.json().catch(() => null)) as Partial<ApiErrorBody> | null;
+        const reason = body?.error && body.error !== 'unauthorized' ? body.message : undefined;
         await saveTokens(null);
-        onSignedOut.forEach((fn) => fn());
+        onSignedOut.forEach((fn) => fn(reason));
         return null;
       }
       if (!res.ok) return null;
@@ -108,12 +113,14 @@ async function request<T>(method: string, path: string, body?: unknown, opts: { 
 export const api = {
   requestOtp: (phone: string) =>
     request<{ resendAfterSeconds: number; expiresInSeconds: number }>('POST', '/v1/auth/otp/request', { phone }, { auth: false }),
-  verifyOtp: (phone: string, code: string, deviceName?: string) =>
-    request<VerifyOtpResponse>('POST', '/v1/auth/otp/verify', { phone, code, deviceName }, { auth: false }),
+  verifyOtp: (phone: string, code: string, client: ClientKind, deviceName?: string) =>
+    request<VerifyOtpResponse>('POST', '/v1/auth/otp/verify', { phone, code, deviceName, client }, { auth: false }),
   logout: () => request<void>('POST', '/v1/auth/logout'),
 
   me: () => request<MeResponse>('GET', '/v1/me'),
   updateMe: (name: string) => request<MeResponse>('PATCH', '/v1/me', { name }),
+  sessions: () => request<SessionDto[]>('GET', '/v1/me/sessions'),
+  signOutDevice: (sessionId: string) => request<void>('DELETE', `/v1/me/sessions/${sessionId}`),
 
   createBusiness: (body: CreateBusinessBody) => request<BusinessDto>('POST', '/v1/businesses', body),
   getBusiness: (id: string) => request<BusinessDto>('GET', `/v1/businesses/${id}`),
@@ -121,6 +128,8 @@ export const api = {
   invite: (id: string, body: CreateInviteBody) => request<InviteDto>('POST', `/v1/businesses/${id}/invites`, body),
   revokeInvite: (id: string, inviteId: string) => request<void>('DELETE', `/v1/businesses/${id}/invites/${inviteId}`),
   removeMember: (id: string, userId: string) => request<void>('DELETE', `/v1/businesses/${id}/members/${userId}`),
+  setMemberActive: (id: string, userId: string, active: boolean) =>
+    request<TeamResponse>('POST', `/v1/businesses/${id}/members/${userId}/${active ? 'activate' : 'deactivate'}`),
 
   acceptInvite: (inviteId: string) => request<MeResponse>('POST', `/v1/invites/${inviteId}/accept`),
   declineInvite: (inviteId: string) => request<MeResponse>('POST', `/v1/invites/${inviteId}/decline`),

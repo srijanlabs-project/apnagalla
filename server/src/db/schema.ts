@@ -38,11 +38,15 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     deviceName: text('device_name'),
+    /** 'mobile' (one active per user) or 'web' (can't create invoices). */
+    client: text('client', { enum: ['mobile', 'web'] }).notNull().default('mobile'),
     refreshTokenHash: text('refresh_token_hash').notNull().unique(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: createdAt(),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    /** Why the session ended: logout | signed_in_elsewhere | signed_out_remotely | deactivated */
+    revokedReason: text('revoked_reason'),
   },
   (t) => [index('sessions_user_idx').on(t.userId)],
 );
@@ -71,12 +75,15 @@ export const memberships = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     role: roleEnum('role').notNull(),
     createdAt: createdAt(),
+    /** Owner paused this person's access; their past work stays. Cleared on re-activation. */
+    deactivatedAt: timestamp('deactivated_at', { withTimezone: true }),
     removedAt: timestamp('removed_at', { withTimezone: true }),
   },
   (t) => [
     index('memberships_business_idx').on(t.businessId),
-    // Phase 1: a user belongs to at most one business at a time.
-    uniqueIndex('memberships_one_active_per_user').on(t.userId).where(sql`${t.removedAt} is null`),
+    index('memberships_user_idx').on(t.userId),
+    // A user can belong to many stores, but only once to each.
+    uniqueIndex('memberships_one_per_business_user').on(t.businessId, t.userId).where(sql`${t.removedAt} is null`),
   ],
 );
 

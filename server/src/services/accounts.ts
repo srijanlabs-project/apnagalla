@@ -1,5 +1,5 @@
-import { and, asc, eq, isNull } from 'drizzle-orm';
-import type { BusinessDto, CreateBusinessInput, InviteDto, MeResponse, MemberDto, Role, TeamResponse } from '@invoice/shared';
+import { and, asc, count, eq, isNull } from 'drizzle-orm';
+import { MAX_OWNED_STORES, type BusinessDto, type CreateBusinessInput, type InviteDto, type MeResponse, type MemberDto, type Role, type TeamResponse } from '@invoice/shared';
 import type { DB } from '../db/client';
 import { businesses, invites, memberships, users } from '../db/schema';
 import { badRequest, conflict, forbidden, notFound } from '../errors';
@@ -33,16 +33,18 @@ export class AccountService {
         businessCity: businesses.city,
         businessState: businesses.state,
         role: memberships.role,
+        deactivatedAt: memberships.deactivatedAt,
       })
       .from(memberships)
       .innerJoin(businesses, eq(businesses.id, memberships.businessId))
-      .where(and(eq(memberships.userId, userId), isNull(memberships.removedAt)));
+      .where(and(eq(memberships.userId, userId), isNull(memberships.removedAt)))
+      .orderBy(asc(memberships.createdAt));
 
     const pending = await this.openInvites(eq(invites.phone, user.phone));
 
     return {
       user: { id: user.id, phone: user.phone, name: user.name },
-      memberships: ms,
+      memberships: ms.map(({ deactivatedAt, ...m }) => ({ ...m, active: !deactivatedAt })),
       invites: pending,
     };
   }
@@ -54,27 +56,32 @@ export class AccountService {
   /** Returns the caller's active role in a business, or throws 403. */
   async requireRole(userId: string, businessId: string, allowed: Role[] = ['owner', 'staff']): Promise<Role> {
     const [m] = await this.db
-      .select({ role: memberships.role })
+      .select({ role: memberships.role, deactivatedAt: memberships.deactivatedAt })
       .from(memberships)
       .where(and(eq(memberships.userId, userId), eq(memberships.businessId, businessId), isNull(memberships.removedAt)))
       .limit(1);
     if (!m) throw forbidden('You are not a member of this business');
+    if (m.deactivatedAt) throw forbidden('The owner has paused your access to this store', 'member_inactive');
     if (!allowed.includes(m.role)) throw forbidden('Only the owner can do this');
     return m.role;
   }
 
-  private async activeMembershipOf(userId: string) {
+  private async membershipIn(businessId: string, userId: string) {
     const [m] = await this.db
-      .select({ id: memberships.id })
+      .select({ id: memberships.id, role: memberships.role, deactivatedAt: memberships.deactivatedAt })
       .from(memberships)
-      .where(and(eq(memberships.userId, userId), isNull(memberships.removedAt)))
+      .where(and(eq(memberships.businessId, businessId), eq(memberships.userId, userId), isNull(memberships.removedAt)))
       .limit(1);
     return m;
   }
 
   async createBusiness(userId: string, body: CreateBusinessInput): Promise<BusinessDto> {
-    if (await this.activeMembershipOf(userId)) {
-      throw conflict('already_member', 'You already belong to a business. Leave it before creating a new one.');
+    const [owned] = await this.db
+      .select({ n: count() })
+      .from(memberships)
+      .where(and(eq(memberships.userId, userId), eq(memberships.role, 'owner'), isNull(memberships.removedAt)));
+    if ((owned?.n ?? 0) >= MAX_OWNED_STORES) {
+      throw conflict('store_limit', `You can have up to ${MAX_OWNED_STORES} stores.`);
     }
     return this.db.transaction(async (tx) => {
       const [b] = await tx
@@ -95,22 +102,30 @@ export class AccountService {
   async getTeam(businessId: string): Promise<TeamResponse> {
     const members: MemberDto[] = (
       await this.db
-        .select({ userId: users.id, name: users.name, phone: users.phone, role: memberships.role, joinedAt: memberships.createdAt })
+        .select({
+          userId: users.id,
+          name: users.name,
+          phone: users.phone,
+          role: memberships.role,
+          joinedAt: memberships.createdAt,
+          deactivatedAt: memberships.deactivatedAt,
+        })
         .from(memberships)
         .innerJoin(users, eq(users.id, memberships.userId))
         .where(and(eq(memberships.businessId, businessId), isNull(memberships.removedAt)))
         .orderBy(asc(memberships.createdAt))
-    ).map((m) => ({ ...m, joinedAt: m.joinedAt.toISOString() }));
+    ).map(({ deactivatedAt, ...m }) => ({ ...m, joinedAt: m.joinedAt.toISOString(), active: !deactivatedAt }));
     return { members, invites: await this.openInvites(eq(invites.businessId, businessId)) };
   }
 
   async createInvite(businessId: string, invitedBy: string, phone: string, role: Role): Promise<InviteDto> {
     const [already] = await this.db
-      .select({ id: memberships.id })
+      .select({ id: memberships.id, deactivatedAt: memberships.deactivatedAt })
       .from(memberships)
       .innerJoin(users, eq(users.id, memberships.userId))
       .where(and(eq(memberships.businessId, businessId), eq(users.phone, phone), isNull(memberships.removedAt)))
       .limit(1);
+    if (already?.deactivatedAt) throw conflict('already_member', 'This number is in your team but paused. Turn their access back on instead.');
     if (already) throw conflict('already_member', 'This number is already in your team');
 
     const [row] = await this.db
@@ -145,8 +160,8 @@ export class AccountService {
 
   async acceptInvite(userId: string, inviteId: string) {
     const inv = await this.openInviteForUser(userId, inviteId);
-    if (await this.activeMembershipOf(userId)) {
-      throw conflict('already_member', 'You already belong to a business. Leave it before joining another.');
+    if (await this.membershipIn(inv.businessId, userId)) {
+      throw conflict('already_member', 'You are already in this store');
     }
     await this.db.transaction(async (tx) => {
       await tx.update(invites).set({ acceptedAt: new Date() }).where(eq(invites.id, inv.id));
@@ -167,6 +182,21 @@ export class AccountService {
       .where(and(eq(memberships.businessId, businessId), eq(memberships.userId, memberUserId), isNull(memberships.removedAt)))
       .returning({ id: memberships.id });
     if (res.length === 0) throw notFound('Member not found');
+  }
+
+  /**
+   * Owner pauses or restores a member's access to this store. A paused member is refused on every
+   * request for this store at once; their other stores and their past bills are untouched.
+   */
+  async setMemberActive(businessId: string, actorId: string, memberUserId: string, active: boolean) {
+    if (actorId === memberUserId) throw badRequest('cannot_change_self', 'You cannot pause your own access');
+    const m = await this.membershipIn(businessId, memberUserId);
+    if (!m) throw notFound('Member not found');
+    if (m.role === 'owner') throw badRequest('cannot_pause_owner', "The owner's access cannot be paused");
+    await this.db
+      .update(memberships)
+      .set({ deactivatedAt: active ? null : new Date() })
+      .where(eq(memberships.id, m.id));
   }
 
   private async openInvites(where: ReturnType<typeof eq>): Promise<InviteDto[]> {

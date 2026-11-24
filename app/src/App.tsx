@@ -5,6 +5,7 @@ import { SessionProvider, useSession } from './lib/session';
 import LoginScreen from './screens/auth/LoginScreen';
 import MainTabs from './screens/main/MainTabs';
 import OnboardingScreen from './screens/onboarding/OnboardingScreen';
+import PausedScreen from './screens/stores/PausedScreen';
 
 /**
  * Top-level gate:
@@ -28,9 +29,11 @@ function Gate() {
   }
   if (status === 'signedOut' || !me) return <LoginScreen />;
   if (!me.user.name || !membership) return <OnboardingScreen />;
+  if (membership.active === false) return <PausedScreen />;
 
+  // Keyed by store: switching stores rebuilds every screen with that store's data.
   return (
-    <IonReactRouter>
+    <IonReactRouter key={membership.businessId}>
       <IonRouterOutlet>
         <Route path="/tabs/*" element={<MainTabs />} />
         <Route path="*" element={<Navigate to="/tabs/home" replace />} />
