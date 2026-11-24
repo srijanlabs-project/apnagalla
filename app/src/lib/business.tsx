@@ -5,6 +5,7 @@ import { db, type BankAccount, type BusinessProfile, type BusinessSettings, type
 import { INDIAN_STATES } from './format';
 import { defaultSettings, ensureBusinessRecords, type Actor } from './repo';
 import { useSession } from './session';
+import { useSyncTriggers } from './useSync';
 
 interface BusinessValue {
   actor: Actor;
@@ -31,6 +32,9 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     const address = { city: m.businessCity?.trim() || undefined, state };
     void ensureBusinessRecords(businessId, m.businessName, address).then(() => setReady(true));
   }, [businessId, membership]);
+
+  const activeStores = (me?.memberships ?? []).filter((m) => m.active !== false).map((m) => m.businessId);
+  useSyncTriggers(activeStores, businessId);
 
   const profile = useLiveQuery(() => db.profiles.get(businessId), [businessId]);
   const settings = useLiveQuery(() => db.settings.get(businessId), [businessId]);

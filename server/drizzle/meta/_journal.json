@@ -15,6 +15,13 @@
       "when": 1795536504933,
       "tag": "0001_multi_store_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795537174923,
+      "tag": "0002_sync_records",
+      "breakpoints": true
     }
   ]
 }

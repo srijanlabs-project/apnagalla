@@ -7,7 +7,12 @@ import type {
   CreateInviteBody,
   InviteDto,
   MeResponse,
+  ReserveNumbersBody,
+  ReserveNumbersResponse,
   SessionDto,
+  SyncPullResponse,
+  SyncPushBody,
+  SyncPushResponse,
   TeamResponse,
   VerifyOtpResponse,
 } from '@invoice/shared';
@@ -54,12 +59,12 @@ export function subscribeSignedOut(fn: Listener): () => void {
   return () => onSignedOut.delete(fn);
 }
 
-async function rawFetch(path: string, init: RequestInit & { auth?: boolean }): Promise<Response> {
+async function rawFetch(path: string, init: RequestInit & { auth?: boolean; timeoutMs?: number }): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.body !== undefined) headers.set('content-type', 'application/json');
   if (init.auth !== false && tokens) headers.set('authorization', `Bearer ${tokens.accessToken}`);
   try {
-    return await fetch(`${API_URL}${path}`, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(20_000) });
+    return await fetch(`${API_URL}${path}`, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(init.timeoutMs ?? 20_000) });
   } catch {
     throw new NetworkError();
   }
@@ -93,8 +98,8 @@ async function refreshTokens(): Promise<AuthTokens | null> {
   return refreshing;
 }
 
-async function request<T>(method: string, path: string, body?: unknown, opts: { auth?: boolean } = {}): Promise<T> {
-  const init = { method, auth: opts.auth, body: body === undefined ? undefined : JSON.stringify(body) };
+async function request<T>(method: string, path: string, body?: unknown, opts: { auth?: boolean; timeoutMs?: number } = {}): Promise<T> {
+  const init = { method, auth: opts.auth, timeoutMs: opts.timeoutMs, body: body === undefined ? undefined : JSON.stringify(body) };
   let res = await rawFetch(path, init);
   if (res.status === 401 && opts.auth !== false && tokens) {
     const refreshed = await refreshTokens();
@@ -130,6 +135,11 @@ export const api = {
   removeMember: (id: string, userId: string) => request<void>('DELETE', `/v1/businesses/${id}/members/${userId}`),
   setMemberActive: (id: string, userId: string, active: boolean) =>
     request<TeamResponse>('POST', `/v1/businesses/${id}/members/${userId}/${active ? 'activate' : 'deactivate'}`),
+
+  syncPush: (id: string, body: SyncPushBody) => request<SyncPushResponse>('POST', `/v1/businesses/${id}/sync/push`, body),
+  syncPull: (id: string, since: number) => request<SyncPullResponse>('GET', `/v1/businesses/${id}/sync/pull?since=${since}`),
+  reserveNumbers: (id: string, body: ReserveNumbersBody, timeoutMs?: number) =>
+    request<ReserveNumbersResponse>('POST', `/v1/businesses/${id}/numbers/reserve`, body, { timeoutMs }),
 
   acceptInvite: (inviteId: string) => request<MeResponse>('POST', `/v1/invites/${inviteId}/accept`),
   declineInvite: (inviteId: string) => request<MeResponse>('POST', `/v1/invites/${inviteId}/decline`),

@@ -8,15 +8,20 @@ import {
   otpRequestBody,
   otpVerifyBody,
   refreshBody,
+  reserveNumbersBody,
+  syncPushBody,
   updateMeBody,
+  type ReserveNumbersResponse,
+  type SyncPushResponse,
   type VerifyOtpResponse,
 } from '@invoice/shared';
 import { OtpService } from './auth/otp';
 import { TokenService, type AuthContext } from './auth/tokens';
 import type { Database } from './db/client';
 import type { Env } from './env';
-import { HttpError, unauthorized } from './errors';
+import { HttpError, forbidden, unauthorized } from './errors';
 import { AccountService } from './services/accounts';
+import { SyncService } from './services/sync';
 import { createOtpSender, type OtpSender } from './sms';
 
 declare module 'fastify' {
@@ -47,6 +52,7 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
   const tokens = new TokenService(db, env.JWT_SECRET);
   const otp = new OtpService(db, otpSender ?? createOtpSender(env, app.log), env.JWT_SECRET, env.OTP_PROVIDER === 'console' ? env.OTP_FIXED_CODE : undefined);
   const accounts = new AccountService(db);
+  const syncService = new SyncService(db);
 
   const allowedOrigins = new Set([...BUILTIN_ORIGINS, ...env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)]);
   await app.register(cors, {
@@ -181,6 +187,27 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
       return accounts.getTeam(req.params.businessId);
     });
   }
+
+  /* ---------- sync ---------- */
+  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/sync/push', { ...authed, bodyLimit: 8_000_000 }, async (req): Promise<SyncPushResponse> => {
+    const role = await accounts.requireRole(uid(req), req.params.businessId);
+    const { changes } = parse(syncPushBody, req.body);
+    const results = await syncService.push({ businessId: req.params.businessId, userId: uid(req), role, client: req.auth!.client }, changes);
+    return { results };
+  });
+
+  app.get<{ Params: BizParams; Querystring: { since?: string } }>('/v1/businesses/:businessId/sync/pull', authed, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId);
+    const since = Math.max(0, Number.parseInt(req.query.since ?? '0', 10) || 0);
+    return syncService.pull(req.params.businessId, since);
+  });
+
+  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/numbers/reserve', authed, async (req): Promise<ReserveNumbersResponse> => {
+    await accounts.requireRole(uid(req), req.params.businessId);
+    const body = parse(reserveNumbersBody, req.body);
+    if (body.kind === 'invoice' && req.auth!.client === 'web') throw forbidden('Invoices are created in the phone app');
+    return { numbers: await syncService.reserveNumbers(req.params.businessId, body) };
+  });
 
   /* ---------- invites (as the invited user) ---------- */
   app.post<{ Params: { inviteId: string } }>('/v1/invites/:inviteId/accept', authed, async (req) => {

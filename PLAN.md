@@ -112,15 +112,20 @@ Built in this order; each step is tested and committed before the next.
 | Step | Scope | Status |
 |---|---|---|
 | R1.1 Accounts and stores | Several stores per owner (up to 10), staff in several stores with a role per store, owner pauses / turns on staff per store, one phone per login (new phone signs the old one out) + web login, device list with remote sign-out, web can't create or edit invoices, store switcher | Done (branch `feat/r1-accounts-stores`) |
-| R1.2 Sync | Push/pull of all store records, server-allocated invoice numbers per store with offline blocks, online backup, upload pending changes before a phone is signed out | Next |
+| R1.2 Sync | Push/pull of all store records (latest edit wins per record; server enforces owner-only settings, staff/web limits on saved invoices), server-allocated numbers per store and series (online: one at a time; offline: block of 10), sync on open / reconnect / after save / every 3 min, sync status chip | Done |
 | R1.3 GST billing | Store GST type (regular / composition / unregistered), GST and non-GST bills with their own series, HSN, CGST+SGST / IGST from place of supply (shipping address), credit notes, number pattern | |
 | R1.4 Counter | Quick-sale screen, camera barcode, sq ft / running ft billing, dated part-payments with modes and split, on-screen UPI QR, returns, delivery date + day-before alert | |
 | R1.5 Catalogue | Category tree, item barcode / HSN / purchase price / MRP, Excel import of items and customers, GSTIN check via the client's GST API | |
 | R1.6 Print and languages | Bluetooth thermal printing (2" / 3"), English / Hindi / Gujarati / Punjabi | |
 | R1.7 Admin and security | Admin panel (create / suspend stores), app PIN, secure token storage, tenant-isolation tests, rate limits, backups, monitoring | |
 
-Known gap after R1.1: a phone signed out by a newer login loses changes not yet uploaded. Sync
-(R1.2) adds the "upload first" step.
+Known gaps after R1.2:
+- A phone signed out because the same login was used on a new phone loses changes it had not
+  uploaded yet. Sync runs 2 s after every save, so this is usually nothing; a grace upload for the
+  old phone is a later improvement.
+- Records sync whole: if two phones edit the same customer at the same time, the later save wins
+  for every field of that customer.
+- Server data is kept as JSON per record (`sync_records`); typed tables for reports come with R2.
 
 ## 11. Your action items (can run in parallel with the build)
 - [ ] Start **TRAI DLT registration** with an SMS provider (business entity, sender ID, OTP template). Takes days to weeks; until it's done, OTP runs in test mode.

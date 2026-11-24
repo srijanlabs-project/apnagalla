@@ -13,6 +13,11 @@ Product docs: `PLAN.md` (phase 1 plan) and `SPEC.md` (functional spec).
 
 ## Milestone status
 Release 1 is in progress; see PLAN.md §10 for the step list.
+- **R1.2 Sync:**
+  - every phone and the web share the store's data;
+  - sync runs on app open, when the internet returns, 2 s after each save and every 3 minutes;
+  - invoice numbers come from the server; offline, each phone holds a block of 10;
+  - the server enforces who may change what (owner-only settings, staff and web limits on saved invoices).
 - **R1.1 Accounts and stores:**
   - several stores per owner, with a store switcher;
   - staff in several stores; the owner pauses or turns on staff per store;
@@ -107,6 +112,9 @@ The Android package ID is **`in.apnagalla.app`** (in `app/capacitor.config.ts` a
 | POST / DELETE | `/v1/businesses/:id/invites[/:inviteId]` | owner |
 | DELETE | `/v1/businesses/:id/members/:userId` | owner |
 | POST | `/v1/businesses/:id/members/:userId/deactivate` · `/activate` | owner (pause / turn on a staff member) |
+| POST | `/v1/businesses/:id/sync/push` | active member (rules per role / client) |
+| GET | `/v1/businesses/:id/sync/pull?since=N` | active member |
+| POST | `/v1/businesses/:id/numbers/reserve` | active member (no invoice numbers for the web) |
 | POST | `/v1/invites/:id/accept` · `/v1/invites/:id/decline` | the invited phone number |
 
 ### OTP security limits

@@ -3,3 +3,4 @@ export * from './api';
 export * from './calc';
 export * from './words';
 export * from './dates';
+export * from './sync';

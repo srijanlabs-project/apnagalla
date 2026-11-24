@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { ApiError, api, loadTokens, saveTokens, subscribeSignedOut } from './api';
 import { clearLocalData, pendingChangesCount } from './db';
 import { CLIENT_KIND } from './platform';
+import { syncNow } from './syncEngine';
 import { KEYS, kv } from './storage';
 
 type Status = 'loading' | 'signedOut' | 'signedIn';
@@ -139,6 +140,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         await setMe(await api.declineInvite(id));
       },
       async logout(force = false) {
+        // Try to upload waiting changes first, so logging out loses nothing when online.
+        if (!force && (await pendingChangesCount()) > 0) {
+          await syncNow((me?.memberships ?? []).map((m) => m.businessId), membership?.businessId ?? null);
+        }
         const unsynced = await pendingChangesCount();
         if (unsynced > 0 && !force) return { blockedByUnsynced: unsynced };
         try {

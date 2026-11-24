@@ -128,10 +128,31 @@ export async function ensureBusinessRecords(businessId: string, businessName: st
   });
 }
 
-/* ---------- numbering (M2: per device; M3 replaces with server allocation + offline blocks) ---------- */
+/* ---------- numbering ---------- */
+/*
+ * The server hands out numbers per store and series, so two phones never use the same one.
+ * Online, a save asks the server for the next number (keeps them in order across phones).
+ * Offline, the phone uses its reserved block (topped up to 10 by sync). With no network and an
+ * empty block the save is refused; the document can still be kept as a draft.
+ * Tests run without a server: then numbers come from a local counter (the M2 behaviour).
+ */
+
+export type NumberAllocator = (businessId: string, kind: 'invoice' | 'estimate', period: string) => Promise<number | null>;
+let allocator: NumberAllocator | null = null;
+
+/** The app installs the server allocator at start-up; unit tests leave it unset. */
+export function setNumberAllocator(fn: NumberAllocator | null) {
+  allocator = fn;
+}
+
+export class NumberingError extends Error {}
+
+export const seriesPeriod = (date: string, resetEachFY: boolean) => (resetEachFY ? financialYearLabel(date) : 'all');
+
+export const numberPoolKey = (businessId: string, kind: 'invoice' | 'estimate', period: string) => `numpool:${businessId}:${kind}:${period}`;
 
 export function numberSeriesKey(kind: 'invoice' | 'estimate', businessId: string, date: string, resetEachFY: boolean) {
-  return `seq:${businessId}:${kind}:${resetEachFY ? financialYearLabel(date) : 'all'}`;
+  return `seq:${businessId}:${kind}:${seriesPeriod(date, resetEachFY)}`;
 }
 
 export function formatDocNumber(prefix: string, date: string, seq: number, resetEachFY: boolean) {
@@ -143,24 +164,45 @@ export function formatDocNumber(prefix: string, date: string, seq: number, reset
 export async function previewNextNumber(kind: 'invoice' | 'estimate', businessId: string, date: string): Promise<string> {
   const s = (await db.settings.get(businessId)) ?? defaultSettings(businessId);
   const prefix = kind === 'invoice' ? s.invoicePrefix : s.estimatePrefix;
+  if (allocator) {
+    // The real number is decided at save time; show the next one this phone holds, if any.
+    const pool = (await getMeta<number[]>(numberPoolKey(businessId, kind, seriesPeriod(date, s.resetEachFinancialYear)))) ?? [];
+    return pool.length ? formatDocNumber(prefix, date, pool[0]!, s.resetEachFinancialYear) : '';
+  }
   const last = (await getMeta<number>(numberSeriesKey(kind, businessId, date, s.resetEachFinancialYear))) ?? 0;
   return formatDocNumber(prefix, date, last + 1, s.resetEachFinancialYear);
+}
+
+async function nextSeq(kind: 'invoice' | 'estimate', businessId: string, date: string, resetEachFY: boolean): Promise<number> {
+  const period = seriesPeriod(date, resetEachFY);
+  if (!allocator) {
+    const key = numberSeriesKey(kind, businessId, date, resetEachFY);
+    const seq = ((await getMeta<number>(key)) ?? 0) + 1;
+    await setMeta(key, seq);
+    return seq;
+  }
+  const fromServer = await allocator(businessId, kind, period).catch(() => null);
+  if (fromServer != null) return fromServer;
+  const key = numberPoolKey(businessId, kind, period);
+  const pool = (await getMeta<number[]>(key)) ?? [];
+  const seq = pool.shift();
+  if (seq == null) {
+    throw new NumberingError(`No ${kind} numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.`);
+  }
+  await setMeta(key, pool);
+  return seq;
 }
 
 async function takeNextNumber(kind: 'invoice' | 'estimate', businessId: string, date: string): Promise<string> {
   const s = (await db.settings.get(businessId)) ?? defaultSettings(businessId);
   const prefix = kind === 'invoice' ? s.invoicePrefix : s.estimatePrefix;
-  const key = numberSeriesKey(kind, businessId, date, s.resetEachFinancialYear);
-  const table = kind === 'invoice' ? db.invoices : db.estimates;
-  let seq = (await getMeta<number>(key)) ?? 0;
-  let number: string;
-  // Skip numbers already used (e.g. typed manually).
-  do {
-    seq += 1;
-    number = formatDocNumber(prefix, date, seq, s.resetEachFinancialYear);
-  } while (await (table as Table<DocBase, string>).where('[businessId+number]').equals([businessId, number]).count());
-  await setMeta(key, seq);
-  return number;
+  const table = (kind === 'invoice' ? db.invoices : db.estimates) as Table<DocBase, string>;
+  // Skip numbers already used on this phone (e.g. typed by hand).
+  for (let tries = 0; tries < 50; tries++) {
+    const number = formatDocNumber(prefix, date, await nextSeq(kind, businessId, date, s.resetEachFinancialYear), s.resetEachFinancialYear);
+    if (!(await table.where('[businessId+number]').equals([businessId, number]).count())) return number;
+  }
+  throw new NumberingError('Could not find a free number. Please try again.');
 }
 
 export async function isNumberTaken(kind: 'invoice' | 'estimate', businessId: string, number: string, exceptId?: string): Promise<boolean> {

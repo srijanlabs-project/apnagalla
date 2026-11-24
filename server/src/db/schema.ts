@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { bigint, boolean, index, integer, jsonb, pgEnum, pgSequence, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 export const roleEnum = pgEnum('role', ['owner', 'staff']);
 
@@ -85,6 +85,44 @@ export const memberships = pgTable(
     // A user can belong to many stores, but only once to each.
     uniqueIndex('memberships_one_per_business_user').on(t.businessId, t.userId).where(sql`${t.removedAt} is null`),
   ],
+);
+
+/** Every change to a synced record gets the next value; phones pull "everything after N". */
+export const syncSeq = pgSequence('sync_seq');
+
+/**
+ * The store's offline data (customers, items, invoices, settings…), one row per record, stored
+ * as the app's JSON. Latest edit wins by `updatedAt`. Typed tables for reporting can come later.
+ */
+export const syncRecords = pgTable(
+  'sync_records',
+  {
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    tableName: text('table_name').notNull(),
+    id: text('id').notNull(),
+    data: jsonb('data').$type<Record<string, unknown>>().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+    updatedBy: uuid('updated_by'),
+    deleted: boolean('deleted').notNull().default(false),
+    seq: bigint('seq', { mode: 'number' }).notNull(),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.businessId, t.tableName, t.id] }), index('sync_records_business_seq_idx').on(t.businessId, t.seq)],
+);
+
+/** Next free number per store and series ("invoice:26-27", "estimate:all"). */
+export const numberCounters = pgTable(
+  'number_counters',
+  {
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    series: text('series').notNull(),
+    next: integer('next').notNull().default(1),
+  },
+  (t) => [primaryKey({ columns: [t.businessId, t.series] })],
 );
 
 export const invites = pgTable(

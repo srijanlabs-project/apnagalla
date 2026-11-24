@@ -236,7 +236,7 @@ export default function DocEditorScreen({ kind }: { kind: Kind }) {
               label={`${label} no.`}
               value={doc.number}
               placeholder={nextNumber}
-              helper={!doc.number && wasDraft ? `Auto: ${nextNumber}` : undefined}
+              helper={!doc.number && wasDraft ? `Auto: ${nextNumber || 'given when you save'}` : undefined}
               onChange={(number) => patch({ number: number.trim() })}
               disabled={locked || (!isOwner && !wasDraft)}
             />
