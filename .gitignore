@@ -18,3 +18,7 @@ app/android/captures/
 *.jks
 
 .DS_Store
+
+# Built app packages
+*.apk
+*.aab

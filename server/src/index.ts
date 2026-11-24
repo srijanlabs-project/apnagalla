@@ -8,7 +8,10 @@ const database = await openDatabase({ databaseUrl: env.DATABASE_URL, pgliteDir: 
 await database.migrate(path.resolve(env.MIGRATIONS_DIR));
 
 const app = await buildApp({ env, database });
-app.log.info(`Database: ${database.kind}; OTP provider: ${env.OTP_PROVIDER}${env.OTP_FIXED_CODE && env.NODE_ENV !== 'production' ? ' (fixed dev code)' : ''}`);
+app.log.info(`Database: ${database.kind}; OTP provider: ${env.OTP_PROVIDER}`);
+if (env.OTP_FIXED_CODE && env.OTP_PROVIDER === 'console') {
+  app.log.warn('OTP_FIXED_CODE is set: every number accepts the same code. Test use only — remove before real users.');
+}
 
 const shutdown = async () => {
   await app.close();

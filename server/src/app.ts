@@ -45,7 +45,7 @@ export async function buildApp({ env, database, otpSender, logger = true }: Buil
 
   const db = database.db;
   const tokens = new TokenService(db, env.JWT_SECRET);
-  const otp = new OtpService(db, otpSender ?? createOtpSender(env, app.log), env.JWT_SECRET, env.NODE_ENV === 'production' ? undefined : env.OTP_FIXED_CODE);
+  const otp = new OtpService(db, otpSender ?? createOtpSender(env, app.log), env.JWT_SECRET, env.OTP_PROVIDER === 'console' ? env.OTP_FIXED_CODE : undefined);
   const accounts = new AccountService(db);
 
   const allowedOrigins = new Set([...BUILTIN_ORIGINS, ...env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)]);

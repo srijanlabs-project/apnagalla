@@ -39,12 +39,15 @@ export function loadEnv(overrides: Record<string, string | undefined> = {}): Env
     if (env.OTP_PROVIDER === 'console' && !env.ALLOW_CONSOLE_OTP) {
       throw new Error('OTP_PROVIDER=console is not allowed in production. Set OTP_PROVIDER=msg91 or ALLOW_CONSOLE_OTP=true (staging only).');
     }
-    if (env.OTP_FIXED_CODE) {
-      throw new Error('OTP_FIXED_CODE must not be set in production.');
-    }
     if (env.JWT_SECRET.startsWith('dev-only')) {
       throw new Error('Set a real JWT_SECRET in production.');
     }
+  }
+  // A fixed code lets anyone log in as any number, so it is only allowed in console (test) mode.
+  // Production console mode already needs ALLOW_CONSOLE_OTP=true; switching to MSG91 with a fixed
+  // code still set stops the server instead of silently keeping the bypass.
+  if (env.OTP_FIXED_CODE && env.OTP_PROVIDER !== 'console') {
+    throw new Error('OTP_FIXED_CODE is only allowed with OTP_PROVIDER=console. Remove it before using real SMS.');
   }
   if (env.OTP_PROVIDER === 'msg91' && (!env.MSG91_AUTH_KEY || !env.MSG91_OTP_TEMPLATE_ID)) {
     throw new Error('OTP_PROVIDER=msg91 requires MSG91_AUTH_KEY and MSG91_OTP_TEMPLATE_ID.');
