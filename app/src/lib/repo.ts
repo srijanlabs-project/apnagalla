@@ -127,6 +127,7 @@ export function defaultSettings(businessId: string): BusinessSettings {
     numberPattern: DEFAULT_NUMBER_PATTERN,
     numberDigits: 4,
     numberingMode: 'perPerson',
+    areaBilling: false,
     resetEachFinancialYear: true,
     defaultPaymentTermsDays: 0,
     defaultTaxPct: 0,

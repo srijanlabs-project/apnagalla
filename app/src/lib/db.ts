@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { ChargeInput, DiscountInput, GstType, InvoiceTotals, NumberingMode, PaymentMode, TaxMode } from '@invoice/shared';
+import type { ChargeInput, DiscountInput, Dims, GstType, InvoiceTotals, NumberingMode, PaymentMode, TaxMode } from '@invoice/shared';
 
 /**
  * Local offline database (IndexedDB via Dexie). The app reads and writes here first;
@@ -94,6 +94,8 @@ export interface BusinessSettings extends SyncedRecord {
   numberDigits: number;
   /** perPerson: each person's own series (default); shared: one series, blocks of numbers per phone. */
   numberingMode: NumberingMode;
+  /** Job-work shops: items priced per sq ft or running foot, with sizes on the bill. */
+  areaBilling: boolean;
   resetEachFinancialYear: boolean;
   defaultPaymentTermsDays: number; // 0 = due on receipt
   defaultTaxPct: number;
@@ -139,12 +141,7 @@ export interface Item extends SyncedRecord {
 export type Pricing = 'unit' | 'sqft' | 'rft';
 
 /** Size of an area-priced line: length (× width for sq ft) × pieces; qty is worked out from it. */
-export interface LineDims {
-  length: number;
-  width?: number;
-  pieces: number;
-  in: 'ft' | 'in';
-}
+export type LineDims = Dims;
 
 /* ---------- documents (invoice & estimate share one shape) ---------- */
 

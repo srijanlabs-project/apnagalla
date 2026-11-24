@@ -26,7 +26,7 @@ import StatusBadge from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
 import { db, type CreditNote, type Estimate, type Invoice } from '../../lib/db';
 import { gstViewOf } from '../../lib/gstView';
-import { dateIN, rupees } from '../../lib/format';
+import { dateIN, lineSize, rupees } from '../../lib/format';
 import { pdfFileName, pdfInputFor, renderPdf, sharePdf } from '../../lib/pdf';
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
 import {
@@ -394,6 +394,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
           <IonItem key={l.id}>
             <IonLabel>
               <h3>{l.name}</h3>
+              {lineSize(l) && <p>{lineSize(l)}</p>}
               <p>
                 {l.qty} {l.unit} × {rupees(l.rate)}
                 {view.mode === 'none' ? '' : ` · tax ${l.taxPct}%`}

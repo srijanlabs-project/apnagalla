@@ -5,3 +5,4 @@ export * from './words';
 export * from './dates';
 export * from './sync';
 export * from './gst';
+export * from './area';

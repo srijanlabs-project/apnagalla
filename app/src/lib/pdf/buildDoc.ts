@@ -1,7 +1,7 @@
 import { amountInWords, formatDateIN, formatPaise, roundHalfUp, stateCode, type InvoiceTotals } from '@invoice/shared';
 import type { Content, ContentTable, TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import type { BankAccount, BusinessProfile, DesignSettings, DocBase, SyncedRecord, UpiId } from '../db';
-import { addressLines } from '../format';
+import { addressLines, lineSize } from '../format';
 import { gstViewOf, taxRows } from '../gstView';
 import type { DocKind } from '../repo';
 
@@ -200,7 +200,13 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
     const r = totals.lines[i]!;
     const cells: Record<string, TableCell> = {
       sn: { text: String(i + 1), alignment: 'center' },
-      item: { stack: [{ text: l.name, bold: true }, ...(show.itemDescription && l.description ? [{ text: l.description, color: '#555555', fontSize: base - 1 }] : [])] },
+      item: {
+        stack: [
+          { text: l.name, bold: true },
+          ...(lineSize(l) ? [{ text: lineSize(l), color: '#333333', fontSize: base - 1 }] : []),
+          ...(show.itemDescription && l.description ? [{ text: l.description, color: '#555555', fontSize: base - 1 }] : []),
+        ],
+      },
       qty: { text: show.unitColumn ? String(l.qty) : `${l.qty} ${l.unit}`, alignment: 'right' },
       unit: { text: l.unit },
       hsn: { text: l.hsn ?? '' },

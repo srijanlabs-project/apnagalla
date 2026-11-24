@@ -44,7 +44,22 @@ export function ItemForm({ value: it, onChange: patch, settings, priceLocked }: 
       <FormSection>
         <TextField label="Item / service name" required value={it.name} onChange={(name) => patch({ name })} />
         <TextArea label="Description (optional)" value={it.description} onChange={(description) => patch({ description })} />
-        <SelectField label="Unit" value={it.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => patch({ unit })} />
+        {(settings.areaBilling || (it.pricing && it.pricing !== 'unit')) && (
+          <SelectField
+            label="Priced"
+            value={it.pricing ?? 'unit'}
+            options={[
+              { value: 'unit' as const, label: 'Per unit (piece, kg, box…)' },
+              { value: 'sqft' as const, label: 'Per sq ft (length × width)' },
+              { value: 'rft' as const, label: 'Per running foot (length)' },
+            ]}
+            onChange={(pricing) => patch({ pricing, ...(pricing === 'sqft' ? { unit: 'sq ft' } : pricing === 'rft' ? { unit: 'rft' } : {}) })}
+            disabled={priceLocked}
+          />
+        )}
+        {(it.pricing ?? 'unit') === 'unit' && (
+          <SelectField label="Unit" value={it.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => patch({ unit })} />
+        )}
         <div className="search-row">
           <TextField
             label="Barcode"

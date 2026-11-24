@@ -31,7 +31,7 @@ import BarcodeScanner from '../../components/BarcodeScanner';
 import PaySheet from '../../components/PaySheet';
 import { useBusiness } from '../../lib/business';
 import { db, type DocLine, type Invoice, type Item } from '../../lib/db';
-import { rupees } from '../../lib/format';
+import { isAreaLine, lineSize, rupees } from '../../lib/format';
 import { pdfFileName, pdfInputFor, renderPdf, sharePdf } from '../../lib/pdf';
 import { CAN_CREATE_INVOICES, WEB_INVOICE_NOTE } from '../../lib/platform';
 import { computeTotals, deleteDraft, effectiveGstType, newId, newInvoiceDraft, recordPayments, saveInvoice, type NewPayment } from '../../lib/repo';
@@ -142,6 +142,12 @@ export default function SaleScreen() {
   const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : 'Something went wrong', duration: 2500, color: 'danger' });
 
   function addItem(it: Item) {
+    // Priced by size: ask for the size straight away.
+    if (it.pricing === 'sqft' || it.pricing === 'rft') {
+      setEditing({ line: lineFromItem(it), isNew: true });
+      setQ('');
+      return;
+    }
     patch((cur) => {
       const same = cur.lines.find((l) => l.itemId === it.id && !l.dims);
       if (same) return { lines: cur.lines.map((l) => (l === same ? { ...l, qty: l.qty + 1 } : l)) };
@@ -219,7 +225,7 @@ export default function SaleScreen() {
 
   /** Short text bill on WhatsApp: no PDF, good for small counter sales. */
   function whatsappText(inv: Invoice, paid: number) {
-    const lines = inv.lines.map((l, i) => `${l.name} ${l.qty} × ${formatPaise(l.rate)} = ${formatPaise(inv.totals.lines[i]?.amount ?? 0)}`);
+    const lines = inv.lines.map((l, i) => `${l.name}${isAreaLine(l) ? ` (${lineSize(l)})` : ''} ${l.qty} × ${formatPaise(l.rate)} = ${formatPaise(inv.totals.lines[i]?.amount ?? 0)}`);
     const text = [
       `*${profile.name}*`,
       `Bill ${inv.number} · ${inv.date.split('-').reverse().join('-')}`,
@@ -232,7 +238,8 @@ export default function SaleScreen() {
   }
 
   const upi = upiIds.find((u) => u.id === bill.upiIdId) ?? upiIds.find((u) => u.isDefault) ?? upiIds[0] ?? null;
-  const count = bill.lines.reduce((a, l) => a + l.qty, 0);
+  // Area lines count their pieces, not their square feet.
+  const count = bill.lines.reduce((a, l) => a + (isAreaLine(l) ? (l.dims?.pieces ?? 1) : l.qty), 0);
 
   return (
     <IonPage>
@@ -368,18 +375,24 @@ export default function SaleScreen() {
                 <IonItem key={l.id} lines="full">
                   <IonLabel onClick={() => setEditing({ line: l, isNew: false })}>
                     <h2>{l.name}</h2>
-                    <p>
-                      {rupees(l.rate)} / {l.unit}
-                    </p>
+                    <p>{isAreaLine(l) ? lineSize(l) : `${rupees(l.rate)} / ${l.unit}`}</p>
                   </IonLabel>
                   <div slot="end" className="qty-stepper">
-                    <IonButton fill="outline" size="small" onClick={() => step(l.id, -1)} aria-label="One less">
-                      <IonIcon icon={removeOutline} />
-                    </IonButton>
-                    <span>{l.qty}</span>
-                    <IonButton fill="outline" size="small" onClick={() => step(l.id, 1)} aria-label="One more">
-                      <IonIcon icon={addOutline} />
-                    </IonButton>
+                    {isAreaLine(l) ? (
+                      <IonButton fill="clear" size="small" onClick={() => setEditing({ line: l, isNew: false })}>
+                        Size
+                      </IonButton>
+                    ) : (
+                      <>
+                        <IonButton fill="outline" size="small" onClick={() => step(l.id, -1)} aria-label="One less">
+                          <IonIcon icon={removeOutline} />
+                        </IonButton>
+                        <span>{l.qty}</span>
+                        <IonButton fill="outline" size="small" onClick={() => step(l.id, 1)} aria-label="One more">
+                          <IonIcon icon={addOutline} />
+                        </IonButton>
+                      </>
+                    )}
                     <strong>{rupees(totals.lines[i]?.amount ?? 0)}</strong>
                   </div>
                 </IonItem>

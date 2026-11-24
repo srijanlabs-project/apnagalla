@@ -28,7 +28,7 @@ import { AddressFields, FormSection, MoneyField, NumberField, SelectField, TextA
 import { useBusiness } from '../../lib/business';
 import { db, type CreditNote, type DocBase, type DocLine, type Estimate, type Invoice } from '../../lib/db';
 import { gstViewOf, taxRows } from '../../lib/gstView';
-import { addressLines, rupees } from '../../lib/format';
+import { addressLines, lineSize, rupees } from '../../lib/format';
 import {
   computeTotals,
   creditableAmount,
@@ -358,6 +358,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
                 <IonItem key={l.id} button={!locked} detail={false} onClick={() => !locked && setEditing({ line: l, isNew: false })}>
                   <IonLabel>
                     <h2>{l.name}</h2>
+                    {lineSize(l) && <p>{lineSize(l)}</p>}
                     <p>
                       {l.qty} {l.unit} × {rupees(l.rate)}
                       {l.rateIncludesTax ? ' incl.' : ''}

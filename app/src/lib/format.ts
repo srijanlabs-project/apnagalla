@@ -1,4 +1,4 @@
-import { formatDateIN, formatPaise } from '@invoice/shared';
+import { dimsLabel, formatDateIN, formatPaise, type AreaPricing, type Dims } from '@invoice/shared';
 
 export const rupees = (paise: number) => formatPaise(paise, { symbol: true });
 export const rupeesShort = (paise: number) => (paise % 100 === 0 ? formatPaise(paise, { symbol: true, decimals: false }) : formatPaise(paise, { symbol: true }));
@@ -70,3 +70,11 @@ export const INDIAN_STATES = [
   'Uttarakhand',
   'West Bengal',
 ];
+
+type SizedLine = { pricing?: 'unit' | AreaPricing; dims?: Dims | null };
+
+/** True when the line's quantity comes from a size (sq ft / running ft). */
+export const isAreaLine = (l: SizedLine) => (l.pricing === 'sqft' || l.pricing === 'rft') && !!l.dims;
+
+/** Size of an area line, "4 ft × 6 ft × 2 = 48 sq ft"; '' for other lines. */
+export const lineSize = (l: SizedLine) => (isAreaLine(l) ? dimsLabel(l.dims!, l.pricing as AreaPricing) : '');

@@ -220,6 +220,16 @@ export default function InvoiceSettingsScreen() {
         ))}
       </FormSection>
 
+      <FormSection title="Shop features">
+        <ToggleRow
+          label="Area / job-work billing"
+          note="Price items per sq ft or running foot and enter sizes on the bill (painting, glass, acrylic, carpentry, flex)."
+          checked={s.areaBilling}
+          onChange={(areaBilling) => patch({ areaBilling })}
+          disabled={ro}
+        />
+      </FormSection>
+
       <FormSection title="Units">
         <ChipList values={s.units} onChange={(units) => patch({ units })} parse={(x) => (x ? x.slice(0, 10) : null)} placeholder="e.g. pack" disabled={ro} />
       </FormSection>
