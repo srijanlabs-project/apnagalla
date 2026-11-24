@@ -16,6 +16,7 @@ import {
   type TaxMode,
 } from '@invoice/shared';
 import type { Table } from 'dexie';
+import { buildLedger, moneyOf, type BillMoney } from './ledger';
 import {
   db,
   setMeta,
@@ -25,6 +26,7 @@ import {
   type BusinessSettings,
   type CreditNote,
   type DesignSettings,
+  type PaymentEntry,
   type DocBase,
   type Estimate,
   type HistoryEntry,
@@ -413,9 +415,6 @@ export async function saveInvoice(actor: Actor, inv: Invoice, opts: { finalize: 
   next.totals = totals;
   if (!existing) next.history.push(historyEntry(actor, 'created'));
 
-  // Payment can never exceed the total (SPEC §3) — re-clamp after edits change the total.
-  next.payment = normalisePayment(next.payment, totals.grandTotal, next.credited);
-
   if (finalizing) {
     Object.assign(next, await numberFor('invoice', actor, next));
     next.status = 'saved';
@@ -449,31 +448,117 @@ export async function saveEstimate(actor: Actor, est: Estimate, opts: { finalize
   return putRecord('estimates', actor, next);
 }
 
-/**
- * Amount paid is kept between 0 and the invoice total. The invoice counts as paid once payments
- * cover the total less credit notes.
+/* ---------- payments ---------- */
+/*
+ * Each payment (or refund) is its own record: added, never edited; the owner voids a mistake.
+ * Several entries saved together make a split payment (cash + UPI).
  */
-export function normalisePayment(p: Invoice['payment'], total: number, credited = 0): Invoice['payment'] {
-  const amountPaid = Math.max(0, Math.min(p.amountPaid, total));
-  const due = Math.max(0, total - credited);
-  const status = amountPaid >= due ? 'paid' : amountPaid === 0 ? 'unpaid' : 'partial';
-  return { ...p, amountPaid, status };
+
+export interface NewPayment {
+  amount: number;
+  mode: PaymentEntry['mode'];
+  reference?: string;
+  note?: string;
 }
 
-export async function updatePayment(actor: Actor, invoiceId: string, payment: Invoice['payment']): Promise<Invoice> {
+/** Money on one bill right now (from the local copy of its entries and credit notes). */
+export async function billMoney(invoiceId: string): Promise<BillMoney> {
   const inv = await db.invoices.get(invoiceId);
-  if (!inv || inv.status !== 'saved') throw new PermissionError('Payment can only be recorded on a saved invoice');
-  const p = normalisePayment(payment, inv.totals.grandTotal, inv.credited);
-  if (p.amountPaid < inv.payment.amountPaid && actor.role !== 'owner') throw new PermissionError('Only the owner can reduce a recorded payment');
-  const detail = p.amountPaid === 0 ? 'marked unpaid' : `paid ₹${(p.amountPaid / 100).toFixed(2)}${p.mode ? ` (${p.mode})` : ''}`;
-  return putRecord('invoices', actor, { ...inv, payment: p, history: [...inv.history, historyEntry(actor, 'payment', detail)] });
+  if (!inv) throw new Error('Invoice not found');
+  const [payments, notes] = await Promise.all([db.payments.where('invoiceId').equals(invoiceId).toArray(), db.creditNotes.where('invoiceId').equals(invoiceId).toArray()]);
+  return moneyOf(inv, buildLedger(payments, notes));
+}
+
+/**
+ * Records money received for a bill (or, with kind 'refund', paid back after a return). Payments
+ * can't add up to more than is pending; refunds not more than was overpaid.
+ */
+export async function recordPayments(
+  actor: Actor,
+  invoiceId: string,
+  parts: NewPayment[],
+  opts: { date?: string; kind?: 'payment' | 'refund'; creditNoteId?: string } = {},
+): Promise<PaymentEntry[]> {
+  const kind = opts.kind ?? 'payment';
+  const inv = await db.invoices.get(invoiceId);
+  if (!inv || inv.status !== 'saved') throw new PermissionError('Money can only be recorded on a saved invoice');
+  const lines = parts.filter((p) => p.amount > 0).map((p) => ({ ...p, amount: Math.round(p.amount) }));
+  if (!lines.length) throw new PermissionError('Enter an amount');
+  const total = lines.reduce((a, p) => a + p.amount, 0);
+  const money = await billMoney(invoiceId);
+  const limit = kind === 'payment' ? money.pending : money.refundDue;
+  if (total > limit) {
+    throw new PermissionError(
+      kind === 'payment' ? `Only ₹${(limit / 100).toFixed(2)} is pending on this bill` : `Only ₹${(limit / 100).toFixed(2)} can be refunded on this bill`,
+    );
+  }
+  const date = opts.date ?? todayISO();
+  const saved: PaymentEntry[] = [];
+  for (const p of lines) {
+    saved.push(
+      await putRecord('payments', actor, {
+        id: newId(),
+        invoiceId,
+        creditNoteId: opts.creditNoteId ?? null,
+        kind,
+        amount: p.amount,
+        mode: p.mode,
+        date,
+        reference: p.reference?.trim() || undefined,
+        note: p.note?.trim() || undefined,
+        receivedBy: actor.userId,
+        receivedByName: actor.userName,
+      }),
+    );
+  }
+  return saved;
+}
+
+/** Owner only: marks an entry as a mistake. It stays in the history, crossed out. */
+export async function voidPayment(actor: Actor, paymentId: string, reason: string): Promise<void> {
+  if (actor.role !== 'owner') throw new PermissionError('Only the owner can void a payment');
+  const p = await db.payments.get(paymentId);
+  if (!p || p.voidedAt) return;
+  await putRecord('payments', actor, { ...p, voidedAt: nowIso(), voidedBy: actor.userId, voidedByName: actor.userName, voidReason: reason.trim() || 'Voided' });
+}
+
+/**
+ * Bills saved before R1.4 kept one paid amount on the invoice; turn it into a payment entry once.
+ * The entry's id comes from the invoice, so every phone doing this creates the same record.
+ */
+export async function convertLegacyPayments(actor: Actor): Promise<number> {
+  const invoices = await db.invoices.where('businessId').equals(actor.businessId).toArray();
+  let made = 0;
+  for (const inv of invoices) {
+    const amount = inv.payment?.amountPaid ?? 0;
+    if (inv.deleted || inv.status === 'draft' || amount <= 0) continue;
+    const id = `legacy-${inv.id}`;
+    if (await db.payments.get(id)) continue;
+    await putRecord('payments', actor, {
+      id,
+      invoiceId: inv.id,
+      creditNoteId: null,
+      kind: 'payment' as const,
+      amount,
+      mode: inv.payment?.mode ?? 'other',
+      date: inv.payment?.date ?? inv.date,
+      note: 'Recorded before payment entries',
+      receivedBy: inv.updatedBy,
+      receivedByName: '',
+      createdAt: inv.updatedAt,
+    });
+    made++;
+  }
+  return made;
 }
 
 export async function cancelInvoice(actor: Actor, invoiceId: string, reason?: string): Promise<void> {
   if (actor.role !== 'owner') throw new PermissionError('Only the owner can cancel an invoice');
   const inv = await db.invoices.get(invoiceId);
   if (!inv || inv.status !== 'saved') return;
-  if ((inv.credited ?? 0) > 0) throw new PermissionError('Cancel its credit notes first');
+  const money = await billMoney(invoiceId);
+  if (money.credited > 0) throw new PermissionError('Cancel its credit notes first');
+  if (money.paid > 0) throw new PermissionError('Void or refund its payments first');
   await putRecord('invoices', actor, { ...inv, status: 'cancelled', history: [...inv.history, historyEntry(actor, 'cancelled', reason)] });
 }
 
@@ -531,7 +616,6 @@ export async function newInvoiceDraft(actor: Actor): Promise<Invoice> {
     updatedAt: now,
     updatedBy: actor.userId,
     status: 'draft',
-    payment: { status: 'unpaid', amountPaid: 0 },
   };
 }
 
@@ -602,21 +686,13 @@ export async function duplicateInvoice(actor: Actor, id: string): Promise<Invoic
   );
 }
 
-/** What the customer still owes on an invoice: total less credit notes and payments. */
-export function pendingAmount(inv: Invoice): number {
-  if (inv.status !== 'saved') return 0;
-  return Math.max(0, inv.totals.grandTotal - (inv.credited ?? 0) - inv.payment.amountPaid);
-}
-
-export function isOverdue(inv: Invoice, today = todayISO()): boolean {
-  return inv.status === 'saved' && pendingAmount(inv) > 0 && !!inv.dueDate && inv.dueDate < today;
-}
-
 /* ---------- credit notes ---------- */
 /*
  * A credit note reduces a saved invoice: goods returned or a price cut. It copies the invoice's
- * customer, GST mode and place of supply; the owner edits quantities or removes lines. Saved
- * notes add up in invoice.credited, which lowers what the customer owes. Owner only.
+ * customer, GST mode and place of supply; quantities can be edited or lines removed. Saved notes
+ * lower what the customer owes (see ledger.ts); money already paid can then be refunded.
+ * Anyone may take a return on any bill; price cuts, other corrections, editing a saved note and
+ * cancelling are the owner's.
  */
 
 /** How much of an invoice can still be credited, leaving out `exceptNoteId` (the note being edited). */
@@ -629,7 +705,6 @@ export async function creditableAmount(invoiceId: string, exceptNoteId?: string)
 }
 
 export async function newCreditNoteDraft(actor: Actor, invoiceId: string): Promise<CreditNote> {
-  if (actor.role !== 'owner') throw new PermissionError('Only the owner can make credit notes');
   const inv = await db.invoices.get(invoiceId);
   if (!inv || inv.status !== 'saved') throw new PermissionError('Credit notes are made against a saved invoice');
   if ((await creditableAmount(invoiceId)) <= 0) throw new PermissionError('This invoice is already fully credited');
@@ -673,8 +748,11 @@ export async function newCreditNoteDraft(actor: Actor, invoiceId: string): Promi
 }
 
 export async function saveCreditNote(actor: Actor, note: CreditNote, opts: { finalize: boolean }): Promise<CreditNote> {
-  if (actor.role !== 'owner') throw new PermissionError('Only the owner can make credit notes');
   const existing = await db.creditNotes.get(note.id);
+  if (actor.role !== 'owner') {
+    if (note.reason !== 'return') throw new PermissionError('Only the owner can make this credit note');
+    if (existing && existing.status !== 'draft') throw new PermissionError('Only the owner can change a saved credit note');
+  }
   if (existing?.status === 'cancelled') throw new PermissionError('Cancelled credit notes cannot be edited');
   const next: CreditNote = { ...note, totals: computeTotals(note), history: [...(existing?.history ?? note.history ?? [])] };
   const finalizing = opts.finalize && next.status === 'draft';
@@ -692,7 +770,7 @@ export async function saveCreditNote(actor: Actor, note: CreditNote, opts: { fin
     next.history.push(historyEntry(actor, 'edited'));
   }
   const saved = await putRecord('creditNotes', actor, next);
-  if (saved.status === 'saved') await refreshCredited(actor, saved.invoiceId, `${saved.number} ₹${(saved.totals.grandTotal / 100).toFixed(2)}`);
+  if (finalizing) await noteOnInvoice(actor, saved.invoiceId, 'credit note', `${saved.number} ₹${(saved.totals.grandTotal / 100).toFixed(2)}`);
   return saved;
 }
 
@@ -701,20 +779,12 @@ export async function cancelCreditNote(actor: Actor, id: string, reason?: string
   const note = await db.creditNotes.get(id);
   if (!note || note.status !== 'saved') return;
   await putRecord('creditNotes', actor, { ...note, status: 'cancelled', history: [...note.history, historyEntry(actor, 'cancelled', reason)] });
-  await refreshCredited(actor, note.invoiceId, `${note.number} cancelled`);
+  await noteOnInvoice(actor, note.invoiceId, 'credit note', `${note.number} cancelled`);
 }
 
-/** Recomputes invoice.credited from its saved credit notes. */
-async function refreshCredited(actor: Actor, invoiceId: string, detail: string) {
+/** Adds a line to the invoice's history (allowed for staff: only `history` changes). */
+async function noteOnInvoice(actor: Actor, invoiceId: string, action: string, detail: string) {
   const inv = await db.invoices.get(invoiceId);
   if (!inv) return;
-  const notes = await db.creditNotes.where('invoiceId').equals(invoiceId).toArray();
-  const credited = notes.filter((n) => n.status === 'saved' && !n.deleted).reduce((a, n) => a + n.totals.grandTotal, 0);
-  if (credited === (inv.credited ?? 0)) return;
-  await putRecord('invoices', actor, {
-    ...inv,
-    credited,
-    payment: normalisePayment(inv.payment, inv.totals.grandTotal, credited),
-    history: [...inv.history, historyEntry(actor, 'credit note', detail)],
-  });
+  await putRecord('invoices', actor, { ...inv, history: [...inv.history, historyEntry(actor, action, detail)] });
 }

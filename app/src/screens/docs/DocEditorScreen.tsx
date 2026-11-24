@@ -320,7 +320,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
             </label>
           </div>
           {credit && (
-            <SelectField label="Reason" value={credit.reason} options={CREDIT_REASONS} onChange={(reason) => patch({ reason } as Partial<CreditNote>)} disabled={locked} />
+            <SelectField label="Reason" value={credit.reason} options={CREDIT_REASONS} onChange={(reason) => patch({ reason } as Partial<CreditNote>)} disabled={locked || !isOwner} />
           )}
           {kind === 'invoice' && (
             <div className="field-row">

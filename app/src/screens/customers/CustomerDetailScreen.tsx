@@ -9,11 +9,11 @@ import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { addressLines, dateIN, rupees } from '../../lib/format';
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
-import { pendingAmount } from '../../lib/repo';
+import { moneyOf } from '../../lib/ledger';
 
 export default function CustomerDetailScreen() {
   const { id } = useParams<{ id: string }>();
-  const { actor } = useBusiness();
+  const { actor, ledger } = useBusiness();
   const c = useLiveQuery(() => db.customers.get(id!), [id]);
   const invoices = useLiveQuery(
     () =>
@@ -29,9 +29,10 @@ export default function CustomerDetailScreen() {
 
   const saved = (invoices ?? []).filter((i) => i.status === 'saved');
   // Credit notes reduce what was billed.
-  const billed = saved.reduce((a, i) => a + i.totals.grandTotal - (i.credited ?? 0), 0) + (c.openingBalance ?? 0);
-  const paid = saved.reduce((a, i) => a + i.payment.amountPaid, 0);
-  const pending = saved.reduce((a, i) => a + pendingAmount(i), 0) + (c.openingBalance ?? 0);
+  const money = saved.map((i) => moneyOf(i, ledger));
+  const billed = money.reduce((a, m) => a + m.due, 0) + (c.openingBalance ?? 0);
+  const paid = money.reduce((a, m) => a + m.paid, 0);
+  const pending = money.reduce((a, m) => a + m.pending, 0) + (c.openingBalance ?? 0);
 
   return (
     <PageShell title={c.name} backHref="/tabs/customers" padded={false}>

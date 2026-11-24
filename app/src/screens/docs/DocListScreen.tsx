@@ -9,13 +9,14 @@ import { useBusiness } from '../../lib/business';
 import { db, type CreditNote, type Estimate, type Invoice } from '../../lib/db';
 import { dateIN, rupees } from '../../lib/format';
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
-import { pendingAmount, type DocKind } from '../../lib/repo';
+import { moneyOf } from '../../lib/ledger';
+import type { DocKind } from '../../lib/repo';
 import { DOC_BASE } from './DocEditorScreen';
 
 const INVOICE_FILTERS = ['All', 'Unpaid', 'Overdue', 'Paid', 'Draft'] as const;
 
 export default function DocListScreen({ kind }: { kind: DocKind }) {
-  const { actor } = useBusiness();
+  const { actor, ledger } = useBusiness();
   const router = useIonRouter();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<(typeof INVOICE_FILTERS)[number]>('All');
@@ -39,11 +40,11 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
     return (docs ?? []).filter((d) => {
       if (s && !(d.number.toLowerCase().includes(s) || (d.billTo?.name ?? '').toLowerCase().includes(s))) return false;
       if (kind !== 'invoice' || filter === 'All') return true;
-      const st = invoiceStatus(d as Invoice).label;
+      const st = invoiceStatus(d as Invoice, ledger).label;
       if (filter === 'Unpaid') return st === 'Unpaid' || st === 'Partly paid' || st === 'Overdue';
       return st === filter;
     });
-  }, [docs, q, filter, kind]);
+  }, [docs, q, filter, kind, ledger]);
 
   const base = DOC_BASE[kind];
 
@@ -86,7 +87,7 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
       ) : (
         <IonList>
           {filtered.map((d) => {
-            const pending = kind === 'invoice' ? pendingAmount(d as Invoice) : 0;
+            const pending = kind === 'invoice' ? moneyOf(d as Invoice, ledger).pending : 0;
             return (
               <IonItem key={d.id} routerLink={`${base}/${d.id}`} detail={false}>
                 <IonLabel>

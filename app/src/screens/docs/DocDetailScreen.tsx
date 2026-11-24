@@ -36,23 +36,24 @@ import {
   deleteDraft,
   duplicateInvoice,
   newCreditNoteDraft,
-  pendingAmount,
+  recordPayments,
   saveCreditNote,
   setEstimateStatus,
-  updatePayment,
+  voidPayment,
   type DocKind,
 } from '../../lib/repo';
+import PaySheet from '../../components/PaySheet';
+import { MODE_LABEL, moneyOf } from '../../lib/ledger';
 import { DOC_BASE, DOC_LABEL } from './DocEditorScreen';
-import PaymentModal from './PaymentModal';
 
 export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const { id } = useParams<{ id: string }>();
-  const { actor, isOwner, settings, profile } = useBusiness();
+  const { actor, isOwner, settings, profile, ledger, upiIds } = useBusiness();
   const router = useIonRouter();
   const [toast] = useIonToast();
   const [alert] = useIonAlert();
   const [menu, setMenu] = useState(false);
-  const [payOpen, setPayOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState<'payment' | 'refund' | null>(null);
   const [preview, setPreview] = useState<Blob | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const base = DOC_BASE[kind];
@@ -66,11 +67,20 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
     () => (kind === 'invoice' && id ? db.creditNotes.where('invoiceId').equals(id).filter((n) => !n.deleted).toArray() : Promise.resolve([] as CreditNote[])),
     [id, kind],
   );
+  // A credit note's invoice: its refund is paid from here.
+  const noteInvoiceId = kind === 'credit' ? (doc as CreditNote | undefined)?.invoiceId : undefined;
+  const linked = useLiveQuery(async (): Promise<Invoice | undefined> => (noteInvoiceId ? db.invoices.get(noteInvoiceId) : undefined), [noteInvoiceId]);
   if (!doc) return null;
   const inv = kind === 'invoice' ? (doc as Invoice) : null;
   const est = kind === 'estimate' ? (doc as Estimate) : null;
   const note = kind === 'credit' ? (doc as CreditNote) : null;
-  const pending = inv ? pendingAmount(inv) : 0;
+  const money = inv ? moneyOf(inv, ledger) : null;
+  const pending = money?.pending ?? 0;
+  // The bill money goes on: this invoice, or the invoice a credit note belongs to.
+  const billForMoney = inv ?? linked ?? null;
+  const billMoneyNow = billForMoney ? moneyOf(billForMoney, ledger) : null;
+  const refundDue = note?.status === 'saved' || inv ? (billMoneyNow?.refundDue ?? 0) : 0;
+  const upi = upiIds.find((u) => u.id === billForMoney?.upiIdId) ?? upiIds.find((u) => u.isDefault) ?? upiIds[0] ?? null;
   const view = gstViewOf(kind, doc, doc.businessSnapshot ?? profile, doc.totals);
   const canEdit =
     (kind === 'estimate' || CAN_CREATE_INVOICES) &&
@@ -123,10 +133,10 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
 
   const menuButtons = [
     ...(canEdit ? [{ text: 'Edit', handler: () => router.push(`${base}/${doc.id}/edit`) }] : []),
-    ...(inv && inv.status === 'saved' && isOwner && CAN_CREATE_INVOICES && (inv.credited ?? 0) < inv.totals.grandTotal
+    ...(inv && inv.status === 'saved' && CAN_CREATE_INVOICES && (money?.due ?? 0) > 0
       ? [
           {
-            text: 'Credit note (return / price cut)',
+            text: isOwner ? 'Return items / credit note' : 'Return items',
             handler: () =>
               void newCreditNoteDraft(actor, doc.id)
                 .then((n) => saveCreditNote(actor, n, { finalize: false }))
@@ -231,22 +241,27 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
             <span>Total</span>
             <strong>{rupees(doc.totals.grandTotal)}</strong>
           </div>
-          {inv && (inv.credited ?? 0) > 0 && (
+          {money && money.credited > 0 && (
             <div className="detail-pay">
               <div>
-                <span>Credit notes</span> <strong>−{rupees(inv.credited!)}</strong>
+                <span>Credit notes</span> <strong>−{rupees(money.credited)}</strong>
               </div>
             </div>
           )}
-          {inv && inv.status === 'saved' && (
+          {money && inv?.status === 'saved' && (
             <div className="detail-pay">
               <div>
-                <span>Paid</span> <strong>{rupees(inv.payment.amountPaid)}</strong>
+                <span>Paid</span> <strong>{rupees(money.paid)}</strong>
               </div>
               <div>
                 <span>Pending</span> <strong className={pending ? 'text-danger' : ''}>{rupees(pending)}</strong>
               </div>
             </div>
+          )}
+          {refundDue > 0 && (
+            <p className="text-danger">
+              {rupees(refundDue)} was paid more than is now due{note ? ` on invoice ${note.invoiceNumber}` : ''}: refund it to the customer.
+            </p>
           )}
 
           <div className="detail-actions">
@@ -256,9 +271,14 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
             <IonButton fill="outline" onClick={() => void onPreview()} disabled={!!busy}>
               {busy === 'preview' ? <IonSpinner name="dots" /> : <IonIcon icon={eyeOutline} slot="start" />} Preview
             </IonButton>
-            {inv && inv.status === 'saved' && (
-              <IonButton fill="outline" onClick={() => setPayOpen(true)}>
-                <IonIcon icon={walletOutline} slot="start" /> Payment
+            {inv && inv.status === 'saved' && pending > 0 && (
+              <IonButton fill="outline" onClick={() => setPayOpen('payment')}>
+                <IonIcon icon={walletOutline} slot="start" /> Record payment
+              </IonButton>
+            )}
+            {refundDue > 0 && CAN_CREATE_INVOICES && (
+              <IonButton fill="outline" color="danger" onClick={() => setPayOpen('refund')}>
+                <IonIcon icon={walletOutline} slot="start" /> Refund {rupees(refundDue)}
               </IonButton>
             )}
             {inv && pending > 0 && (
@@ -293,6 +313,59 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
       </IonCard>
 
       {preview && <PdfPreview blob={preview} />}
+
+      {money && money.entries.length > 0 && (
+        <IonList inset>
+          <IonListHeader>
+            <IonLabel>Payments</IonLabel>
+          </IonListHeader>
+          {money.entries.map((e) => (
+            <IonItem key={e.id} lines="full">
+              <IonLabel className={e.voidedAt ? 'voided' : undefined}>
+                <h3>
+                  {e.kind === 'refund' ? 'Refund' : 'Received'} · {MODE_LABEL[e.mode]}
+                  {e.reference ? ` · ${e.reference}` : ''}
+                </h3>
+                <p>
+                  {dateIN(e.date)}
+                  {e.receivedByName ? ` · ${e.receivedByName}` : ''}
+                  {e.note ? ` · ${e.note}` : ''}
+                </p>
+                {e.voidedAt && (
+                  <p className="text-danger">
+                    Voided{e.voidedByName ? ` by ${e.voidedByName}` : ''}: {e.voidReason}
+                  </p>
+                )}
+              </IonLabel>
+              <IonNote slot="end" className={e.voidedAt ? 'voided' : e.kind === 'refund' ? 'text-danger' : undefined}>
+                {e.kind === 'refund' ? '−' : ''}
+                {rupees(e.amount)}
+              </IonNote>
+              {isOwner && !e.voidedAt && (
+                <IonButton
+                  slot="end"
+                  fill="clear"
+                  size="small"
+                  color="medium"
+                  onClick={() =>
+                    void alert({
+                      header: `Void ${rupees(e.amount)} ${MODE_LABEL[e.mode]}?`,
+                      message: 'Use this for a mistake. The entry stays in the history, crossed out.',
+                      inputs: [{ name: 'reason', placeholder: 'Reason' }],
+                      buttons: [
+                        { text: 'Keep', role: 'cancel' },
+                        { text: 'Void', role: 'destructive', handler: (v: { reason?: string }) => void voidPayment(actor, e.id, v.reason ?? '').catch(fail) },
+                      ],
+                    })
+                  }
+                >
+                  Void
+                </IonButton>
+              )}
+            </IonItem>
+          ))}
+        </IonList>
+      )}
 
       {creditNotes && creditNotes.length > 0 && (
         <IonList inset>
@@ -358,17 +431,20 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
       </IonButtons>
       <IonActionSheet isOpen={menu} onDidDismiss={() => setMenu(false)} buttons={menuButtons} />
 
-      {inv && (
-        <PaymentModal
-          invoice={inv}
-          isOpen={payOpen}
-          isOwner={isOwner}
-          onClose={() => setPayOpen(false)}
-          onSave={(p) =>
-            void updatePayment(actor, inv.id, p)
+      {billForMoney && (
+        <PaySheet
+          isOpen={!!payOpen}
+          kind={payOpen ?? 'payment'}
+          amount={payOpen === 'refund' ? refundDue : pending}
+          upi={upi}
+          qrNote={`${view.title} ${billForMoney.number}`}
+          allowDate={isOwner}
+          onClose={() => setPayOpen(null)}
+          onConfirm={(parts, date) =>
+            recordPayments(actor, billForMoney.id, parts, { date, kind: payOpen ?? 'payment', creditNoteId: note?.id })
               .then(() => {
-                setPayOpen(false);
-                void toast({ message: 'Payment updated', duration: 1200, color: 'success' });
+                setPayOpen(null);
+                void toast({ message: payOpen === 'refund' ? 'Refund recorded' : 'Payment recorded', duration: 1200, color: 'success' });
               })
               .catch(fail)
           }

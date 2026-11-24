@@ -1,6 +1,8 @@
 import { and, asc, eq, gt, ne, sql } from 'drizzle-orm';
 import {
   OWNER_ONLY_TABLES,
+  PAYMENT_MODES,
+  PAYMENT_VOID_FIELDS,
   SYNC_PULL_MAX,
   parseDocNumber,
   parseSeriesKey,
@@ -90,6 +92,8 @@ export class SyncService {
     if (!Number.isFinite(clientTime)) return reject('missing updatedAt');
     const updatedAt = new Date(Math.min(clientTime, Date.now() + MAX_CLOCK_SKEW_MS));
     const data: Data = { ...ch.data, id, businessId: actor.businessId, updatedBy: actor.userId, updatedAt: updatedAt.toISOString() };
+    // Who took a payment is the person pushing it, never what the phone claims.
+    if (table === 'payments' && !existing) data.receivedBy = actor.userId;
 
     const denied = this.checkPermission(actor, table, data, existing);
     if (denied) return reject(denied);
@@ -158,13 +162,31 @@ export class SyncService {
       if (key && key.code && key.code !== (actor.seriesCode ?? '')) return "That is another person's number series";
     }
     if ((table === 'profiles' || table === 'settings') && data.id !== actor.businessId) return 'wrong store';
-    if (OWNER_ONLY_TABLES.includes(table) && actor.role !== 'owner') {
-      return table === 'creditNotes' ? 'Only the owner can make credit notes' : 'Only the owner can change store details';
-    }
+    if (OWNER_ONLY_TABLES.includes(table) && actor.role !== 'owner') return 'Only the owner can change store details';
 
     if (table === 'creditNotes') {
       if (actor.client === 'web' && !existing) return 'Credit notes are made in the phone app';
       if (data.deleted === true && existing && existing.status !== 'draft') return 'Only drafts can be deleted';
+      if (actor.role !== 'owner') {
+        // Staff take returns on any bill; price cuts, corrections and cancelling are the owner's.
+        if (data.reason !== 'return') return 'Only the owner can make this credit note';
+        if (existing && existing.status !== 'draft') return 'Only the owner can change a saved credit note';
+      }
+    }
+
+    if (table === 'payments') {
+      // Entries are added, never changed: the owner can only void one. They are never deleted.
+      if (data.deleted === true) return 'Payments cannot be deleted; void them instead';
+      if (!existing) {
+        if (typeof data.invoiceId !== 'string' || !data.invoiceId) return 'A payment belongs to a bill';
+        if (!Number.isInteger(data.amount) || (data.amount as number) <= 0) return 'Amount must be more than zero';
+        if (data.kind !== 'payment' && data.kind !== 'refund') return 'Unknown entry';
+        if (!PAYMENT_MODES.includes(data.mode as never)) return 'Unknown payment mode';
+        if (data.voidedAt) return 'A new entry cannot be voided';
+      } else {
+        if (stable(without(data, PAYMENT_VOID_FIELDS)) !== stable(without(existing, PAYMENT_VOID_FIELDS))) return 'A recorded payment cannot be changed; void it instead';
+        if (actor.role !== 'owner') return 'Only the owner can void a payment';
+      }
     }
 
     if (table === 'invoices') {

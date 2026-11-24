@@ -2,11 +2,18 @@ import { z } from 'zod';
 import { NUMBER_SERIES } from './gst';
 
 /** Every table the phone keeps offline and syncs with the server. */
-export const SYNC_TABLES = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'customers', 'items', 'invoices', 'estimates', 'creditNotes'] as const;
+export const SYNC_TABLES = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'customers', 'items', 'invoices', 'estimates', 'creditNotes', 'payments'] as const;
 export type SyncTable = (typeof SYNC_TABLES)[number];
 
-/** Store details and credit notes: only the owner may change them. */
-export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'creditNotes'];
+/** Store details: only the owner may change them. */
+export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds'];
+
+/** Payment modes for a payment or refund entry. */
+export const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque', 'other'] as const;
+export type PaymentMode = (typeof PAYMENT_MODES)[number];
+
+/** Fields of a payment entry the owner may change afterwards (to void it); nothing else ever changes. */
+export const PAYMENT_VOID_FIELDS = ['voidedAt', 'voidedBy', 'voidedByName', 'voidReason', 'updatedAt', 'updatedBy'];
 
 export const SYNC_PUSH_MAX = 100;
 export const SYNC_PULL_MAX = 500;

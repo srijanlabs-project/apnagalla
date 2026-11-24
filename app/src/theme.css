@@ -144,3 +144,46 @@
 .color-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .color-dot { width: 32px; height: 32px; border-radius: 50%; border: 3px solid transparent; outline: 1px solid var(--app-border); }
 .color-dot.selected { border-color: var(--app-surface); outline: 2px solid var(--ion-text-color); }
+
+/* ---------- pay sheet (R1.4) ---------- */
+.pay-sheet .pay-row {
+  border-bottom: 1px solid var(--ion-color-light-shade, #e0e0e0);
+  padding: 8px 0;
+}
+.pay-sheet ion-segment {
+  margin-bottom: 8px;
+}
+.change-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 8px;
+  min-width: 110px;
+}
+.change-box span {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+}
+.change-box strong {
+  font-size: 1.3rem;
+}
+.upi-qr {
+  text-align: center;
+  padding: 8px 0;
+}
+.upi-qr img {
+  width: 220px;
+  height: 220px;
+  image-rendering: pixelated;
+}
+.upi-qr p {
+  margin: 4px 0;
+}
+.pay-summary {
+  min-height: 1.5em;
+  margin: 8px 0;
+}
+.voided {
+  text-decoration: line-through;
+  opacity: 0.6;
+}

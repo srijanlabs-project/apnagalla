@@ -1,0 +1,185 @@
+import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonModal, IonSegment, IonSegmentButton, IonLabel, IonTitle, IonToolbar } from '@ionic/react';
+import { todayISO, type PaymentMode } from '@invoice/shared';
+import { addOutline, closeCircle } from 'ionicons/icons';
+import QRCode from 'qrcode';
+import { useEffect, useState } from 'react';
+import type { UpiId } from '../lib/db';
+import { rupees } from '../lib/format';
+import { MODE_LABEL } from '../lib/ledger';
+import { upiLink } from '../lib/pdf/buildDoc';
+import type { NewPayment } from '../lib/repo';
+import { sync } from '../lib/sync';
+import { MoneyField, SelectField, TextField } from './Fields';
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  /** Most that can be entered: pending amount (payment) or overpaid amount (refund). */
+  amount: number;
+  kind?: 'payment' | 'refund';
+  /** UPI ID for the on-screen QR (payments only). */
+  upi?: UpiId | null;
+  /** Note on the QR, e.g. the bill number. */
+  qrNote?: string;
+  /** Owner may record an earlier date. */
+  allowDate?: boolean;
+  onConfirm: (parts: NewPayment[], date: string) => Promise<void> | void;
+}
+
+interface Row extends NewPayment {
+  /** Cash handed over by the customer, to work out the change. */
+  tendered?: number | null;
+}
+
+const QUICK: PaymentMode[] = ['cash', 'upi', 'card'];
+const ALL_MODES = Object.entries(MODE_LABEL).map(([value, label]) => ({ value: value as PaymentMode, label }));
+
+/**
+ * Take a payment (or give a refund): one mode or split across several. Cash shows the change to
+ * give back; UPI shows a QR for the exact amount for the customer to scan. The cashier confirms
+ * once the money is received; nothing is checked with the bank.
+ */
+export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', upi, qrNote = '', allowDate, onConfirm }: Props) {
+  const [rows, setRows] = useState<Row[]>([{ mode: 'cash', amount }]);
+  const [date, setDate] = useState(todayISO());
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setRows([{ mode: kind === 'refund' ? 'cash' : 'cash', amount }]);
+      setDate(todayISO());
+    }
+  }, [isOpen, amount, kind]);
+
+  const total = rows.reduce((a, r) => a + (r.amount || 0), 0);
+  const left = amount - total;
+  const tooMuch = total > amount;
+  const set = (i: number, p: Partial<Row>) => setRows((cur) => cur.map((r, j) => (j === i ? { ...r, ...p } : r)));
+  const split = rows.length > 1;
+
+  async function confirm() {
+    if (busy || total <= 0 || tooMuch) return;
+    setBusy(true);
+    try {
+      await onConfirm(
+        rows.filter((r) => r.amount > 0).map(({ tendered: _t, ...r }) => r),
+        date,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const verb = kind === 'refund' ? 'Refund' : 'Receive';
+
+  return (
+    <IonModal isOpen={isOpen} onDidDismiss={onClose}>
+      <IonHeader>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={onClose}>Cancel</IonButton>
+          </IonButtons>
+          <IonTitle>
+            {verb} {rupees(amount)}
+          </IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="ion-padding pay-sheet">
+        {!split && (
+          <IonSegment value={rows[0]!.mode} onIonChange={sync((e) => set(0, { mode: e.detail.value as PaymentMode }))}>
+            {QUICK.map((m) => (
+              <IonSegmentButton key={m} value={m}>
+                <IonLabel>{MODE_LABEL[m]}</IonLabel>
+              </IonSegmentButton>
+            ))}
+            <IonSegmentButton value="other">
+              <IonLabel>Other</IonLabel>
+            </IonSegmentButton>
+          </IonSegment>
+        )}
+
+        {rows.map((r, i) => (
+          <div key={i} className="pay-row">
+            <div className="field-row">
+              {(split || !QUICK.includes(r.mode)) && <SelectField label="Mode" value={r.mode} options={ALL_MODES} onChange={(mode) => set(i, { mode })} />}
+              <MoneyField label={split ? `Amount ${i + 1}` : 'Amount'} value={r.amount} onChange={(v) => set(i, { amount: v ?? 0 })} />
+            </div>
+            {split && (
+              <IonButton fill="clear" size="small" color="medium" onClick={() => setRows((cur) => cur.filter((_, j) => j !== i))}>
+                <IonIcon icon={closeCircle} slot="start" /> Remove {MODE_LABEL[r.mode].toLowerCase()}
+              </IonButton>
+            )}
+
+            {r.mode === 'cash' && kind === 'payment' && (
+              <div className="field-row">
+                <MoneyField label="Cash received" value={r.tendered ?? null} onChange={(tendered) => set(i, { tendered })} />
+                <div className="change-box">
+                  <span>Give back</span>
+                  <strong>{r.tendered && r.tendered >= r.amount ? rupees(r.tendered - r.amount) : '—'}</strong>
+                </div>
+              </div>
+            )}
+
+            {r.mode === 'upi' && kind === 'payment' && upi && r.amount > 0 && <UpiQr upi={upi} amount={r.amount} note={qrNote} />}
+            {r.mode === 'upi' && kind === 'payment' && !upi && <p className="section-note">Add your UPI ID in More → Payment details to show a QR here.</p>}
+
+            {(r.mode === 'upi' || r.mode === 'cheque' || r.mode === 'bank' || r.mode === 'card') && (
+              <TextField
+                label={r.mode === 'cheque' ? 'Cheque no.' : r.mode === 'card' ? 'Card / slip ref. (optional)' : 'Reference (optional)'}
+                value={r.reference}
+                onChange={(reference) => set(i, { reference })}
+              />
+            )}
+          </div>
+        ))}
+
+        {left > 0 && (
+          <IonButton fill="clear" size="small" onClick={() => setRows((cur) => [...cur, { mode: cur[0]?.mode === 'cash' ? 'upi' : 'cash', amount: left }])}>
+            <IonIcon icon={addOutline} slot="start" /> Split: add another mode
+          </IonButton>
+        )}
+
+        {allowDate && (
+          <label className="date-field">
+            <span>Date</span>
+            <input type="date" value={date} max={todayISO()} onChange={(e) => e.target.value && setDate(e.target.value)} />
+          </label>
+        )}
+
+        <div className="pay-summary">
+          {tooMuch ? (
+            <p className="text-danger">That is more than {rupees(amount)}.</p>
+          ) : left > 0 && kind === 'payment' ? (
+            <p>{rupees(left)} stays pending on the bill.</p>
+          ) : null}
+        </div>
+
+        <IonButton expand="block" size="large" disabled={busy || total <= 0 || tooMuch} onClick={() => void confirm()}>
+          {kind === 'refund' ? `Refunded ${rupees(total)}` : `Received ${rupees(total)}`}
+        </IonButton>
+      </IonContent>
+    </IonModal>
+  );
+}
+
+/** QR the customer scans with any UPI app; the amount is filled in. */
+function UpiQr({ upi, amount, note }: { upi: UpiId; amount: number; note: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void QRCode.toDataURL(upiLink(upi, amount, note), { margin: 1, width: 240 }).then((url) => alive && setSrc(url));
+    return () => {
+      alive = false;
+    };
+  }, [upi, amount, note]);
+  return (
+    <div className="upi-qr">
+      {src && <img src={src} alt={`UPI QR for ${rupees(amount)}`} />}
+      <p>
+        Scan to pay <strong>{rupees(amount)}</strong>
+      </p>
+      <p className="section-note">{upi.upiId}</p>
+      <p className="section-note">Tap “Received” only after the money shows in your UPI app.</p>
+    </div>
+  );
+}

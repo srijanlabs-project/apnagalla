@@ -3,7 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { db, type BankAccount, type BusinessProfile, type BusinessSettings, type UpiId } from './db';
 import { INDIAN_STATES } from './format';
-import { ensureBusinessRecords, withDefaults, type Actor } from './repo';
+import { buildLedger, type Ledger } from './ledger';
+import { convertLegacyPayments, ensureBusinessRecords, withDefaults, type Actor } from './repo';
 import { useSession } from './session';
 import { useSyncTriggers } from './useSync';
 
@@ -14,6 +15,8 @@ interface BusinessValue {
   settings: BusinessSettings;
   bankAccounts: BankAccount[];
   upiIds: UpiId[];
+  /** Payments and credit notes of every bill, kept live: use moneyOf(invoice, ledger). */
+  ledger: Ledger;
 }
 
 const Ctx = createContext<BusinessValue | null>(null);
@@ -40,11 +43,16 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const settings = useLiveQuery(() => db.settings.get(businessId), [businessId]);
   const bankAccounts = useLiveQuery(() => db.bankAccounts.where('businessId').equals(businessId).filter((b) => !b.deleted).toArray(), [businessId]);
   const upiIds = useLiveQuery(() => db.upiIds.where('businessId').equals(businessId).filter((u) => !u.deleted).toArray(), [businessId]);
+  const ledger = useLiveQuery(
+    async () => buildLedger(await db.payments.where('businessId').equals(businessId).toArray(), await db.creditNotes.where('businessId').equals(businessId).toArray()),
+    [businessId],
+  );
 
   const value = useMemo<BusinessValue | null>(() => {
-    if (!ready || !profile || !me || !membership) return null;
+    if (!ready || !profile || !me || !membership || !ledger) return null;
     return {
       actor: { businessId, userId: me.user.id, userName: me.user.name ?? '', role: membership.role, seriesCode: membership.seriesCode ?? '' },
+      ledger,
       isOwner: membership.role === 'owner',
       profile,
       // Merge so settings added in later versions always have a value.
@@ -52,7 +60,14 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       bankAccounts: bankAccounts ?? [],
       upiIds: upiIds ?? [],
     };
-  }, [ready, profile, settings, bankAccounts, upiIds, me, membership, businessId]);
+  }, [ready, profile, settings, bankAccounts, upiIds, ledger, me, membership, businessId]);
+
+  // Bills from before payment entries: turn their paid amount into an entry (once, same id everywhere).
+  const actorForConvert = value?.actor;
+  useEffect(() => {
+    if (actorForConvert) void convertLegacyPayments(actorForConvert).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actorForConvert?.businessId, actorForConvert?.userId]);
 
   if (!value) {
     return (

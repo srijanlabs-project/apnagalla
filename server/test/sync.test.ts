@@ -249,9 +249,12 @@ describe('credit notes', () => {
     ...extra,
   });
 
-  it('only the owner makes them, only on the phone, and saved ones are never deleted', async () => {
+  it('owner makes any, staff only returns, only on the phone, saved ones never deleted', async () => {
     const { biz, oH, sH, wH } = await setupStore('960000011');
-    expect((await pushOk(biz.id, sH, [{ table: 'creditNotes', id: 'cn1', data: note('cn1') }]))[0]).toMatchObject({ status: 'rejected', reason: 'Only the owner can make credit notes' });
+    expect((await pushOk(biz.id, sH, [{ table: 'creditNotes', id: 'cn0', data: note('cn0', { reason: 'price' }) }]))[0]).toMatchObject({ status: 'rejected', reason: 'Only the owner can make this credit note' });
+    // Staff may take a return on any bill.
+    expect((await pushOk(biz.id, sH, [{ table: 'creditNotes', id: 'cn9', data: note('cn9', { reason: 'return', number: 'CN-B/26-27/0001', numberSeries: 'credit-B:26-27', numberSeq: 1 }) }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, sH, [{ table: 'creditNotes', id: 'cn9', data: note('cn9', { reason: 'return', status: 'cancelled', number: 'CN-B/26-27/0001', numberSeries: 'credit-B:26-27', numberSeq: 1, updatedAt: at(1) }) }]))[0]).toMatchObject({ reason: 'Only the owner can change a saved credit note' });
     expect((await pushOk(biz.id, wH, [{ table: 'creditNotes', id: 'cn1', data: note('cn1') }]))[0]).toMatchObject({ status: 'rejected', reason: 'Credit notes are made in the phone app' });
     expect((await pushOk(biz.id, oH, [{ table: 'creditNotes', id: 'cn1', data: note('cn1') }]))[0]!.status).toBe('ok');
     expect((await pushOk(biz.id, oH, [{ table: 'creditNotes', id: 'cn1', data: note('cn1', { deleted: true, updatedAt: at(1) }) }]))[0]).toMatchObject({
@@ -315,5 +318,27 @@ describe('number series per person', () => {
     // Another phone gets 4 and 5 (3 was used, 99 never handed out), then new numbers.
     const r = await app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/numbers/reserve`, headers: sH, payload: { kind: 'invoice', period: '26-27', count: 3 } });
     expect(r.json()).toEqual({ numbers: [4, 5, 11] });
+  });
+});
+
+describe('payment entries', () => {
+  const pay = (id: string, extra: Record<string, unknown> = {}) => ({ id, invoiceId: 'inv1', kind: 'payment', amount: 5000, mode: 'cash', date: '2026-11-25', receivedBy: 'someone-else', updatedAt: at(0), ...extra });
+
+  it('anyone adds them; nobody changes them; only the owner voids; never deleted', async () => {
+    const { biz, oH, sH, staff, wH } = await setupStore('960000015');
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'p1', data: pay('p1') }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, wH, [{ table: 'payments', id: 'p2', data: pay('p2', { mode: 'upi' }) }]))[0]!.status).toBe('ok');
+    // The server records who really took it.
+    const stored = (await pull(biz.id, oH)).changes.find((c) => c.id === 'p1')!.data;
+    expect(stored.receivedBy).toBe(staff.me.user.id);
+
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'bad', data: pay('bad', { amount: -5 }) }]))[0]!.status).toBe('rejected');
+    expect((await pushOk(biz.id, oH, [{ table: 'payments', id: 'p1', data: { ...stored, amount: 9000, updatedAt: at(1) } }]))[0]).toMatchObject({
+      reason: 'A recorded payment cannot be changed; void it instead',
+    });
+    const voided = { ...stored, voidedAt: at(1), voidedBy: 'x', voidReason: 'typo', updatedAt: at(1) };
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'p1', data: voided }]))[0]).toMatchObject({ reason: 'Only the owner can void a payment' });
+    expect((await pushOk(biz.id, oH, [{ table: 'payments', id: 'p1', data: voided }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, oH, [{ table: 'payments', id: 'p1', data: { ...voided, deleted: true, updatedAt: at(2) } }]))[0]!.status).toBe('rejected');
   });
 });

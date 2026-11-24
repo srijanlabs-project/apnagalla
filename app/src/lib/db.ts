@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { ChargeInput, DiscountInput, GstType, InvoiceTotals, NumberingMode, TaxMode } from '@invoice/shared';
+import type { ChargeInput, DiscountInput, GstType, InvoiceTotals, NumberingMode, PaymentMode, TaxMode } from '@invoice/shared';
 
 /**
  * Local offline database (IndexedDB via Dexie). The app reads and writes here first;
@@ -165,6 +165,7 @@ export interface HistoryEntry {
   detail?: string;
 }
 
+/** Before R1.4 an invoice kept one editable paid amount; now only read to convert it to an entry. */
 export interface PaymentInfo {
   status: 'unpaid' | 'paid' | 'partial';
   amountPaid: number; // paise, ≤ grand total
@@ -206,12 +207,37 @@ export interface DocBase extends SyncedRecord {
 
 export interface Invoice extends DocBase {
   status: 'draft' | 'saved' | 'cancelled';
-  payment: PaymentInfo;
+  /** Legacy (before R1.4). Money received is in the payments table. */
+  payment?: PaymentInfo;
   /** Business details frozen at save time (SPEC §1 snapshot rule). */
   businessSnapshot?: Omit<BusinessProfile, keyof SyncedRecord> | null;
   fromEstimateId?: string | null;
-  /** Total of saved credit notes against this invoice (paise); kept up to date when a note is saved or cancelled. */
+  /** Legacy (R1.3): credit notes are now added up from the creditNotes table. */
   credited?: number;
+}
+
+/**
+ * Money received for a bill (or paid back, for a refund). Added, never edited: a mistake is voided
+ * by the owner and stays in the history. Status (paid / partly paid) is worked out from these.
+ */
+export interface PaymentEntry extends SyncedRecord {
+  invoiceId: string;
+  /** Set for a refund made because of a return. */
+  creditNoteId?: string | null;
+  kind: 'payment' | 'refund';
+  /** Paise, always positive. */
+  amount: number;
+  mode: PaymentMode;
+  date: string;
+  /** UPI reference, cheque number… */
+  reference?: string;
+  note?: string;
+  receivedBy: string;
+  receivedByName?: string;
+  voidedAt?: string | null;
+  voidedBy?: string;
+  voidedByName?: string;
+  voidReason?: string;
 }
 
 /** Reduces a saved invoice: goods returned or a price cut. Its own number series. */
@@ -232,7 +258,7 @@ export interface Estimate extends DocBase {
 
 /* ---------- sync bookkeeping ---------- */
 
-export type SyncedTable = 'profiles' | 'settings' | 'bankAccounts' | 'upiIds' | 'customers' | 'items' | 'invoices' | 'estimates' | 'creditNotes';
+export type SyncedTable = 'profiles' | 'settings' | 'bankAccounts' | 'upiIds' | 'customers' | 'items' | 'invoices' | 'estimates' | 'creditNotes' | 'payments';
 
 export interface OutboxEntry {
   seq?: number;
@@ -258,6 +284,7 @@ export const db = new Dexie('apnagalla') as Dexie & {
   invoices: EntityTable<Invoice, 'id'>;
   estimates: EntityTable<Estimate, 'id'>;
   creditNotes: EntityTable<CreditNote, 'id'>;
+  payments: EntityTable<PaymentEntry, 'id'>;
   outbox: EntityTable<OutboxEntry, 'seq'>;
   meta: EntityTable<MetaEntry, 'key'>;
 };
@@ -279,7 +306,12 @@ db.version(2).stores({
   creditNotes: 'id, businessId, [businessId+date], [businessId+number], invoiceId, billTo.customerId, status, updatedAt',
 });
 
-export const ALL_TABLES = [db.profiles, db.settings, db.bankAccounts, db.upiIds, db.customers, db.items, db.invoices, db.estimates, db.creditNotes, db.outbox, db.meta];
+db.version(3).stores({
+  payments: 'id, businessId, invoiceId, [businessId+date], updatedAt',
+  items: 'id, businessId, [businessId+name], [businessId+barcode], updatedAt',
+});
+
+export const ALL_TABLES = [db.profiles, db.settings, db.bankAccounts, db.upiIds, db.customers, db.items, db.invoices, db.estimates, db.creditNotes, db.payments, db.outbox, db.meta];
 
 export async function getMeta<T>(key: string): Promise<T | undefined> {
   return (await db.meta.get(key))?.value as T | undefined;

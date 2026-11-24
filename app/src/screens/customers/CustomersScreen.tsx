@@ -8,10 +8,10 @@ import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { rupees } from '../../lib/format';
-import { pendingAmount } from '../../lib/repo';
+import { moneyOf } from '../../lib/ledger';
 
 export default function CustomersScreen() {
-  const { actor } = useBusiness();
+  const { actor, ledger } = useBusiness();
   const [q, setQ] = useState('');
   const customers = useLiveQuery(
     () =>
@@ -28,10 +28,10 @@ export default function CustomersScreen() {
     const m = new Map<string, number>();
     for (const inv of invoices ?? []) {
       const id = inv.billTo?.customerId;
-      if (id) m.set(id, (m.get(id) ?? 0) + pendingAmount(inv));
+      if (id) m.set(id, (m.get(id) ?? 0) + moneyOf(inv, ledger).pending);
     }
     return m;
-  }, [invoices]);
+  }, [invoices, ledger]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();

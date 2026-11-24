@@ -7,7 +7,10 @@ import {
   cancelCreditNote,
   cancelInvoice,
   newCreditNoteDraft,
-  pendingAmount,
+  billMoney,
+  convertLegacyPayments,
+  recordPayments,
+  voidPayment,
   saveCreditNote,
   convertEstimate,
   ensureBusinessRecords,
@@ -17,7 +20,6 @@ import {
   PermissionError,
   saveEstimate,
   saveInvoice,
-  updatePayment,
   type Actor,
 } from './repo';
 
@@ -67,7 +69,8 @@ describe('invoice numbering', () => {
 
   it('queues every change for sync, one entry per record', async () => {
     const inv = await savedInvoice();
-    await updatePayment(owner, inv.id, { status: 'partial', amountPaid: 100 });
+    await saveInvoice(owner, { ...inv, notes: 'one' }, { finalize: false });
+    await saveInvoice(owner, { ...(await db.invoices.get(inv.id))!, notes: 'two' }, { finalize: false });
     const entries = await db.outbox.where('[table+recordId]').equals(['invoices', inv.id]).toArray();
     expect(entries).toHaveLength(1);
   });
@@ -90,28 +93,50 @@ describe('permissions (SPEC §4.6)', () => {
   });
 });
 
-describe('payments (SPEC §3)', () => {
-  it('derives status from amount and caps at the total', async () => {
+describe('payments as dated entries', () => {
+  it('works out paid / pending from entries, splits across modes, never more than pending', async () => {
     const inv = await savedInvoice(); // 2 × ₹500 + 5% = ₹1,050
     expect(inv.totals.grandTotal).toBe(105000);
-    expect((await updatePayment(owner, inv.id, { status: 'partial', amountPaid: 40000 })).payment).toMatchObject({ status: 'partial', amountPaid: 40000 });
-    expect((await updatePayment(owner, inv.id, { status: 'partial', amountPaid: 999999 })).payment).toMatchObject({ status: 'paid', amountPaid: 105000 });
-    expect((await updatePayment(owner, inv.id, { status: 'unpaid', amountPaid: 0 })).payment.status).toBe('unpaid');
+    await recordPayments(staff, inv.id, [
+      { amount: 30000, mode: 'cash' },
+      { amount: 10000, mode: 'upi', reference: 'UTR123' },
+    ]);
+    let m = await billMoney(inv.id);
+    expect(m).toMatchObject({ paid: 40000, pending: 65000, status: 'partial' });
+    expect(m.entries.map((e) => [e.mode, e.amount, e.receivedByName])).toEqual([
+      ['cash', 30000, 'Staff'],
+      ['upi', 10000, 'Staff'],
+    ]);
+    await expect(recordPayments(owner, inv.id, [{ amount: 70000, mode: 'cash' }])).rejects.toThrow(/Only ₹650.00 is pending/);
+    await recordPayments(owner, inv.id, [{ amount: 65000, mode: 'card' }]);
+    expect((await billMoney(inv.id)).status).toBe('paid');
+
+    // A mistake is voided by the owner (staff can't); it stays listed but no longer counts.
+    const cash = m.entries[0]!;
+    await expect(voidPayment(staff, cash.id, 'typo')).rejects.toBeInstanceOf(PermissionError);
+    await voidPayment(owner, cash.id, 'typo');
+    m = await billMoney(inv.id);
+    expect(m).toMatchObject({ paid: 75000, pending: 30000, status: 'partial' });
+    expect(m.entries.find((e) => e.id === cash.id)?.voidReason).toBe('typo');
   });
 
-  it('staff may increase but not reduce a payment', async () => {
+  it('a bill with payments is not cancelled until they are voided', async () => {
     const inv = await savedInvoice();
-    await updatePayment(staff, inv.id, { status: 'partial', amountPaid: 50000 });
-    await expect(updatePayment(staff, inv.id, { status: 'partial', amountPaid: 10000 })).rejects.toBeInstanceOf(PermissionError);
+    const [p] = await recordPayments(owner, inv.id, [{ amount: 1000, mode: 'cash' }]);
+    await expect(cancelInvoice(owner, inv.id)).rejects.toThrow(/payments/);
+    await voidPayment(owner, p!.id, 'wrong bill');
+    await cancelInvoice(owner, inv.id);
   });
 
-  it('re-clamps the payment when an edit lowers the total', async () => {
+  it('turns an old paid amount into one entry, the same on every phone', async () => {
     const inv = await savedInvoice();
-    await updatePayment(owner, inv.id, { status: 'paid', amountPaid: 105000 });
-    const fresh = (await db.invoices.get(inv.id))!;
-    const edited = await saveInvoice(owner, { ...fresh, lines: [{ ...line, qty: 1 }] }, { finalize: false });
-    expect(edited.totals.grandTotal).toBe(52500);
-    expect(edited.payment).toMatchObject({ status: 'paid', amountPaid: 52500 });
+    await db.invoices.update(inv.id, { payment: { status: 'partial', amountPaid: 20000, date: '2026-11-01', mode: 'upi' } });
+    expect(await convertLegacyPayments(owner)).toBe(1);
+    expect(await convertLegacyPayments(owner)).toBe(0);
+    const m = await billMoney(inv.id);
+    expect(m.entries).toHaveLength(1);
+    expect(m.entries[0]).toMatchObject({ id: `legacy-${inv.id}`, amount: 20000, mode: 'upi', date: '2026-11-01' });
+    expect(m.pending).toBe(85000);
   });
 });
 
@@ -180,24 +205,20 @@ describe('GST billing', () => {
   });
 });
 
-describe('credit notes', () => {
+describe('credit notes and returns', () => {
   it('reduce what the customer owes, can never exceed the invoice, and can be cancelled', async () => {
     const inv = await savedInvoice(); // 2 × ₹500 + 5% = ₹1,050
-    await expect(newCreditNoteDraft(staff, inv.id)).rejects.toBeInstanceOf(PermissionError);
-
     const draft = await newCreditNoteDraft(owner, inv.id);
-    expect(draft).toMatchObject({ invoiceNumber: inv.number, taxMode: 'gst', placeOfSupply: '27' });
+    expect(draft).toMatchObject({ invoiceNumber: inv.number, taxMode: 'gst', placeOfSupply: '27', reason: 'return' });
     // One bag returned.
     const note = await saveCreditNote(owner, { ...draft, lines: [{ ...draft.lines[0]!, qty: 1 }] }, { finalize: true });
     expect(note.number).toMatch(/^CN\//);
     expect(note.totals.grandTotal).toBe(52500);
-    let fresh = (await db.invoices.get(inv.id))!;
-    expect(fresh.credited).toBe(52500);
-    expect(pendingAmount(fresh)).toBe(52500);
+    expect(await billMoney(inv.id)).toMatchObject({ credited: 52500, due: 52500, pending: 52500 });
 
     // Paying the rest marks it paid.
-    fresh = await updatePayment(owner, inv.id, { status: 'partial', amountPaid: 52500 });
-    expect(fresh.payment.status).toBe('paid');
+    await recordPayments(owner, inv.id, [{ amount: 52500, mode: 'cash' }]);
+    expect((await billMoney(inv.id)).status).toBe('paid');
 
     // A second note for the full invoice is too much.
     const again = await newCreditNoteDraft(owner, inv.id);
@@ -206,9 +227,23 @@ describe('credit notes', () => {
     // The invoice can't be cancelled while it has credit notes; cancelling the note restores it.
     await expect(cancelInvoice(owner, inv.id)).rejects.toThrow(/credit notes/);
     await cancelCreditNote(owner, note.id);
-    fresh = (await db.invoices.get(inv.id))!;
-    expect(fresh.credited).toBe(0);
-    expect(fresh.payment.status).toBe('partial');
+    expect(await billMoney(inv.id)).toMatchObject({ credited: 0, pending: 52500, status: 'partial' });
+  });
+
+  it('staff take returns on any bill and refund what was overpaid; price cuts stay with the owner', async () => {
+    const inv = await savedInvoice(owner);
+    await recordPayments(owner, inv.id, [{ amount: 105000, mode: 'upi' }]);
+    const draft = await newCreditNoteDraft(staff, inv.id);
+    await expect(saveCreditNote(staff, { ...draft, reason: 'price' }, { finalize: true })).rejects.toBeInstanceOf(PermissionError);
+    const note = await saveCreditNote(staff, { ...draft, lines: [{ ...draft.lines[0]!, qty: 1 }] }, { finalize: true });
+    await expect(saveCreditNote(staff, { ...note, notes: 'edit' }, { finalize: false })).rejects.toBeInstanceOf(PermissionError);
+    await expect(cancelCreditNote(staff, note.id)).rejects.toBeInstanceOf(PermissionError);
+
+    // ₹525 was paid for goods that came back: refund it, and no more.
+    expect((await billMoney(inv.id)).refundDue).toBe(52500);
+    await expect(recordPayments(staff, inv.id, [{ amount: 60000, mode: 'cash' }], { kind: 'refund' })).rejects.toThrow(/refunded/);
+    await recordPayments(staff, inv.id, [{ amount: 52500, mode: 'cash' }], { kind: 'refund', creditNoteId: note.id });
+    expect(await billMoney(inv.id)).toMatchObject({ paid: 52500, refundDue: 0, pending: 0, status: 'paid' });
   });
 });
 

@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import type { InvoiceTotals } from '@invoice/shared';
 import { db, type BusinessSettings, type CreditNote, type Estimate, type Invoice } from '../db';
-import { computeTotals, type DocKind } from '../repo';
+import { billMoney, computeTotals, type DocKind } from '../repo';
 import { buildDocDefinition, type BusinessInfo, type PdfInput } from './buildDoc';
 
 /** pdfmake is ~1 MB with fonts, so it loads only when a PDF is first needed. */
@@ -38,6 +38,7 @@ export async function pdfInputFor(kind: DocKind, doc: Invoice | Estimate | Credi
     bank: bank && !bank.deleted ? bank : null,
     upi: upi && !upi.deleted ? upi : null,
     otherPaymentInstructions: settings.otherPaymentInstructions,
+    money: kind === 'invoice' && doc.status === 'saved' ? await billMoney(doc.id) : null,
   };
 }
 

@@ -9,7 +9,9 @@ export type BusinessInfo = Omit<BusinessProfile, keyof SyncedRecord>;
 
 export interface PdfInput {
   kind: DocKind;
-  doc: DocBase & { status: string; payment?: { amountPaid: number }; credited?: number; invoiceNumber?: string; invoiceDate?: string };
+  doc: DocBase & { status: string; invoiceNumber?: string; invoiceDate?: string };
+  /** Saved invoices: money from its payment entries and credit notes. */
+  money?: { paid: number; credited: number; pending: number } | null;
   business: BusinessInfo;
   design: DesignSettings;
   bank?: BankAccount | null;
@@ -27,9 +29,8 @@ export function upiLink(upi: UpiId, amountPaise: number, note: string): string {
 }
 
 function pendingFor(input: PdfInput, totals: InvoiceTotals): number {
-  if (input.kind !== 'invoice') return 0;
-  if (input.doc.status === 'cancelled') return 0;
-  return Math.max(0, totals.grandTotal - (input.doc.credited ?? 0) - (input.doc.payment?.amountPaid ?? 0));
+  if (input.kind !== 'invoice' || input.doc.status === 'cancelled') return 0;
+  return input.money ? input.money.pending : totals.grandTotal;
 }
 
 interface Theme {
@@ -226,10 +227,11 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
   for (const t of taxRows(view, totals)) sumRows.push([t.label, t.amount]);
   if (totals.roundOff) sumRows.push(['Round off', totals.roundOff]);
   sumRows.push(['Total', totals.grandTotal, true]);
-  const credited = kind === 'invoice' ? (input.doc.credited ?? 0) : 0;
-  if (kind === 'invoice' && doc.status === 'saved' && ((input.doc.payment?.amountPaid ?? 0) > 0 || credited > 0)) {
+  const credited = kind === 'invoice' ? (input.money?.credited ?? 0) : 0;
+  const paidSoFar = kind === 'invoice' ? (input.money?.paid ?? 0) : 0;
+  if (kind === 'invoice' && doc.status === 'saved' && (paidSoFar > 0 || credited > 0)) {
     if (credited) sumRows.push(['Credit notes', -credited]);
-    if (input.doc.payment?.amountPaid) sumRows.push(['Paid', -input.doc.payment.amountPaid]);
+    if (paidSoFar) sumRows.push(['Paid', -paidSoFar]);
     sumRows.push(['Balance due', pending, true]);
   }
 
