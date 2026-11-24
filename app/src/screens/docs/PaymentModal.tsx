@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { MoneyField, SelectField } from '../../components/Fields';
 import type { Invoice, PaymentInfo } from '../../lib/db';
 import { rupees } from '../../lib/format';
+import { sync } from '../../lib/sync';
 
 type Choice = 'unpaid' | 'paid' | 'partial';
 
@@ -59,7 +60,7 @@ export default function PaymentModal({
         <p className="section-note">
           Invoice total <strong>{rupees(total)}</strong>
         </p>
-        <IonSegment value={choice} onIonChange={(e) => setChoice(e.detail.value as Choice)}>
+        <IonSegment value={choice} onIonChange={sync((e) => setChoice(e.detail.value as Choice))}>
           <IonSegmentButton value="unpaid">
             <IonLabel>Unpaid</IonLabel>
           </IonSegmentButton>

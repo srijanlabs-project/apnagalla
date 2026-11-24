@@ -9,7 +9,7 @@ import { useForm } from '../../lib/useForm';
 
 export default function BusinessProfileScreen() {
   const { profile, actor, isOwner } = useBusiness();
-  const { value: p, patch, save, saving } = useForm<BusinessProfile>(profile);
+  const { value: p, patch, patchIn, save, saving } = useForm<BusinessProfile>(profile);
   const [toast] = useIonToast();
   if (!p) return null;
   const ro = !isOwner;
@@ -45,7 +45,7 @@ export default function BusinessProfileScreen() {
       </FormSection>
 
       <FormSection title="Address">
-        <AddressFields value={p.address} onChange={(address) => patch({ address })} disabled={ro} />
+        <AddressFields value={p.address} onChange={(a) => patchIn('address', a)} disabled={ro} />
       </FormSection>
 
       <FormSection title="Authorised signature" note="Printed at the bottom of invoices when enabled in Invoice design.">

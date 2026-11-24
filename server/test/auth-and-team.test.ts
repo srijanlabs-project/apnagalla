@@ -26,7 +26,8 @@ beforeAll(async () => {
   database = await openDatabase({ pgliteDir: 'memory://' });
   await database.migrate(path.resolve(__dirname, '../drizzle'));
   app = await buildApp({ env, database, otpSender: sender, logger: false });
-});
+  // Embedded Postgres (PGlite) can take >10 s to boot on a busy machine.
+}, 60_000);
 
 afterAll(async () => {
   await app?.close();
@@ -140,7 +141,9 @@ describe('business and team', () => {
     const staffH = bearer(staff.accessToken);
     const accepted = await app.inject({ method: 'POST', url: `/v1/invites/${staff.me.invites[0]!.id}/accept`, headers: staffH });
     expect(accepted.statusCode).toBe(200);
-    expect(accepted.json<MeResponse>().memberships).toEqual([{ businessId: biz.id, businessName: 'Asha Traders', role: 'staff' }]);
+    expect(accepted.json<MeResponse>().memberships).toEqual([
+      { businessId: biz.id, businessName: 'Asha Traders', businessCity: 'Pune', businessState: null, role: 'staff' },
+    ]);
 
     // Staff can read the business but not manage the team.
     expect((await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}`, headers: staffH })).statusCode).toBe(200);

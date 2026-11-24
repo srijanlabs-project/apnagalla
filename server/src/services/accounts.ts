@@ -27,7 +27,13 @@ export class AccountService {
     if (!user || user.deletedAt) throw notFound('User not found');
 
     const ms = await this.db
-      .select({ businessId: memberships.businessId, businessName: businesses.name, role: memberships.role })
+      .select({
+        businessId: memberships.businessId,
+        businessName: businesses.name,
+        businessCity: businesses.city,
+        businessState: businesses.state,
+        role: memberships.role,
+      })
       .from(memberships)
       .innerJoin(businesses, eq(businesses.id, memberships.businessId))
       .where(and(eq(memberships.userId, userId), isNull(memberships.removedAt)));

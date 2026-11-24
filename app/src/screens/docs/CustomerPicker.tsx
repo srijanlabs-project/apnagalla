@@ -81,7 +81,7 @@ export default function CustomerPicker({ isOpen, onClose, onPick }: Props) {
       </IonHeader>
       <IonContent className={creating ? 'ion-padding' : undefined}>
         {creating ? (
-          <CustomerForm value={creating} onChange={(p) => setCreating({ ...creating, ...p })} />
+          <CustomerForm value={creating} update={(fn) => setCreating((cur) => cur && fn(cur))} />
         ) : (
           <IonList>
             <IonItem button detail={false} onClick={() => setCreating(blankCustomer(actor, q.trim()))}>

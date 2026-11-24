@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { errorMessage } from '../../lib/api';
 import { useOnline } from '../../lib/network';
 import { useSession } from '../../lib/session';
+import { sync } from '../../lib/sync';
 import '../auth/auth.css';
 
 /**
@@ -83,9 +84,10 @@ export default function OnboardingScreen() {
                 placeholder="Your full name"
                 value={name}
                 autocapitalize="words"
-                onIonInput={(e) => setNameInput(String(e.detail.value ?? ''))}
+                onIonInput={sync((e) => setNameInput(String(e.detail.value ?? '')))}
                 aria-label="Your name"
               />
+              <button type="submit" hidden aria-hidden="true" tabIndex={-1} disabled={!name.trim() || !!busy} />
               <IonButton type="submit" expand="block" disabled={!name.trim() || !!busy}>
                 {busy === 'name' ? <IonSpinner name="dots" /> : 'Continue'}
               </IonButton>
@@ -132,7 +134,7 @@ export default function OnboardingScreen() {
                   labelPlacement="floating"
                   value={biz.name}
                   autocapitalize="words"
-                  onIonInput={(e) => setBiz({ ...biz, name: String(e.detail.value ?? '') })}
+                  onIonInput={sync((e) => { const v = String(e.detail.value ?? ''); setBiz((b) => ({ ...b, name: v })); })}
                 />
                 <IonInput
                   fill="outline"
@@ -140,7 +142,7 @@ export default function OnboardingScreen() {
                   labelPlacement="floating"
                   value={biz.city}
                   autocapitalize="words"
-                  onIonInput={(e) => setBiz({ ...biz, city: String(e.detail.value ?? '') })}
+                  onIonInput={sync((e) => { const v = String(e.detail.value ?? ''); setBiz((b) => ({ ...b, city: v })); })}
                 />
                 <IonInput
                   fill="outline"
@@ -148,8 +150,9 @@ export default function OnboardingScreen() {
                   labelPlacement="floating"
                   value={biz.state}
                   autocapitalize="words"
-                  onIonInput={(e) => setBiz({ ...biz, state: String(e.detail.value ?? '') })}
+                  onIonInput={sync((e) => { const v = String(e.detail.value ?? ''); setBiz((b) => ({ ...b, state: v })); })}
                 />
+                <button type="submit" hidden aria-hidden="true" tabIndex={-1} disabled={!biz.name.trim() || !!busy || !online} />
                 <IonButton type="submit" expand="block" disabled={!biz.name.trim() || !!busy || !online}>
                   {busy === 'biz' ? <IonSpinner name="dots" /> : 'Create business'}
                 </IonButton>

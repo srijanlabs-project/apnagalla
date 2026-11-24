@@ -32,6 +32,7 @@ import { computeTotals, isNumberTaken, newEstimateDraft, newId, newInvoiceDraft,
 import { PAYMENT_TERMS } from '../settings/InvoiceSettingsScreen';
 import CustomerPicker, { snapshotOf } from './CustomerPicker';
 import LineEditor from './LineEditor';
+import { sync } from '../../lib/sync';
 
 type Kind = 'invoice' | 'estimate';
 type Doc = Invoice | Estimate;
@@ -94,7 +95,10 @@ export default function DocEditorScreen({ kind }: { kind: Kind }) {
     );
   }
 
-  const patch = (p: Partial<DocBase>) => setDoc({ ...doc, ...p } as Doc);
+  // Always merge into the latest state: building from the rendered `doc` can drop a keystroke
+  // in another field that React hasn't re-rendered yet.
+  const patch = (p: Partial<DocBase> | ((cur: Doc) => Partial<DocBase>)) =>
+    setDoc((cur) => (cur ? ({ ...cur, ...(typeof p === 'function' ? p(cur) : p) } as Doc) : cur));
   const label = kind === 'invoice' ? 'Invoice' : 'Estimate';
   const locked = !wasDraft && kind === 'invoice' && !isOwner;
 
@@ -250,7 +254,7 @@ export default function DocEditorScreen({ kind }: { kind: Kind }) {
               key={f.label}
               label={f.label}
               value={f.value}
-              onChange={(value) => patch({ customFields: doc.customFields.map((x, j) => (j === i ? { ...x, value } : x)) })}
+              onChange={(value) => patch((cur) => ({ customFields: cur.customFields.map((x, j) => (j === i ? { ...x, value } : x)) }))}
               disabled={locked}
             />
           ))}
@@ -300,7 +304,7 @@ export default function DocEditorScreen({ kind }: { kind: Kind }) {
             </div>
           ) : (
             <>
-              <IonSegment value={doc.overallDiscount?.type ?? 'pct'} disabled={locked} onIonChange={(e) => patch({ overallDiscount: { type: e.detail.value as 'pct' | 'amount', value: 0 } })}>
+              <IonSegment value={doc.overallDiscount?.type ?? 'pct'} disabled={locked} onIonChange={sync((e) => patch({ overallDiscount: { type: e.detail.value as 'pct' | 'amount', value: 0 } }))}>
                 <IonSegmentButton value="pct">
                   <IonLabel>%</IonLabel>
                 </IonSegmentButton>
@@ -325,16 +329,16 @@ export default function DocEditorScreen({ kind }: { kind: Kind }) {
         <FormSection title="Additional charges">
           {doc.charges.map((c, i) => (
             <div key={i} className="charge-row">
-              <TextField label="Charge" value={c.label} onChange={(label) => patch({ charges: doc.charges.map((x, j) => (j === i ? { ...x, label } : x)) })} disabled={locked} />
-              <MoneyField label="Amount" value={c.amount} onChange={(amount) => patch({ charges: doc.charges.map((x, j) => (j === i ? { ...x, amount: amount ?? 0 } : x)) })} disabled={locked} />
+              <TextField label="Charge" value={c.label} onChange={(label) => patch((cur) => ({ charges: cur.charges.map((x, j) => (j === i ? { ...x, label } : x)) }))} disabled={locked} />
+              <MoneyField label="Amount" value={c.amount} onChange={(amount) => patch((cur) => ({ charges: cur.charges.map((x, j) => (j === i ? { ...x, amount: amount ?? 0 } : x)) }))} disabled={locked} />
               <SelectField
                 label="Tax %"
                 value={c.taxPct}
                 options={settings.taxRates.map((r) => ({ value: r, label: `${r}%` }))}
-                onChange={(taxPct) => patch({ charges: doc.charges.map((x, j) => (j === i ? { ...x, taxPct } : x)) })}
+                onChange={(taxPct) => patch((cur) => ({ charges: cur.charges.map((x, j) => (j === i ? { ...x, taxPct } : x)) }))}
                 disabled={locked}
               />
-              {!locked && <IonIcon icon={closeCircle} className="charge-remove" onClick={() => patch({ charges: doc.charges.filter((_, j) => j !== i) })} />}
+              {!locked && <IonIcon icon={closeCircle} className="charge-remove" onClick={() => patch((cur) => ({ charges: cur.charges.filter((_, j) => j !== i) }))} />}
             </div>
           ))}
           {!locked && (
@@ -405,7 +409,7 @@ export default function DocEditorScreen({ kind }: { kind: Kind }) {
           setEditing(null);
         }}
         onDelete={(lineId) => {
-          patch({ lines: doc.lines.filter((l) => l.id !== lineId) });
+          patch((cur) => ({ lines: cur.lines.filter((l) => l.id !== lineId) }));
           setEditing(null);
         }}
       />

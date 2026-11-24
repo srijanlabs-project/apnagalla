@@ -6,7 +6,7 @@ import { useParams } from 'react-router-dom';
 import { AddressFields, FormSection, MoneyField, TextField, ToggleRow } from '../../components/Fields';
 import FormPage from '../../components/FormPage';
 import { useBusiness } from '../../lib/business';
-import { db, type Customer } from '../../lib/db';
+import { db, type Address, type Customer } from '../../lib/db';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
 
@@ -28,8 +28,12 @@ export async function saveCustomer(actor: Actor, c: Customer): Promise<Customer>
   return putRecord('customers', actor, { ...c, name: c.name.trim(), phone: c.phone ? normalizeIndianMobile(c.phone)! : undefined });
 }
 
-export function CustomerForm({ value: c, onChange: patch }: { value: Customer; onChange: (p: Partial<Customer>) => void }) {
+/** `update` must apply the function to the parent's latest state (functional setState). */
+export function CustomerForm({ value: c, update }: { value: Customer; update: (fn: (c: Customer) => Customer) => void }) {
   const err = validateCustomer(c);
+  const patch = (p: Partial<Customer>) => update((cur) => ({ ...cur, ...p }));
+  const patchAddress = (key: 'billingAddress' | 'shippingAddress') => (a: Partial<Address>) =>
+    update((cur) => ({ ...cur, [key]: { ...cur[key], ...a } }));
   return (
     <>
       <FormSection>
@@ -46,11 +50,15 @@ export function CustomerForm({ value: c, onChange: patch }: { value: Customer; o
         <TextField label="Tax ID (optional)" value={c.taxId} onChange={(taxId) => patch({ taxId: taxId.toUpperCase() })} />
       </FormSection>
       <FormSection title="Billing address">
-        <AddressFields value={c.billingAddress} onChange={(billingAddress) => patch({ billingAddress })} />
+        <AddressFields value={c.billingAddress} onChange={patchAddress('billingAddress')} />
       </FormSection>
       <FormSection title="Shipping address">
-        <ToggleRow label="Same as billing address" checked={!c.shippingAddress} onChange={(same) => patch({ shippingAddress: same ? null : { ...c.billingAddress } })} />
-        {c.shippingAddress && <AddressFields value={c.shippingAddress} onChange={(shippingAddress) => patch({ shippingAddress })} />}
+        <ToggleRow
+          label="Same as billing address"
+          checked={!c.shippingAddress}
+          onChange={(same) => update((cur) => ({ ...cur, shippingAddress: same ? null : { ...cur.billingAddress } }))}
+        />
+        {c.shippingAddress && <AddressFields value={c.shippingAddress} onChange={patchAddress('shippingAddress')} />}
       </FormSection>
     </>
   );
@@ -62,7 +70,7 @@ export default function CustomerEditScreen() {
   const isNew = !id || id === 'new';
   const existing = useLiveQuery(() => (isNew ? undefined : db.customers.get(id!)), [id]);
   const initial = useMemo(() => (isNew ? blankCustomer(actor) : existing), [isNew, existing, actor]);
-  const { value: c, patch, save, saving } = useForm<Customer>(initial);
+  const { value: c, setValue, patch, save, saving } = useForm<Customer>(initial);
   const [alert] = useIonAlert();
   const router = useIonRouter();
   if (!c) return null;
@@ -75,7 +83,7 @@ export default function CustomerEditScreen() {
       saving={saving}
       canSave={!validateCustomer(c)}
     >
-      <CustomerForm value={c} onChange={patch} />
+      <CustomerForm value={c} update={(fn) => setValue((v) => v && fn(v))} />
       <FormSection title="Opening balance" note="Amount this customer already owed you before you started using the app. Added to their pending total.">
         <MoneyField label="Opening balance" value={c.openingBalance} onChange={(v) => patch({ openingBalance: v ?? 0 })} disabled={!isOwner && !isNew} />
       </FormSection>

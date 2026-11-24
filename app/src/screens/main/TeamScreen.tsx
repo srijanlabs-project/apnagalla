@@ -21,6 +21,7 @@ import { useCallback, useEffect, useState } from 'react';
 import PageShell from '../../components/PageShell';
 import { api, errorMessage } from '../../lib/api';
 import { useSession } from '../../lib/session';
+import { sync } from '../../lib/sync';
 
 /** Owner-only: invite staff by phone, see pending invites, remove staff. Needs internet. */
 export default function TeamScreen() {
@@ -99,8 +100,12 @@ export default function TeamScreen() {
           label="Staff mobile number"
           labelPlacement="floating"
           value={phone}
-          onIonInput={(e) => setPhone(String(e.detail.value ?? ''))}
+          onIonInput={sync((e) => {
+            setPhone(String(e.detail.value ?? ''));
+            setError(null);
+          })}
         />
+        <button type="submit" hidden aria-hidden="true" tabIndex={-1} disabled={busy} />
         <IonButton type="submit" expand="block" className="ion-margin-top" disabled={busy || phone.replace(/\D/g, '').length < 10}>
           {busy ? <IonSpinner name="dots" /> : 'Invite staff'}
         </IonButton>

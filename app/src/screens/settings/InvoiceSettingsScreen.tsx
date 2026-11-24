@@ -8,6 +8,7 @@ import type { BusinessSettings } from '../../lib/db';
 import { formatDocNumber, putRecord } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
 import { todayISO } from '@invoice/shared';
+import { sync } from '../../lib/sync';
 
 export const PAYMENT_TERMS = [
   { value: 0, label: 'Due on receipt' },
@@ -36,7 +37,7 @@ function ChipList<T extends string | number>(p: { values: T[]; onChange: (v: T[]
       ))}
       {!p.disabled && (
         <div className="chip-add">
-          <IonInput fill="outline" placeholder={p.placeholder} value={text} onIonInput={(e) => setText(String(e.detail.value ?? ''))} onKeyDown={(e) => e.key === 'Enter' && add()} />
+          <IonInput fill="outline" placeholder={p.placeholder} value={text} onIonInput={sync((e) => setText(String(e.detail.value ?? '')))} onKeyDown={(e) => e.key === 'Enter' && add()} />
           <IonButton size="small" fill="outline" onClick={add} disabled={!text.trim()}>
             Add
           </IonButton>

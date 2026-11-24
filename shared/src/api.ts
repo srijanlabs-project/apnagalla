@@ -67,6 +67,9 @@ export interface UserDto {
 export interface MembershipDto {
   businessId: string;
   businessName: string;
+  /** City/state entered at sign-up; used to pre-fill the business profile on a new device. */
+  businessCity: string | null;
+  businessState: string | null;
   role: Role;
 }
 

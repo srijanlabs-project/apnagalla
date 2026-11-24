@@ -2,6 +2,7 @@ import { IonSpinner } from '@ionic/react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { db, type BankAccount, type BusinessProfile, type BusinessSettings, type UpiId } from './db';
+import { INDIAN_STATES } from './format';
 import { defaultSettings, ensureBusinessRecords, type Actor } from './repo';
 import { useSession } from './session';
 
@@ -24,7 +25,11 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setReady(false);
-    void ensureBusinessRecords(businessId, membership!.businessName).then(() => setReady(true));
+    const m = membership!;
+    // Match the sign-up state to our list so the State picker shows it.
+    const state = INDIAN_STATES.find((s) => s.toLowerCase() === m.businessState?.trim().toLowerCase());
+    const address = { city: m.businessCity?.trim() || undefined, state };
+    void ensureBusinessRecords(businessId, m.businessName, address).then(() => setReady(true));
   }, [businessId, membership]);
 
   const profile = useLiveQuery(() => db.profiles.get(businessId), [businessId]);

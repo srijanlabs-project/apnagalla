@@ -8,6 +8,7 @@ import { useBusiness } from '../../lib/business';
 import type { DesignSettings, Invoice, TemplateId } from '../../lib/db';
 import { renderPdf } from '../../lib/pdf';
 import { computeTotals, putRecord } from '../../lib/repo';
+import { sync } from '../../lib/sync';
 
 const TEMPLATES: { id: TemplateId; name: string; hint: string }[] = [
   { id: 'classic', name: 'Classic', hint: 'Bordered table, traditional' },
@@ -77,7 +78,7 @@ export default function DesignScreen() {
   const [blob, setBlob] = useState<Blob | null>(null);
   const [saving, setSaving] = useState(false);
   const sample = useMemo(() => sampleInvoice(actor.businessId), [actor.businessId]);
-  const set = (p: Partial<DesignSettings>) => setD({ ...d, ...p });
+  const set = (p: Partial<DesignSettings>) => setD((cur) => ({ ...cur, ...p }));
 
   // Re-render the preview (debounced) whenever the design changes.
   useEffect(() => {
@@ -138,7 +139,7 @@ export default function DesignScreen() {
       )}
 
       <FormSection title="Text size & paper">
-        <IonSegment value={d.fontSize} disabled={!isOwner} onIonChange={(e) => set({ fontSize: e.detail.value as DesignSettings['fontSize'] })}>
+        <IonSegment value={d.fontSize} disabled={!isOwner} onIonChange={sync((e) => set({ fontSize: e.detail.value as DesignSettings['fontSize'] }))}>
           <IonSegmentButton value="S">
             <IonLabel>Small</IonLabel>
           </IonSegmentButton>
@@ -149,7 +150,7 @@ export default function DesignScreen() {
             <IonLabel>Large</IonLabel>
           </IonSegmentButton>
         </IonSegment>
-        <IonSegment value={d.paper} disabled={!isOwner} onIonChange={(e) => set({ paper: e.detail.value as DesignSettings['paper'] })} style={{ marginTop: 8 }}>
+        <IonSegment value={d.paper} disabled={!isOwner} onIonChange={sync((e) => set({ paper: e.detail.value as DesignSettings['paper'] }))} style={{ marginTop: 8 }}>
           <IonSegmentButton value="A4">
             <IonLabel>A4</IonLabel>
           </IonSegmentButton>

@@ -22,6 +22,13 @@ export function useForm<T>(initial: T | undefined) {
 
   const patch = useCallback((p: Partial<T>) => setValue((v) => (v === undefined ? v : { ...v, ...p })), []);
 
+  /** Merge into a nested object field (e.g. an address) against the latest state. */
+  const patchIn = useCallback(
+    <K extends keyof T>(key: K, p: Partial<NonNullable<T[K]>>) =>
+      setValue((v) => (v == null ? v : { ...v, [key]: { ...(v[key] as object | null), ...p } })),
+    [],
+  );
+
   const save = useCallback(
     async (action: () => Promise<unknown>, opts: { message?: string; back?: boolean } = {}) => {
       setSaving(true);
@@ -41,5 +48,5 @@ export function useForm<T>(initial: T | undefined) {
     [router, toast],
   );
 
-  return { value, setValue, patch, save, saving };
+  return { value, setValue, patch, patchIn, save, saving };
 }

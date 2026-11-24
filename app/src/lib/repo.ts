@@ -4,6 +4,7 @@ import {
   db,
   setMeta,
   getMeta,
+  type Address,
   type BusinessProfile,
   type BusinessSettings,
   type DesignSettings,
@@ -118,10 +119,10 @@ export function defaultSettings(businessId: string): BusinessSettings {
  * Makes sure profile + settings exist locally for this business. They are NOT queued for sync:
  * real values arrive from the server (M3) or from the owner editing them.
  */
-export async function ensureBusinessRecords(businessId: string, businessName: string): Promise<void> {
+export async function ensureBusinessRecords(businessId: string, businessName: string, address: Address = {}): Promise<void> {
   await db.transaction('rw', [db.profiles, db.settings], async () => {
     if (!(await db.profiles.get(businessId))) {
-      await db.profiles.put({ id: businessId, businessId, createdAt: EPOCH, updatedAt: EPOCH, updatedBy: '', name: businessName, address: {} });
+      await db.profiles.put({ id: businessId, businessId, createdAt: EPOCH, updatedAt: EPOCH, updatedBy: '', name: businessName, address });
     }
     if (!(await db.settings.get(businessId))) await db.settings.put(defaultSettings(businessId));
   });

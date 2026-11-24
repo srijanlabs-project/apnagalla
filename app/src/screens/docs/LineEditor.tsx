@@ -22,6 +22,7 @@ import { useBusiness } from '../../lib/business';
 import { db, type DocLine, type Item } from '../../lib/db';
 import { rupees } from '../../lib/format';
 import { newId, putRecord } from '../../lib/repo';
+import { sync } from '../../lib/sync';
 
 export function lineFromItem(it: Item): DocLine {
   return { id: newId(), itemId: it.id, name: it.name, description: it.description, qty: 1, unit: it.unit, rate: it.rate, rateIncludesTax: it.rateIncludesTax, taxPct: it.taxPct, discount: null };
@@ -65,7 +66,7 @@ export default function LineEditor({ line, isNew, onClose, onSave, onDelete }: P
   }, [items, q]);
 
   if (!l) return <IonModal isOpen={false} />;
-  const set = (p: Partial<DocLine>) => setL({ ...l, ...p });
+  const set = (p: Partial<DocLine>) => setL((cur) => (cur ? { ...cur, ...p } : cur));
   const calc = calculateInvoice({ lines: [l], roundOff: false });
   const units = settings.units.includes(l.unit) ? settings.units : [...settings.units, l.unit];
   const rates = settings.taxRates.includes(l.taxPct) ? settings.taxRates : [...settings.taxRates, l.taxPct].sort((a, b) => a - b);
@@ -164,7 +165,7 @@ export default function LineEditor({ line, isNew, onClose, onSave, onDelete }: P
             <FormSection title="Discount on this item">
               <IonSegment
                 value={l.discount?.type ?? 'pct'}
-                onIonChange={(e) => set({ discount: { type: e.detail.value as 'pct' | 'amount', value: 0 } })}
+                onIonChange={sync((e) => set({ discount: { type: e.detail.value as 'pct' | 'amount', value: 0 } }))}
               >
                 <IonSegmentButton value="pct">
                   <IonLabel>%</IonLabel>

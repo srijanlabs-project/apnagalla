@@ -166,18 +166,18 @@ export default function PaymentDetailsScreen() {
               </IonToolbar>
             </IonHeader>
             <IonContent className="ion-padding">
-              <TextField label="Account holder name" required value={bank.holderName} onChange={(holderName) => setBank({ ...bank, holderName })} autocapitalize="words" />
-              <TextField label="Bank name" required value={bank.bankName} onChange={(bankName) => setBank({ ...bank, bankName })} autocapitalize="words" />
-              <TextField label="Account number" required inputmode="numeric" value={bank.accountNumber} onChange={(v) => setBank({ ...bank, accountNumber: v.replace(/\s/g, '') })} />
+              <TextField label="Account holder name" required value={bank.holderName} onChange={(holderName) => setBank((b) => b && { ...b, holderName })} autocapitalize="words" />
+              <TextField label="Bank name" required value={bank.bankName} onChange={(bankName) => setBank((b) => b && { ...b, bankName })} autocapitalize="words" />
+              <TextField label="Account number" required inputmode="numeric" value={bank.accountNumber} onChange={(v) => setBank((b) => b && { ...b, accountNumber: v.replace(/\s/g, '') })} />
               <TextField
                 label="IFSC"
                 required
                 value={bank.ifsc}
-                onChange={(v) => setBank({ ...bank, ifsc: v.toUpperCase().trim() })}
+                onChange={(v) => setBank((b) => b && { ...b, ifsc: v.toUpperCase().trim() })}
                 error={bank.ifsc && !IFSC_RE.test(bank.ifsc) ? '11 characters, e.g. HDFC0001234' : null}
                 maxlength={11}
               />
-              <TextField label="Branch" value={bank.branch} onChange={(branch) => setBank({ ...bank, branch })} autocapitalize="words" />
+              <TextField label="Branch" value={bank.branch} onChange={(branch) => setBank((b) => b && { ...b, branch })} autocapitalize="words" />
               <SelectField
                 label="Account type"
                 value={bank.accountType}
@@ -185,9 +185,9 @@ export default function PaymentDetailsScreen() {
                   { value: 'current', label: 'Current' },
                   { value: 'savings', label: 'Savings' },
                 ]}
-                onChange={(accountType) => setBank({ ...bank, accountType })}
+                onChange={(accountType) => setBank((b) => b && { ...b, accountType })}
               />
-              <ToggleRow label="Default (print on every invoice)" checked={bank.isDefault} onChange={(isDefault) => setBank({ ...bank, isDefault })} />
+              <ToggleRow label="Default (print on every invoice)" checked={bank.isDefault} onChange={(isDefault) => setBank((b) => b && { ...b, isDefault })} />
               {bankAccounts.some((b) => b.id === bank.id) && (
                 <IonButton
                   color="danger"
@@ -231,12 +231,12 @@ export default function PaymentDetailsScreen() {
                 required
                 placeholder="shopname@okbank"
                 value={upi.upiId}
-                onChange={(upiId) => setUpi({ ...upi, upiId })}
+                onChange={(upiId) => setUpi((u) => u && { ...u, upiId })}
                 autocapitalize="off"
                 error={upi.upiId && !UPI_RE.test(upi.upiId.trim()) ? 'Looks like name@bank' : null}
               />
-              <TextField label="Payee name" required value={upi.payeeName} onChange={(payeeName) => setUpi({ ...upi, payeeName })} autocapitalize="words" />
-              <ToggleRow label="Default (QR on every invoice)" checked={upi.isDefault} onChange={(isDefault) => setUpi({ ...upi, isDefault })} />
+              <TextField label="Payee name" required value={upi.payeeName} onChange={(payeeName) => setUpi((u) => u && { ...u, payeeName })} autocapitalize="words" />
+              <ToggleRow label="Default (QR on every invoice)" checked={upi.isDefault} onChange={(isDefault) => setUpi((u) => u && { ...u, isDefault })} />
               {upiIds.some((u) => u.id === upi.id) && (
                 <IonButton
                   color="danger"

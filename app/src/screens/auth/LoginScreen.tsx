@@ -12,6 +12,7 @@ import { OTP_LENGTH, formatIndianMobile, normalizeIndianMobile } from '@invoice/
 import { useEffect, useRef, useState } from 'react';
 import { errorMessage } from '../../lib/api';
 import { useSession } from '../../lib/session';
+import { sync } from '../../lib/sync';
 import './auth.css';
 
 type Step = { kind: 'phone' } | { kind: 'otp'; phone: string; resendAt: number };
@@ -96,10 +97,15 @@ export default function LoginScreen() {
                   placeholder="98765 43210"
                   value={phoneInput}
                   maxlength={14}
-                  onIonInput={(e) => setPhoneInput(String(e.detail.value ?? ''))}
+                  onIonInput={sync((e) => {
+                    setPhoneInput(String(e.detail.value ?? ''));
+                    setError(null);
+                  })}
                   aria-label="Mobile number"
                 />
               </div>
+              {/* Lets the keyboard's Go/Enter key submit (IonButton alone doesn't). */}
+              <button type="submit" hidden aria-hidden="true" tabIndex={-1} disabled={busy} />
               {error && <IonText color="danger" className="auth-error">{error}</IonText>}
               <IonButton type="submit" expand="block" disabled={busy || phoneInput.replace(/\D/g, '').length < 10}>
                 {busy ? <IonSpinner name="dots" /> : 'Get OTP'}
@@ -118,9 +124,13 @@ export default function LoginScreen() {
                 maxlength={OTP_LENGTH}
                 placeholder={'•'.repeat(OTP_LENGTH)}
                 value={code}
-                onIonInput={(e) => setCode(String(e.detail.value ?? '').replace(/\D/g, '').slice(0, OTP_LENGTH))}
+                onIonInput={sync((e) => {
+                  setCode(String(e.detail.value ?? '').replace(/\D/g, '').slice(0, OTP_LENGTH));
+                  setError(null);
+                })}
                 aria-label="One-time code"
               />
+              <button type="submit" hidden aria-hidden="true" tabIndex={-1} disabled={busy} />
               {error && <IonText color="danger" className="auth-error">{error}</IonText>}
               <IonButton type="submit" expand="block" disabled={busy || code.length !== OTP_LENGTH}>
                 {busy ? <IonSpinner name="dots" /> : 'Verify'}
