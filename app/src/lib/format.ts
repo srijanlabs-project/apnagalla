@@ -11,7 +11,8 @@ export function addressLines(a: { line1?: string; line2?: string; city?: string;
 }
 
 /** Reads an image file, scales it down to fit maxPx and returns a compact data URL. */
-export async function fileToResizedDataUrl(file: File, maxPx = 512): Promise<string> {
+/** `photo` = JPEG (bills, pictures: much smaller); else PNG (logos, signatures keep transparency). */
+export async function fileToResizedDataUrl(file: File, maxPx = 512, photo = false): Promise<string> {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -26,7 +27,7 @@ export async function fileToResizedDataUrl(file: File, maxPx = 512): Promise<str
     canvas.height = Math.round(img.height * scale);
     canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
     // PNG keeps transparency (logos, signatures); they are small after resizing.
-    return canvas.toDataURL('image/png');
+    return photo ? canvas.toDataURL('image/jpeg', 0.72) : canvas.toDataURL('image/png');
   } finally {
     URL.revokeObjectURL(url);
   }

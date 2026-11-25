@@ -43,6 +43,13 @@
       "when": 1795565522256,
       "tag": "0005_admin_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795590556197,
+      "tag": "0006_store_exports",
+      "breakpoints": true
     }
   ]
 }

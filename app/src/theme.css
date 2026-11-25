@@ -237,3 +237,27 @@
 .lock-screen .lock-icon { font-size: 56px; color: var(--ion-color-primary); margin-top: 32px; }
 .pin-input { max-width: 260px; margin: 12px auto; font-size: 1.4rem; letter-spacing: 0.4em; text-align: center; }
 .lock-toggle { margin: 12px 0; }
+
+/* ---------- stock, purchases, khata (R2) ---------- */
+.text-success { color: var(--ion-color-success); }
+.stock-qty { display: block; font-size: 0.78rem; font-weight: 500; color: var(--ion-color-medium); }
+.stock-qty.text-danger { color: var(--ion-color-danger); }
+.stock-link { margin-bottom: 8px; }
+.report-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.report-table th, .report-table td { padding: 6px 8px; border-bottom: 1px solid var(--ion-color-light-shade); text-align: left; }
+.report-table td.num, .report-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.report-table tfoot td { font-weight: 700; }
+.report-scroll { overflow-x: auto; margin: 0 -4px; }
+.period-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+.period-row ion-input { max-width: 170px; }
+.dash-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.dash-card { background: var(--ion-color-light); border-radius: 12px; padding: 10px 12px; text-decoration: none; color: inherit; display: block; }
+.dash-card span { display: block; font-size: 0.78rem; color: var(--ion-color-medium); }
+.dash-card strong { display: block; font-size: 1.15rem; margin-top: 2px; }
+.ledger-balance { font-variant-numeric: tabular-nums; }
+.line-card { margin: 8px 0; }
+.totals-box { margin: 12px 0; }
+.totals-box p { margin: 2px 0; }
+.strike { text-decoration: line-through; opacity: 0.6; }
+.bill-photo { max-width: 100%; border-radius: 8px; margin: 8px 0; }
+.po-line-name { flex: 1; min-width: 0; }

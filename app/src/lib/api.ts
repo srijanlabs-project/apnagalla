@@ -145,7 +145,7 @@ export const api = {
     request<TeamResponse>('POST', `/v1/businesses/${id}/members/${userId}/${active ? 'activate' : 'deactivate'}`),
 
   syncPush: (id: string, body: SyncPushBody) => request<SyncPushResponse>('POST', `/v1/businesses/${id}/sync/push`, body),
-  syncPull: (id: string, since: number) => request<SyncPullResponse>('GET', `/v1/businesses/${id}/sync/pull?since=${since}`),
+  syncPull: (id: string, since: number, schema = 1) => request<SyncPullResponse>('GET', `/v1/businesses/${id}/sync/pull?since=${since}&schema=${schema}`),
   reserveNumbers: (id: string, body: ReserveNumbersBody, timeoutMs?: number) =>
     request<ReserveNumbersResponse>('POST', `/v1/businesses/${id}/numbers/reserve`, body, { timeoutMs }),
   returnNumbers: (id: string, body: ReturnNumbersBody) => request<void>('POST', `/v1/businesses/${id}/numbers/return`, body),
@@ -155,6 +155,14 @@ export const api = {
   adminSuspend: (id: string, reason: string) => request<void>('POST', `/v1/admin/stores/${id}/suspend`, { reason }),
   adminReactivate: (id: string) => request<void>('POST', `/v1/admin/stores/${id}/reactivate`),
   adminAudit: (id: string) => request<{ entries: AuditEntryDto[] }>('GET', `/v1/admin/stores/${id}/audit`),
+  features: () => request<{ scanBill: boolean }>('GET', '/v1/features'),
+  scanBill: (id: string, image: string, mediaType: 'image/jpeg') =>
+    request<{ bill: ScannedBillDto }>('POST', `/v1/businesses/${id}/scan-bill`, { image, mediaType }, { timeoutMs: 120_000 }),
+  exportSettings: (id: string) => request<ExportSettingsDto>('GET', `/v1/businesses/${id}/exports`),
+  saveExportSettings: (id: string, body: { enabled: boolean; email: string | null; hour: number }) => request<ExportSettingsDto>('PUT', `/v1/businesses/${id}/exports`, body),
+  connectExport: (id: string, provider: 'google' | 'onedrive' | 'dropbox') => request<{ url: string }>('POST', `/v1/businesses/${id}/exports/connect/${provider}`),
+  disconnectExport: (id: string) => request<ExportSettingsDto>('DELETE', `/v1/businesses/${id}/exports/connect`),
+  sendExportNow: (id: string) => request<ExportSettingsDto>('POST', `/v1/businesses/${id}/exports/send-now`, undefined, { timeoutMs: 60_000 }),
   setSeriesCode: (id: string, userId: string, code: string) => request<TeamResponse>('POST', `/v1/businesses/${id}/members/${userId}/series-code`, { code }),
 
   acceptInvite: (inviteId: string) => request<MeResponse>('POST', `/v1/invites/${inviteId}/accept`),
@@ -165,3 +173,27 @@ export function errorMessage(e: unknown): string {
   if (e instanceof ApiError || e instanceof NetworkError) return e.message;
   return t('Something went wrong. Please try again.');
 }
+
+/** A supplier bill read from a photo (amounts in rupees, as printed). */
+export interface ScannedBillDto {
+  supplierName: string;
+  supplierGstin: string;
+  billNo: string;
+  date: string;
+  hasGst: boolean;
+  igst: boolean;
+  lines: { name: string; hsn: string; qty: number; unit: string; rate: number; taxPct: number; mrp: number }[];
+  total: number;
+}
+
+export interface ExportSettingsDto {
+  enabled: boolean;
+  email: string | null;
+  hour: number;
+  provider: 'google' | 'onedrive' | 'dropbox' | null;
+  accountLabel: string | null;
+  lastSentDate: string | null;
+  lastError: string | null;
+  available: { email: boolean; google: boolean; onedrive: boolean; dropbox: boolean };
+}
+

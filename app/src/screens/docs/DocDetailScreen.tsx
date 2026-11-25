@@ -45,6 +45,7 @@ import {
   type DocKind,
 } from '../../lib/repo';
 import PaySheet from '../../components/PaySheet';
+import { applyAdvance, khataOf } from '../../lib/khata';
 import { markDelivered } from '../../lib/deliveries';
 import { usePrint } from '../../lib/usePrint';
 import { modeLabel, moneyOf } from '../../lib/ledger';
@@ -75,6 +76,12 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   // A credit note's invoice: its refund is paid from here.
   const noteInvoiceId = kind === 'credit' ? (doc as CreditNote | undefined)?.invoiceId : undefined;
   const linked = useLiveQuery(async (): Promise<Invoice | undefined> => (noteInvoiceId ? db.invoices.get(noteInvoiceId) : undefined), [noteInvoiceId]);
+  // Money the customer left on account, to use on this bill.
+  const customerId = kind === 'invoice' ? (doc as Invoice | undefined)?.billTo?.customerId : undefined;
+  const advance = useLiveQuery(async () => {
+    const c = customerId ? await db.customers.get(customerId) : undefined;
+    return c ? (await khataOf(actor.businessId, c)).advance : 0;
+  }, [customerId, actor.businessId, ledger]);
   if (!doc) return null;
   const inv = kind === 'invoice' ? (doc as Invoice) : null;
   const est = kind === 'estimate' ? (doc as Estimate) : null;
@@ -309,6 +316,20 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
             {inv && inv.status === 'saved' && pending > 0 && (
               <IonButton fill="outline" onClick={() => setPayOpen('payment')}>
                 <IonIcon icon={walletOutline} slot="start" /> {t('Record payment')}
+              </IonButton>
+            )}
+            {inv && inv.status === 'saved' && pending > 0 && (advance ?? 0) > 0 && CAN_CREATE_INVOICES && (
+              <IonButton
+                fill="outline"
+                color="success"
+                onClick={() =>
+                  void db.customers
+                    .get(customerId!)
+                    .then((c) => c && applyAdvance(actor, c, inv, Math.min(pending, advance ?? 0)))
+                    .catch(fail)
+                }
+              >
+                <IonIcon icon={walletOutline} slot="start" /> {t('Use advance {amount}', { amount: rupees(Math.min(pending, advance ?? 0)) })}
               </IonButton>
             )}
             {doc.deliveryDate && !doc.deliveredAt && (inv?.status === 'saved' || (est && est.status !== 'draft')) && (

@@ -5,13 +5,14 @@ import PageShell from '../../components/PageShell';
 import StatusBadge from '../../components/StatusBadge';
 import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
-import { dateIN, rupees } from '../../lib/format';
+import { dateIN, rupees, rupeesShort } from '../../lib/format';
+import { todaySummary } from '../../lib/reports';
 import { deliveriesFor, markDelivered } from '../../lib/deliveries';
 import { t } from '../../lib/i18n';
 import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
 import { useSession } from '../../lib/session';
 
-/** Home: quick actions + recent invoices. The full dashboard arrives in M4. */
+/** Home: quick actions, today at a glance, deliveries and recent invoices. */
 export function HomeScreen() {
   const { me } = useSession();
   const { profile, actor } = useBusiness();
@@ -19,6 +20,9 @@ export function HomeScreen() {
   const router = useIonRouter();
   // Overdue, today and tomorrow (later ones only get the phone alert).
   const deliveries = useLiveQuery(async () => (await deliveriesFor(actor)).filter((d) => d.when !== 'later'), [actor]);
+  const { isOwner, settings, ledger } = useBusiness();
+  const canBuy = isOwner || settings.staffSeeCost;
+  const today = useLiveQuery(() => todaySummary(actor.businessId, canBuy), [actor.businessId, canBuy, ledger]);
   const recent = useLiveQuery(
     () =>
       db.invoices
@@ -53,6 +57,45 @@ export function HomeScreen() {
         </IonButton>
       </div>
       {!CAN_CREATE_INVOICES && <p className="section-note">{webInvoiceNote()}</p>}
+
+      {today && (
+        <div className="dash-grid">
+          <IonRouterLink routerLink="/tabs/reports/sales" className="dash-card">
+            <span>{t('Today’s sales ({count} bills)', { count: today.bills })}</span>
+            <strong>{rupeesShort(today.sales)}</strong>
+          </IonRouterLink>
+          <IonRouterLink routerLink="/tabs/cash-book" className="dash-card">
+            <span>{t('Cash in drawer')}</span>
+            <strong>{rupeesShort(today.cashInDrawer)}</strong>
+          </IonRouterLink>
+          <IonRouterLink routerLink="/tabs/reports/collections" className="dash-card">
+            <span>{t('Received today: cash / UPI')}</span>
+            <strong>
+              {rupeesShort(today.cash)} / {rupeesShort(today.upi)}
+            </strong>
+          </IonRouterLink>
+          <IonRouterLink routerLink="/tabs/reports/sales" className="dash-card">
+            <span>{t('Given on credit today')}</span>
+            <strong>{rupeesShort(today.credit)}</strong>
+          </IonRouterLink>
+          <IonRouterLink routerLink="/tabs/reports/receivables" className="dash-card">
+            <span>{t('To collect (all customers)')}</span>
+            <strong className={today.receivable > 0 ? 'text-danger' : undefined}>{rupeesShort(today.receivable)}</strong>
+          </IonRouterLink>
+          {canBuy ? (
+            <IonRouterLink routerLink="/tabs/reports/payables" className="dash-card">
+              <span>{t('To pay suppliers')}</span>
+              <strong>{rupeesShort(today.payable)}</strong>
+            </IonRouterLink>
+          ) : null}
+          {today.lowStock > 0 && (
+            <IonRouterLink routerLink="/tabs/items/low-stock" className="dash-card">
+              <span>{t('Low on stock')}</span>
+              <strong className="text-danger">{t('{count} items', { count: today.lowStock })}</strong>
+            </IonRouterLink>
+          )}
+        </div>
+      )}
 
       {deliveries && deliveries.length > 0 && (
         <IonList inset className="flush-list">

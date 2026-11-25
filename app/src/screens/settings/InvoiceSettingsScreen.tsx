@@ -246,8 +246,8 @@ export default function InvoiceSettingsScreen() {
 
       <FormSection title={t('Staff')}>
         <ToggleRow
-          label={t('Staff can see purchase prices')}
-          note={t('Off: cost prices never reach staff phones.')}
+          label={t('Staff can see purchases and cost prices')}
+          note={t('Off: cost prices, purchase bills and suppliers never reach staff phones.')}
           checked={s.staffSeeCost}
           onChange={(staffSeeCost) => patch({ staffSeeCost })}
           disabled={ro}

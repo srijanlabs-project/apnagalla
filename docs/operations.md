@@ -26,6 +26,16 @@ settings now live on the `@invoice/server` service:
 | `ADMIN_PHONES` | mobile numbers allowed into the admin panel (`/admin`, web only), comma-separated |
 | `GST_API_PROVIDER` = `gstzen`, key in `GST_VALIDATION_API_KEY` (or `GST_API_KEY`) | GSTIN lookup |
 | `RATE_LIMIT_PER_MINUTE` | optional, default 600 per login |
+| `ANTHROPIC_API_KEY` | bill scanning (photo of a supplier bill → purchase draft). Unset = the Scan button is hidden. `SCAN_MODEL` (default `claude-opus-5-5`), `SCAN_PER_DAY` (default 100 per store) |
+| `RESEND_API_KEY`, `EXPORT_EMAIL_FROM` | nightly Excel by email (Resend; the "from" domain must be verified in Resend) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | nightly Excel to Google Drive (OAuth app, scope `drive.file`, redirect `<PUBLIC_URL>/v1/exports/callback/google`) |
+| `MS_CLIENT_ID` / `MS_CLIENT_SECRET` | nightly Excel to OneDrive (Entra app, `Files.ReadWrite offline_access`, redirect `<PUBLIC_URL>/v1/exports/callback/onedrive`) |
+| `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` | nightly Excel to Dropbox (scoped app, `files.content.write`, redirect `<PUBLIC_URL>/v1/exports/callback/dropbox`) |
+| `PUBLIC_URL` | this server's address, default `https://invoiceserver-production.up.railway.app` |
+
+The nightly Excel runs inside the server every 5 minutes and sends each store's file once a day, after
+the hour the owner picked (India time). Cloud sign-ins are stored encrypted with a key derived from
+`JWT_SECRET`: changing `JWT_SECRET` means owners connect their cloud folder again.
 
 ## Backups
 Two independent layers on the `Postgres` service:

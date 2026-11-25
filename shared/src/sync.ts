@@ -2,17 +2,52 @@ import { z } from 'zod';
 import { NUMBER_SERIES } from './gst';
 
 /** Every table the phone keeps offline and syncs with the server. */
-export const SYNC_TABLES = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'customers', 'items', 'invoices', 'estimates', 'creditNotes', 'payments', 'categories'] as const;
+export const SYNC_TABLES = [
+  'profiles',
+  'settings',
+  'bankAccounts',
+  'upiIds',
+  'customers',
+  'items',
+  'invoices',
+  'estimates',
+  'creditNotes',
+  'payments',
+  'categories',
+  // R2
+  'stockMoves',
+  'suppliers',
+  'purchaseOrders',
+  'purchases',
+  'supplierPayments',
+  'expenses',
+  'dayCloses',
+] as const;
 export type SyncTable = (typeof SYNC_TABLES)[number];
+
+/** Tables added in R2. Phones on an older app version don't have them, so they aren't sent there. */
+export const R2_TABLES: readonly SyncTable[] = ['stockMoves', 'suppliers', 'purchaseOrders', 'purchases', 'supplierPayments', 'expenses', 'dayCloses'];
+
+/** The data layout the phone understands; sent on pull. Older apps send none (= 1). */
+export const SYNC_SCHEMA = 2;
+
+/**
+ * Purchase prices live in these tables: staff of a store that hides costs from staff never
+ * receive them and can't add to them.
+ */
+export const COST_TABLES: readonly SyncTable[] = ['suppliers', 'purchaseOrders', 'purchases', 'supplierPayments'];
+
+/** Records that are only ever added (a mistake is voided by the owner, never edited or deleted). */
+export const APPEND_ONLY_TABLES: readonly SyncTable[] = ['payments', 'supplierPayments', 'stockMoves'];
 
 /** Store details: only the owner may change them. */
 export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'categories'];
 
-/** Payment modes for a payment or refund entry. */
-export const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque', 'other'] as const;
+/** Payment modes for a payment or refund entry. `advance` = paid from money the customer left on account. */
+export const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque', 'other', 'advance'] as const;
 export type PaymentMode = (typeof PAYMENT_MODES)[number];
 
-/** Fields of a payment entry the owner may change afterwards (to void it); nothing else ever changes. */
+/** Fields of an added-only entry the owner may change afterwards (to void it); nothing else ever changes. */
 export const PAYMENT_VOID_FIELDS = ['voidedAt', 'voidedBy', 'voidedByName', 'voidReason', 'updatedAt', 'updatedBy'];
 
 export const SYNC_PUSH_MAX = 100;

@@ -132,6 +132,9 @@ export default function CustomerEditScreen() {
       <FormSection title={t('Opening balance')} note={t('Amount this customer already owed you before you started using the app. Added to their pending total.')}>
         <MoneyField label={t('Opening balance')} value={c.openingBalance} onChange={(v) => patch({ openingBalance: v ?? 0 })} disabled={!isOwner && !isNew} />
       </FormSection>
+      <FormSection title={t('Credit limit')} note={t('Warns before billing on credit beyond this amount. Leave empty for no limit.')}>
+        <MoneyField label={t('Credit limit')} value={c.creditLimit ?? null} onChange={(v) => patch({ creditLimit: v || null })} disabled={!isOwner} />
+      </FormSection>
       {!isNew && isOwner && (
         <IonButton
           color="danger"

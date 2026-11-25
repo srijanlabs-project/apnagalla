@@ -370,3 +370,56 @@ describe('purchase prices', () => {
     expect((await pull(biz.id, sH)).changes.find((c) => c.id === 'i1')!.data.purchasePrice).toBe(38000);
   });
 });
+
+describe('R2 tables', () => {
+  const pullWith = async (bizId: string, h: Record<string, string>, schema?: number) => {
+    const r = await app.inject({ method: 'GET', url: `/v1/businesses/${bizId}/sync/pull?since=0${schema ? `&schema=${schema}` : ''}`, headers: h });
+    expect(r.statusCode).toBe(200);
+    return r.json<SyncPullResponse>();
+  };
+
+  it('purchases stay with the owner unless staff may see costs; old apps never get R2 tables', async () => {
+    const { biz, oH, sH } = await setupStore('987021000');
+    const purchase = { id: 'p1', kind: 'bill', status: 'saved', supplier: { supplierId: 's1', name: 'W' }, lines: [], totals: { grandTotal: 100 }, updatedAt: at(0) };
+    expect((await pushOk(biz.id, oH, [{ table: 'purchases', id: 'p1', data: purchase }]))[0]!.status).toBe('ok');
+    const denied = await pushOk(biz.id, sH, [{ table: 'suppliers', id: 's2', data: { id: 's2', name: 'X', address: {}, openingBalance: 0, updatedAt: at(0) } }]);
+    expect(denied[0]).toMatchObject({ status: 'rejected' });
+    expect((await pullWith(biz.id, sH, 2)).changes.some((c) => c.table === 'purchases')).toBe(false);
+    expect((await pullWith(biz.id, oH, 2)).changes.some((c) => c.table === 'purchases')).toBe(true);
+    // An app from before R2 (no schema) doesn't get tables it can't store.
+    expect((await pullWith(biz.id, oH)).changes.some((c) => c.table === 'purchases')).toBe(false);
+    // Once the owner lets staff see costs, they can.
+    await pushOk(biz.id, oH, [{ table: 'settings', id: biz.id, data: { id: biz.id, staffSeeCost: true, updatedAt: at(1) } }]);
+    expect((await pushOk(biz.id, sH, [{ table: 'suppliers', id: 's2', data: { id: 's2', name: 'X', address: {}, openingBalance: 0, updatedAt: at(1) } }]))[0]!.status).toBe('ok');
+    // Staff can't change a saved purchase.
+    const edit = await pushOk(biz.id, sH, [{ table: 'purchases', id: 'p1', data: { ...purchase, notes: 'changed', updatedAt: at(2) } }]);
+    expect(edit[0]!.status).toBe('rejected');
+  });
+
+  it('supplier payments and stock changes are added only; the owner voids them', async () => {
+    const { biz, oH, sH } = await setupStore('987021010');
+    await pushOk(biz.id, oH, [{ table: 'settings', id: biz.id, data: { id: biz.id, staffSeeCost: true, updatedAt: at(0) } }]);
+    const pay = { id: 'sp1', supplierId: 's1', kind: 'payment', amount: 5000, mode: 'cash', date: '2026-11-25', updatedAt: at(0) };
+    expect((await pushOk(biz.id, sH, [{ table: 'supplierPayments', id: 'sp1', data: pay }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, sH, [{ table: 'supplierPayments', id: 'sp1', data: { ...pay, amount: 1, updatedAt: at(1) } }]))[0]!.status).toBe('rejected');
+    expect((await pushOk(biz.id, sH, [{ table: 'supplierPayments', id: 'sp1', data: { ...pay, voidedAt: at(1), updatedAt: at(1) } }]))[0]!.status).toBe('rejected');
+    expect((await pushOk(biz.id, oH, [{ table: 'supplierPayments', id: 'sp1', data: { ...pay, voidedAt: at(1), voidReason: 'typo', updatedAt: at(1) } }]))[0]!.status).toBe('ok');
+
+    const move = { id: 'm1', itemId: 'i1', itemName: 'Rice', qty: -2, kind: 'adjust', reason: 'damage', date: '2026-11-25', updatedAt: at(0) };
+    expect((await pushOk(biz.id, sH, [{ table: 'stockMoves', id: 'm1', data: move }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, sH, [{ table: 'stockMoves', id: 'm2', data: { ...move, id: 'm2', kind: 'magic' } }]))[0]!.status).toBe('rejected');
+    expect((await pushOk(biz.id, sH, [{ table: 'stockMoves', id: 'm1', data: { ...move, deleted: true, updatedAt: at(1) } }]))[0]!.status).toBe('rejected');
+
+    // A khata payment on account names the customer instead of a bill.
+    const onAccount = { id: 'pa', invoiceId: '', customerId: 'c1', kind: 'payment', amount: 100, mode: 'upi', date: '2026-11-25', updatedAt: at(0) };
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'pa', data: onAccount }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'pb', data: { ...onAccount, id: 'pb', customerId: '' } }]))[0]!.status).toBe('rejected');
+
+    // Expenses: anyone adds; only the owner changes.
+    const exp = { id: 'e1', category: 'tea', amount: 2000, mode: 'cash', date: '2026-11-25', updatedAt: at(0) };
+    expect((await pushOk(biz.id, sH, [{ table: 'expenses', id: 'e1', data: exp }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, sH, [{ table: 'expenses', id: 'e1', data: { ...exp, amount: 1, updatedAt: at(1) } }]))[0]!.status).toBe('rejected');
+    expect((await pushOk(biz.id, oH, [{ table: 'expenses', id: 'e1', data: { ...exp, deleted: true, updatedAt: at(1) } }]))[0]!.status).toBe('ok');
+  });
+});
+

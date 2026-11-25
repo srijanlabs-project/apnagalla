@@ -1,6 +1,9 @@
 import { and, asc, eq, gt, ne, sql } from 'drizzle-orm';
 import {
+  APPEND_ONLY_TABLES,
+  COST_TABLES,
   OWNER_ONLY_TABLES,
+  R2_TABLES,
   PAYMENT_MODES,
   PAYMENT_VOID_FIELDS,
   SYNC_PULL_MAX,
@@ -36,6 +39,29 @@ const COST_FIELDS = ['purchasePrice'];
 function hideCost(table: string, data: Data | undefined, hide: boolean | undefined): Data | undefined {
   if (!hide || table !== 'items' || !data) return data;
   return without(data, COST_FIELDS);
+}
+
+/** Checks a new added-only entry (payment, supplier payment, stock change). */
+function newEntryProblem(table: SyncTable, data: Data): string | null {
+  if (table === 'stockMoves') {
+    if (typeof data.itemId !== 'string' || !data.itemId) return 'A stock change belongs to an item';
+    if (typeof data.qty !== 'number' || !Number.isFinite(data.qty)) return 'Quantity must be a number';
+    if (!['opening', 'adjust', 'count'].includes(String(data.kind))) return 'Unknown stock change';
+    return null;
+  }
+  if (!Number.isInteger(data.amount) || (data.amount as number) <= 0) return 'Amount must be more than zero';
+  if (data.kind !== 'payment' && data.kind !== 'refund') return 'Unknown entry';
+  if (!PAYMENT_MODES.includes(data.mode as never)) return 'Unknown payment mode';
+  if (table === 'supplierPayments') {
+    if (typeof data.supplierId !== 'string' || !data.supplierId) return 'A payment belongs to a supplier';
+    if (data.mode === 'advance') return 'Unknown payment mode';
+    return null;
+  }
+  // A customer payment is for a bill, or on account (khata) for a customer.
+  const forBill = typeof data.invoiceId === 'string' && !!data.invoiceId;
+  const onAccount = typeof data.customerId === 'string' && !!data.customerId;
+  if (!forBill && !onAccount) return 'A payment belongs to a bill or a customer';
+  return null;
 }
 
 const NUMBERED_TABLES: readonly SyncTable[] = ['invoices', 'estimates', 'creditNotes'];
@@ -181,6 +207,7 @@ export class SyncService {
       if (key && key.code && key.code !== (actor.seriesCode ?? '')) return "That is another person's number series";
     }
     if ((table === 'profiles' || table === 'settings') && data.id !== actor.businessId) return 'wrong store';
+    if (COST_TABLES.includes(table) && actor.hideCost) return 'Only the owner handles purchases in this store';
     if (OWNER_ONLY_TABLES.includes(table) && actor.role !== 'owner') return 'Only the owner can change store details';
 
     if (table === 'creditNotes') {
@@ -193,20 +220,26 @@ export class SyncService {
       }
     }
 
-    if (table === 'payments') {
+    if (APPEND_ONLY_TABLES.includes(table)) {
       // Entries are added, never changed: the owner can only void one. They are never deleted.
-      if (data.deleted === true) return 'Payments cannot be deleted; void them instead';
+      const what = table === 'stockMoves' ? 'stock change' : 'payment';
+      if (data.deleted === true) return `${what === 'payment' ? 'Payments' : 'Stock changes'} cannot be deleted; void them instead`;
       if (!existing) {
-        if (typeof data.invoiceId !== 'string' || !data.invoiceId) return 'A payment belongs to a bill';
-        if (!Number.isInteger(data.amount) || (data.amount as number) <= 0) return 'Amount must be more than zero';
-        if (data.kind !== 'payment' && data.kind !== 'refund') return 'Unknown entry';
-        if (!PAYMENT_MODES.includes(data.mode as never)) return 'Unknown payment mode';
         if (data.voidedAt) return 'A new entry cannot be voided';
+        const bad = newEntryProblem(table, data);
+        if (bad) return bad;
       } else {
-        if (stable(without(data, PAYMENT_VOID_FIELDS)) !== stable(without(existing, PAYMENT_VOID_FIELDS))) return 'A recorded payment cannot be changed; void it instead';
-        if (actor.role !== 'owner') return 'Only the owner can void a payment';
+        if (stable(without(data, PAYMENT_VOID_FIELDS)) !== stable(without(existing, PAYMENT_VOID_FIELDS))) return `A recorded ${what} cannot be changed; void it instead`;
+        if (actor.role !== 'owner') return `Only the owner can void a ${what}`;
       }
     }
+
+    if (table === 'purchases') {
+      if (data.deleted === true && existing && existing.status !== 'draft') return 'Only drafts can be deleted';
+      if (actor.role !== 'owner' && existing && existing.status !== 'draft') return 'Only the owner can change a saved purchase';
+    }
+    // Petty cash and the day-end count: anyone adds, only the owner changes them afterwards.
+    if ((table === 'expenses' || table === 'dayCloses') && existing && actor.role !== 'owner') return 'Only the owner can change this';
 
     if (table === 'invoices') {
       const wasDraft = !existing || existing.status === 'draft';
@@ -238,11 +271,28 @@ export class SyncService {
     return row?.data.staffSeeCost === true;
   }
 
-  async pull(businessId: string, since: number, limit = SYNC_PULL_MAX, opts: { hideCost?: boolean } = {}): Promise<SyncPullResponse> {
+  /**
+   * Changes after `since`. Tables the phone can't see (purchases for staff when costs are hidden)
+   * or doesn't know yet (an older app: `schema` 1) are left out; an app that updates starts again
+   * from 0, so it still gets them.
+   */
+  async pull(businessId: string, since: number, limit = SYNC_PULL_MAX, opts: { hideCost?: boolean; schema?: number } = {}): Promise<SyncPullResponse> {
+    const skip = [...((opts.schema ?? 1) < 2 ? R2_TABLES : []), ...(opts.hideCost ? COST_TABLES : [])];
     const rows = await this.db
       .select({ table: syncRecords.tableName, id: syncRecords.id, data: syncRecords.data, seq: syncRecords.seq })
       .from(syncRecords)
-      .where(and(eq(syncRecords.businessId, businessId), gt(syncRecords.seq, since)))
+      .where(
+        and(
+          eq(syncRecords.businessId, businessId),
+          gt(syncRecords.seq, since),
+          skip.length
+            ? sql`${syncRecords.tableName} not in (${sql.join(
+                skip.map((t) => sql`${t}`),
+                sql`, `,
+              )})`
+            : undefined,
+        ),
+      )
       .orderBy(asc(syncRecords.seq))
       .limit(limit + 1);
     const more = rows.length > limit;
@@ -353,6 +403,28 @@ function auditEvent(table: SyncTable, data: Data, existing: Data | undefined): {
   const num = (d: Data | undefined) => (typeof d?.number === 'string' ? d.number : undefined);
   if (table === 'payments' && existing && !existing.voidedAt && data.voidedAt) {
     return { action: 'payment.voided', detail: { invoiceId: data.invoiceId, amount: data.amount, mode: data.mode, reason: data.voidReason } };
+  }
+  if (table === 'supplierPayments' && existing && !existing.voidedAt && data.voidedAt) {
+    return { action: 'supplier_payment.voided', detail: { supplierId: data.supplierId, amount: data.amount, reason: data.voidReason } };
+  }
+  if (table === 'stockMoves' && existing && !existing.voidedAt && data.voidedAt) {
+    return { action: 'stock.change_voided', detail: { itemId: data.itemId, qty: data.qty, reason: data.voidReason } };
+  }
+  if (table === 'stockMoves' && !existing && data.kind !== 'opening') {
+    return { action: 'stock.adjusted', detail: { itemId: data.itemId, itemName: data.itemName, qty: data.qty, reason: data.reason } };
+  }
+  if (table === 'purchases' && existing?.status === 'saved') {
+    if (data.status === 'cancelled') return { action: 'purchase.cancelled', detail: { supplierBillNo: data.supplierBillNo, total: (data.totals as Data | undefined)?.grandTotal } };
+    if (stable(without(data, ['updatedAt', 'updatedBy', 'history'])) !== stable(without(existing, ['updatedAt', 'updatedBy', 'history']))) {
+      return { action: 'purchase.edited', detail: { supplierBillNo: data.supplierBillNo } };
+    }
+  }
+  if (table === 'expenses' && existing) {
+    if (data.deleted === true) return { action: 'expense.deleted', detail: { category: existing.category, amount: existing.amount } };
+    if (existing.amount !== data.amount) return { action: 'expense.changed', detail: { category: data.category, from: existing.amount, to: data.amount } };
+  }
+  if (table === 'dayCloses' && Number(data.difference ?? 0) !== 0 && (!existing || existing.counted !== data.counted)) {
+    return { action: 'day.closed_with_difference', detail: { date: data.date, expected: data.expected, counted: data.counted, difference: data.difference } };
   }
   if (table === 'payments' && !existing && data.kind === 'refund') {
     return { action: 'payment.refunded', detail: { invoiceId: data.invoiceId, amount: data.amount, mode: data.mode } };

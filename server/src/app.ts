@@ -31,7 +31,10 @@ import { GstLookupService, createGstProvider, type GstProvider } from './gst/loo
 import { TokenService, type AuthContext } from './auth/tokens';
 import type { Database } from './db/client';
 import type { Env } from './env';
-import { HttpError, forbidden, unauthorized } from './errors';
+import { HttpError, badRequest, forbidden, tooMany, unauthorized } from './errors';
+import { ExportService } from './exports/exportService';
+import { CLOUD_PROVIDERS, type CloudProvider } from './exports/delivery';
+import { ScanError, billScannerFromEnv, type BillScanner, type ScannedBill } from './scan/billScanner';
 import { AccountService } from './services/accounts';
 import { SyncService } from './services/sync';
 import { createOtpSender, type OtpSender } from './sms';
@@ -63,10 +66,12 @@ export interface BuildAppOptions {
   otpSender?: OtpSender;
   /** Tests inject a fake GST data provider. */
   gstProvider?: GstProvider | null;
+  /** Tests inject a fake bill scanner. */
+  billScanner?: BillScanner | null;
   logger?: boolean;
 }
 
-export async function buildApp({ env, database, otpSender, gstProvider, logger = true }: BuildAppOptions): Promise<FastifyInstance> {
+export async function buildApp({ env, database, otpSender, gstProvider, billScanner, logger = true }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger ? { redact: ['req.headers.authorization'] } : false,
     trustProxy: true, // Railway sits behind a proxy; needed for the real client IP
@@ -287,11 +292,12 @@ export async function buildApp({ env, database, otpSender, gstProvider, logger =
     return { results };
   });
 
-  app.get<{ Params: BizParams; Querystring: { since?: string } }>('/v1/businesses/:businessId/sync/pull', authed, async (req) => {
+  app.get<{ Params: BizParams; Querystring: { since?: string; schema?: string } }>('/v1/businesses/:businessId/sync/pull', authed, async (req) => {
     const role = await accounts.requireRole(uid(req), req.params.businessId);
     const since = Math.max(0, Number.parseInt(req.query.since ?? '0', 10) || 0);
+    const schema = Number.parseInt(req.query.schema ?? '1', 10) || 1;
     const hideCost = role === 'staff' && !(await syncService.staffSeeCost(req.params.businessId));
-    return syncService.pull(req.params.businessId, since, undefined, { hideCost });
+    return syncService.pull(req.params.businessId, since, undefined, { hideCost, schema });
   });
 
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/numbers/reserve', authed, async (req): Promise<ReserveNumbersResponse> => {
@@ -314,6 +320,85 @@ export async function buildApp({ env, database, otpSender, gstProvider, logger =
     const info = await gst.lookup(req.params.businessId, req.params.gstin);
     return { found: !!info, info };
   });
+
+  /* ---------- bill scanning ---------- */
+  const scanner = billScanner === undefined ? billScannerFromEnv(env) : billScanner;
+  app.get('/v1/features', authed, async () => ({ scanBill: !!scanner }));
+
+  app.post<{ Params: BizParams; Body: { image?: string; mediaType?: string } }>(
+    '/v1/businesses/:businessId/scan-bill',
+    { ...authed, bodyLimit: 12_000_000 },
+    async (req): Promise<{ bill: ScannedBill }> => {
+      const role = await accounts.requireRole(uid(req), req.params.businessId);
+      if (role === 'staff' && !(await syncService.staffSeeCost(req.params.businessId))) throw forbidden('Only the owner handles purchases in this store');
+      if (!scanner) throw badRequest('scan_off', 'Bill scanning is not set up yet');
+      const mediaType = req.body?.mediaType;
+      if (!req.body?.image || (mediaType !== 'image/jpeg' && mediaType !== 'image/png' && mediaType !== 'image/webp')) throw badRequest('bad_image', 'Send a JPEG, PNG or WebP photo');
+      // Each scan costs money: a daily cap per store.
+      const counted = await db.execute<{ n: number }>(
+        sql`select count(*)::int as n from audit_log where business_id = ${req.params.businessId} and action = 'bill.scanned' and at > now() - interval '1 day'`,
+      );
+      if (Number(counted.rows[0]?.n ?? 0) >= env.SCAN_PER_DAY) throw tooMany('Today’s bill scans are used up. Enter the bill by hand or try tomorrow.', 3600);
+      try {
+        const bill = await scanner.scan({ mediaType, base64: req.body.image });
+        await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: 'bill.scanned', detail: { lines: bill.lines.length, provider: scanner.name } });
+        return { bill };
+      } catch (e) {
+        if (e instanceof ScanError) throw badRequest('scan_failed', e.message);
+        app.log.error(e, 'bill scan failed');
+        throw new HttpError(502, 'scan_failed', 'The bill could not be read right now. Try again, or enter it by hand.');
+      }
+    },
+  );
+
+  /* ---------- nightly Excel ---------- */
+  const exportsService = new ExportService(db, env, env.JWT_SECRET, (m) => app.log.warn(m));
+  const ownerOnly = async (req: FastifyRequest<{ Params: BizParams }>) => {
+    if ((await accounts.requireRole(uid(req), req.params.businessId)) !== 'owner') throw forbidden('Only the owner can change this');
+  };
+  app.get<{ Params: BizParams }>('/v1/businesses/:businessId/exports', authed, async (req) => {
+    await ownerOnly(req);
+    return exportsService.get(req.params.businessId);
+  });
+  app.put<{ Params: BizParams; Body: { enabled?: boolean; email?: string | null; hour?: number } }>('/v1/businesses/:businessId/exports', authed, async (req) => {
+    await ownerOnly(req);
+    return exportsService.update(req.params.businessId, { enabled: req.body?.enabled !== false, email: req.body?.email?.trim() || null, hour: Number(req.body?.hour ?? 21) });
+  });
+  app.post<{ Params: BizParams & { provider: string } }>('/v1/businesses/:businessId/exports/connect/:provider', authed, async (req) => {
+    await ownerOnly(req);
+    if (!CLOUD_PROVIDERS.includes(req.params.provider as CloudProvider)) throw badRequest('export', 'Unknown storage');
+    return { url: await exportsService.connectUrl(req.params.businessId, uid(req), req.params.provider as CloudProvider) };
+  });
+  app.delete<{ Params: BizParams }>('/v1/businesses/:businessId/exports/connect', authed, async (req) => {
+    await ownerOnly(req);
+    return exportsService.disconnect(req.params.businessId);
+  });
+  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/exports/send-now', authed, async (req) => {
+    await ownerOnly(req);
+    await exportsService.sendNow(req.params.businessId);
+    return exportsService.get(req.params.businessId);
+  });
+  // The cloud provider sends the owner's browser back here after they allow access.
+  app.get<{ Params: { provider: string }; Querystring: { code?: string; state?: string; error?: string } }>('/v1/exports/callback/:provider', async (req, reply) => {
+    const page = (title: string, text: string) =>
+      reply
+        .type('text/html; charset=utf-8')
+        .send(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><body style="font-family:sans-serif;padding:24px;max-width:480px;margin:auto"><h2>${title}</h2><p>${text}</p></body>`);
+    const provider = req.params.provider as CloudProvider;
+    if (!CLOUD_PROVIDERS.includes(provider) || !req.query.code || !req.query.state) return page('Not connected', 'The sign-in was cancelled. You can close this page and try again in ApnaGalla.');
+    try {
+      await exportsService.finishConnect(provider, req.query.code, req.query.state);
+      return page('Connected', 'ApnaGalla will save the daily Excel in an “ApnaGalla” folder. You can close this page.');
+    } catch (e) {
+      app.log.warn(`export connect failed: ${(e as Error).message}`);
+      return page('Not connected', 'Something went wrong. Please close this page and try again in ApnaGalla.');
+    }
+  });
+  if (env.EXPORT_SCHEDULER && env.NODE_ENV !== 'test') {
+    const timer = setInterval(() => void exportsService.runDue().catch((e) => app.log.error(e, 'nightly export run failed')), 5 * 60_000);
+    timer.unref();
+    app.addHook('onClose', async () => clearInterval(timer));
+  }
 
   /* ---------- invites (as the invited user) ---------- */
   app.post<{ Params: { inviteId: string } }>('/v1/invites/:inviteId/accept', authed, async (req) => {

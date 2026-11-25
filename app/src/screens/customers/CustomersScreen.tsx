@@ -9,7 +9,7 @@ import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { rupees } from '../../lib/format';
 import { t } from '../../lib/i18n';
-import { moneyOf } from '../../lib/ledger';
+import { receivables } from '../../lib/khata';
 
 export default function CustomersScreen() {
   const { actor, ledger, isOwner } = useBusiness();
@@ -23,16 +23,8 @@ export default function CustomersScreen() {
         .toArray(),
     [actor.businessId],
   );
-  const invoices = useLiveQuery(() => db.invoices.where('businessId').equals(actor.businessId).filter((i) => i.status === 'saved' && !i.deleted).toArray(), [actor.businessId]);
-
-  const pendingByCustomer = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const inv of invoices ?? []) {
-      const id = inv.billTo?.customerId;
-      if (id) m.set(id, (m.get(id) ?? 0) + moneyOf(inv, ledger).pending);
-    }
-    return m;
-  }, [invoices, ledger]);
+  // Khata balance: bills, returns, payments on bills and on account, opening balance.
+  const owed = useLiveQuery(async () => new Map((await receivables(actor.businessId)).map((r) => [r.customer.id, r.balance])), [actor.businessId, ledger]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -55,7 +47,7 @@ export default function CustomersScreen() {
       ) : (
         <IonList>
           {filtered.map((c) => {
-            const pending = (pendingByCustomer.get(c.id) ?? 0) + (c.openingBalance ?? 0);
+            const pending = owed?.get(c.id) ?? 0;
             return (
               <IonItem key={c.id} routerLink={`/tabs/customers/${c.id}`} detail={false}>
                 <div className="avatar" slot="start">

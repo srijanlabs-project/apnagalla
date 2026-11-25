@@ -40,6 +40,26 @@ const schema = z.object({
   ADMIN_PHONES: z.string().default(''),
   /** Most GSTIN lookups per store per day (each may cost money). */
   GST_LOOKUPS_PER_DAY: z.coerce.number().int().positive().default(200),
+  /** Bill scanning (photo of a supplier bill → purchase draft). Unset = scanning is off. */
+  ANTHROPIC_API_KEY: z.string().optional().transform((v) => (v ? v : undefined)),
+  SCAN_MODEL: z.string().default('claude-opus-5-5'),
+  SCAN_PER_DAY: z.coerce.number().int().positive().default(100),
+  /** Nightly Excel. Email through Resend; cloud folders through each provider's OAuth app. */
+  RESEND_API_KEY: z.string().optional().transform((v) => (v ? v : undefined)),
+  EXPORT_EMAIL_FROM: z.string().default('ApnaGalla <reports@apnagalla.in>'),
+  GOOGLE_CLIENT_ID: z.string().optional().transform((v) => (v ? v : undefined)),
+  GOOGLE_CLIENT_SECRET: z.string().optional().transform((v) => (v ? v : undefined)),
+  MS_CLIENT_ID: z.string().optional().transform((v) => (v ? v : undefined)),
+  MS_CLIENT_SECRET: z.string().optional().transform((v) => (v ? v : undefined)),
+  DROPBOX_APP_KEY: z.string().optional().transform((v) => (v ? v : undefined)),
+  DROPBOX_APP_SECRET: z.string().optional().transform((v) => (v ? v : undefined)),
+  /** This server's public address (for the cloud sign-in to come back to). */
+  PUBLIC_URL: z.string().default('https://invoiceserver-production.up.railway.app'),
+  /** Run the nightly Excel job in this process (off in tests). */
+  EXPORT_SCHEDULER: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false'),
 });
 
 export type Env = z.infer<typeof schema>;

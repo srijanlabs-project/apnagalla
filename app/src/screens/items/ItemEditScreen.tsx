@@ -1,11 +1,11 @@
-import { IonButton, IonIcon, useIonAlert, useIonRouter } from '@ionic/react';
-import { barcodeOutline } from 'ionicons/icons';
+import { IonButton, IonIcon, IonItem, IonLabel, IonNote, useIonAlert, useIonRouter } from '@ionic/react';
+import { barcodeOutline, layersOutline } from 'ionicons/icons';
 import { calculateInvoice, checkHsn } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import BarcodeScanner from '../../components/BarcodeScanner';
-import { FormSection, MoneyField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
+import { FormSection, MoneyField, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
 import FormPage from '../../components/FormPage';
 import { useBusiness } from '../../lib/business';
 import { db, type BusinessSettings, type Item } from '../../lib/db';
@@ -14,6 +14,7 @@ import { t } from '../../lib/i18n';
 import { flattenCategories, useCategories } from '../../lib/categories';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
+import { isLow, qtyText, setOpeningStock, stockLevels, tracksStock } from '../../lib/stock';
 
 export function blankItem(actor: Actor, settings: BusinessSettings, name = '', barcode?: string): Item {
   return {
@@ -143,6 +144,23 @@ export function ItemForm({
           </p>
         )}
       </FormSection>
+      {(it.pricing ?? 'unit') === 'unit' && (
+        <FormSection title={t('Stock')}>
+          <ToggleRow
+            label={t('Keep count of stock')}
+            note={t('Turn off for services and things you don’t count.')}
+            checked={it.trackStock !== false}
+            onChange={(on) => patch({ trackStock: on })}
+            disabled={priceLocked}
+          />
+          {it.trackStock !== false && (
+            <div className="field-row">
+              <NumberField label={t('Low stock at')} value={it.lowStock ?? null} onChange={(lowStock) => patch({ lowStock })} suffix={it.unit} min={0} disabled={priceLocked} />
+              <NumberField label={t('Usual order quantity')} value={it.reorderQty ?? null} onChange={(reorderQty) => patch({ reorderQty })} suffix={it.unit} min={0} disabled={priceLocked} />
+            </div>
+          )}
+        </FormSection>
+      )}
     </>
   );
 }
@@ -159,6 +177,8 @@ export default function ItemEditScreen() {
     [isNew, existing, actor, settings],
   );
   const { value: it, patch, save, saving } = useForm<Item>(initial);
+  const [opening, setOpening] = useState<number | null>(null);
+  const stock = useLiveQuery(async () => (isNew ? undefined : ((await stockLevels(actor.businessId)).get(id!) ?? 0)), [isNew, id, actor.businessId]);
   const [alert] = useIonAlert();
   const router = useIonRouter();
   if (!it) return null;
@@ -168,12 +188,38 @@ export default function ItemEditScreen() {
     <FormPage
       title={isNew ? t('New item') : t('Edit item')}
       backHref="/tabs/items"
-      onSave={isNew || isOwner ? () => save(() => putRecord('items', actor, { ...it, name: it.name.trim() }), { message: t('Item saved'), back: true }) : undefined}
+      onSave={
+        isNew || isOwner
+          ? () =>
+              save(
+                async () => {
+                  const saved = await putRecord('items', actor, { ...it, name: it.name.trim() });
+                  if (isNew && opening && tracksStock(saved)) await setOpeningStock(actor, saved, opening);
+                  return saved;
+                },
+                { message: t('Item saved'), back: true },
+              )
+          : undefined
+      }
       saving={saving}
       canSave={!!it.name.trim()}
     >
       {!isNew && !isOwner && <p className="section-note">{t('Only the owner can edit catalogue items.')}</p>}
+      {!isNew && tracksStock(it) && stock !== undefined && (
+        <IonItem routerLink={`/tabs/items/${it.id}/stock`} detail lines="full" className="stock-link">
+          <IonIcon icon={layersOutline} slot="start" />
+          <IonLabel>{t('Stock')}</IonLabel>
+          <IonNote slot="end" className={stock < 0 || isLow(it, stock) ? 'text-danger' : undefined}>
+            {qtyText(stock)} {it.unit}
+          </IonNote>
+        </IonItem>
+      )}
       <ItemForm value={it} onChange={patch} settings={settings} priceLocked={priceLocked} showCost={isOwner || settings.staffSeeCost} />
+      {isNew && tracksStock(it) && (
+        <FormSection>
+          <NumberField label={t('Opening stock')} value={opening} onChange={setOpening} suffix={it.unit} min={0} helper={t('How many you have now.')} />
+        </FormSection>
+      )}
       {!isNew && isOwner && (
         <IonButton
           color="danger"

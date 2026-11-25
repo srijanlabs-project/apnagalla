@@ -3,6 +3,12 @@ import { LANGS, LANG_NAMES, formatIndianMobile, type Lang } from '@invoice/share
 import {
   businessOutline,
   languageOutline,
+  barChartOutline,
+  cloudUploadOutline,
+  busOutline,
+  cartOutline,
+  cashOutline,
+  walletOutline,
   lockClosedOutline,
   shieldCheckmarkOutline,
   cardOutline,
@@ -25,7 +31,7 @@ import { appLanguage, setAppLanguage, t } from '../../lib/i18n';
 
 export default function MoreScreen() {
   const { me, membership, logout } = useSession();
-  const { profile } = useBusiness();
+  const { profile, settings } = useBusiness();
   const [alert] = useIonAlert();
   const isOwner = membership?.role === 'owner';
   const storeCount = me?.memberships.length ?? 0;
@@ -77,6 +83,36 @@ export default function MoreScreen() {
 
       <IonList inset>
         <IonListHeader>
+          <IonLabel>{t('Money and stock')}</IonLabel>
+        </IonListHeader>
+        <IonItem routerLink="/tabs/reports" detail lines="full">
+          <IonIcon icon={barChartOutline} slot="start" />
+          <IonLabel>{t('Reports')}</IonLabel>
+        </IonItem>
+        <IonItem routerLink="/tabs/cash-book" detail lines="full">
+          <IonIcon icon={cashOutline} slot="start" />
+          <IonLabel>{t('Cash book')}</IonLabel>
+        </IonItem>
+        {(isOwner || settings.staffSeeCost) && (
+          <>
+            <IonItem routerLink="/tabs/purchases" detail lines="full">
+              <IonIcon icon={cartOutline} slot="start" />
+              <IonLabel>{t('Purchases')}</IonLabel>
+            </IonItem>
+            <IonItem routerLink="/tabs/suppliers" detail lines="full">
+              <IonIcon icon={busOutline} slot="start" />
+              <IonLabel>{t('Suppliers')}</IonLabel>
+            </IonItem>
+          </>
+        )}
+        <IonItem routerLink="/tabs/expenses" detail lines="none">
+          <IonIcon icon={walletOutline} slot="start" />
+          <IonLabel>{t('Expenses')}</IonLabel>
+        </IonItem>
+      </IonList>
+
+      <IonList inset>
+        <IonListHeader>
           <IonLabel>{t('Business')}</IonLabel>
         </IonListHeader>
         <IonItem routerLink="/tabs/more/business" detail lines="full">
@@ -103,6 +139,12 @@ export default function MoreScreen() {
           <IonIcon icon={clipboardOutline} slot="start" />
           <IonLabel>{t('Estimates')}</IonLabel>
         </IonItem>
+        {isOwner && (
+          <IonItem routerLink="/tabs/more/backup" detail lines="full">
+            <IonIcon icon={cloudUploadOutline} slot="start" />
+            <IonLabel>{t('Daily Excel backup')}</IonLabel>
+          </IonItem>
+        )}
         {isOwner && (
           <IonItem routerLink="/tabs/more/team" detail lines="none">
             <IonIcon icon={peopleOutline} slot="start" />

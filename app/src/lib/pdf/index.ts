@@ -5,7 +5,7 @@ import { billMoney, computeTotals, type DocKind } from '../repo';
 import { buildDocDefinition, type BusinessInfo, type PdfInput } from './buildDoc';
 
 /** pdfmake is ~1 MB with fonts, so it loads only when a PDF is first needed. */
-async function pdfmake() {
+export async function pdfmake() {
   const [{ default: pdfMake }, { default: vfs }] = await Promise.all([import('pdfmake/build/pdfmake'), import('pdfmake/build/vfs_fonts')]);
   const pm = pdfMake as unknown as { addVirtualFileSystem?: (v: unknown) => void; vfs?: unknown; createPdf: typeof pdfMake.createPdf };
   if (pm.addVirtualFileSystem) pm.addVirtualFileSystem(vfs);

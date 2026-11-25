@@ -10,10 +10,12 @@ interface Props {
   maxPx?: number;
   disabled?: boolean;
   onError?: (message: string) => void;
+  /** A photo (bill): saved as JPEG, much smaller than PNG. */
+  photo?: boolean;
 }
 
 /** Pick an image from the gallery/files (works in Android WebView and browsers, no Google services). */
-export default function ImagePicker({ label, value, onChange, maxPx = 512, disabled, onError }: Props) {
+export default function ImagePicker({ label, value, onChange, maxPx = 512, disabled, onError, photo }: Props) {
   const input = useRef<HTMLInputElement>(null);
   return (
     <div className="image-picker">
@@ -40,7 +42,7 @@ export default function ImagePicker({ label, value, onChange, maxPx = 512, disab
           e.target.value = '';
           if (!file) return;
           try {
-            onChange(await fileToResizedDataUrl(file, maxPx));
+            onChange(await fileToResizedDataUrl(file, maxPx, photo));
           } catch (err) {
             onError?.(err instanceof Error ? err.message : t('Could not read that image'));
           }

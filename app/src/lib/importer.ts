@@ -4,6 +4,7 @@ import { ensureCategoryPath } from './categories';
 import { db, type Category, type Customer, type Item } from './db';
 import { t } from './i18n';
 import { newId, putRecord, type Actor } from './repo';
+import { adjustStock, setOpeningStock, tracksStock } from './stock';
 
 /*
  * Import items or customers from an Excel (.xlsx) or CSV file. Columns are found by their
@@ -37,6 +38,8 @@ export const COLUMNS: Record<ImportKind, Column[]> = {
     { key: 'mrp', label: 'MRP', names: ['mrp'], example: '5600' },
     { key: 'cost', label: 'Purchase price', names: ['purchaseprice', 'cost', 'costprice', 'buyprice'], example: '3900' },
     { key: 'priced', label: 'Priced per', names: ['pricedper', 'priced', 'pricing'], example: 'unit' },
+    { key: 'stock', label: 'Stock', names: ['stock', 'openingstock', 'qty', 'quantity', 'stockqty', 'closingstock', 'balanceqty'], example: '24' },
+    { key: 'low', label: 'Low stock at', names: ['lowstockat', 'lowstock', 'reorderlevel', 'minstock', 'minimumstock'], example: '5' },
     { key: 'description', label: 'Description', names: ['description', 'details'], example: '' },
   ],
   customers: [
@@ -123,6 +126,8 @@ export interface PreviewRow<T> {
   categoryPath?: string;
   /** Existing record this row matches, if any. */
   match?: T;
+  /** Items: stock from the file (opening stock, or a count for an existing item). */
+  stock?: number;
 }
 
 export interface Preview<T> {
@@ -199,6 +204,15 @@ export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item |
       }
       const description = text(get(r, 'description'));
       if (description) values.description = description;
+      let stock: number | undefined;
+      for (const key of ['stock', 'low'] as const) {
+        const raw = text(get(r, key)).replace(/,/g, '');
+        if (!raw) continue;
+        const n = Number(raw);
+        if (!Number.isFinite(n) || (key === 'low' && n < 0)) errors.push(key === 'stock' ? t('Stock "{value}" is not a number', { value: raw }) : t('Low stock "{value}" is not a number', { value: raw }));
+        else if (key === 'stock') stock = n;
+        else values.lowStock = n;
+      }
 
       const items = existing as Item[];
       const match =
@@ -209,7 +223,7 @@ export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item |
       const key = (values.barcode || values.code || name).toLowerCase();
       if (name && seen.has(key)) errors.push(t('Same item appears earlier in the file'));
       seen.add(key);
-      out.push({ line, name, errors, values, categoryPath: text(get(r, 'category')) || undefined, match });
+      out.push({ line, name, errors, values, categoryPath: text(get(r, 'category')) || undefined, match, stock });
     } else {
       const values: Partial<Customer> = { name };
       const mobile = text(get(r, 'mobile'));
@@ -304,7 +318,13 @@ export async function applyImport(
         rateIncludesTax: false,
         taxPct: defaults.taxPct,
       };
-      await putRecord('items', actor, { ...base, ...values });
+      const saved = await putRecord('items', actor, { ...base, ...values });
+      // Stock in the file: the opening stock of a new item, or the counted stock of an existing one.
+      const stock = (row as PreviewRow<Item>).stock;
+      if (stock != null && tracksStock(saved)) {
+        if (row.match) await adjustStock(actor, saved, { kind: 'count', counted: stock, note: t('Excel import') });
+        else if (stock !== 0) await setOpeningStock(actor, saved, stock);
+      }
     } else {
       const values = row.values as Partial<Customer>;
       const base: Customer = (row.match as Customer | undefined) ?? {

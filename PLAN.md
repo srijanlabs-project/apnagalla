@@ -119,6 +119,46 @@ Built in this order; each step is tested and committed before the next.
 | R1.6 Print and languages | Bluetooth thermal printing (2" / 3"), English / Hindi / Gujarati / Punjabi | Done (translations to be reviewed; printing to be tried on real printers) |
 | R1.7 Admin and security | Admin panel (create / suspend stores), app PIN, secure token storage, tenant-isolation tests, rate limits, backups, monitoring | Done (lock and fingerprint to be tried on a phone) |
 
+### Release 2 — stock, purchases, money
+Started 25 Nov 2026; built without stopping for each design question (owner's call), using the
+defaults below. Each can still be changed.
+
+| Step | Scope | Status |
+|---|---|---|
+| R2.1 Stock | Stock per item worked out from opening stock, adjustments (damage, theft, count, other), purchases, sales and returns; low-stock level per item, low-stock / reorder list, stock value at cost | Done |
+| R2.2 Purchases | Suppliers (GSTIN, opening balance), purchase orders (PDF to WhatsApp, from the low-stock list), purchase bills that add stock and update cost / MRP, purchase returns, supplier ledger and payments, expenses with categories | Done |
+| R2.3 Khata and cash | Running ledger per customer, khata payment settling oldest bills first (extra = advance, used later), credit limit warning, statement PDF for a date range, WhatsApp balance reminder with UPI link, daily cash book, day-end cash count | Done |
+| R2.4 Dashboard and reports | Home: today's sales, cash, UPI, credit given, receivable, payable, low stock. Reports: sales (by day, staff, mode), items and categories, stock, GST (sales and purchase registers, HSN summary, tax summary), profit, day book, staff and store, deliveries, receivables and payables; Excel / PDF export | Done |
+| R2.5 Backup and scanning | Nightly Excel by email / Google Drive / OneDrive / Dropbox; scan a supplier bill into a purchase draft. Both switch on when their keys are set | Done (switches on when keys are set) |
+
+R2 decisions (defaults):
+- Stock is never stored as one number (two phones would overwrite each other); it is added up from
+  records: opening stock and adjustments (`stockMoves`, added only), saved purchase bills and
+  purchase returns, saved bills (sales) and return credit notes. Selling below zero is allowed (the
+  shop may not have entered all stock yet); the item shows a negative stock in red. Services and
+  area-priced items don't track stock.
+- Purchase orders and purchase bills don't need the legal number series: POs are numbered
+  PO/{FY}/{person letter}{n} on the phone; purchase bills keep the supplier's bill number.
+- Purchases, suppliers and the supplier ledger follow the store's "staff can see purchase prices"
+  setting: when off, staff phones don't receive them and can't add them. Expenses can be added by
+  anyone (petty cash), changed only by the owner.
+- A khata payment is split on the phone into entries on the customer's oldest unpaid bills; what is
+  left over is kept on account (advance) and can be used on a later bill ("Use advance"). The
+  opening balance is settled first.
+- Cash book is per store per day: opening (last day-end count) + cash received − cash refunds −
+  cash expenses − cash supplier payments. Day-end saves the counted cash and the difference.
+- Reports are worked out on the phone / web from the synced data, so they work offline.
+- The nightly Excel and bill scanning run on the server and need keys the owner provides.
+- Bill scanning: Claude reads the photo into a purchase draft (supplier by GSTIN or name, items by
+  name; anything new stays a new line); the person checks every line before saving. A store can scan
+  100 bills a day (`SCAN_PER_DAY`). Scanning the shop's own paper sales bills is R3.
+- Reports done: sales by day (staff filter), money received by mode, item-wise, category-wise,
+  delivery, stock (value at cost), low stock, slow movers, sales and purchase registers, HSN summary,
+  GST summary (output − input), profit (current cost price), expenses, day book, receivables,
+  payables, staff-wise and store-wise. Each shares as PDF or Excel.
+- Not yet (R3 or later): GSTR-1 JSON export, custom saved reports, cheque bounce handling, auto UPI
+  confirmation, credit limit blocking (it only warns), customer groups and price levels.
+
 Pending (not scheduled yet):
 - **iPhone app.** Needs an Apple Developer account ($99/yr), a Mac or cloud Mac builds, and an iPhone to
   test. Work: add the iOS project, icons and launch screen, permission texts (camera, Face ID,

@@ -40,6 +40,7 @@ import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
 import { computeTotals, deleteDraft, effectiveGstType, newId, newInvoiceDraft, recordPayments, saveInvoice, type NewPayment } from '../../lib/repo';
 import { sync } from '../../lib/sync';
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
+import CreditLimitNote from '../../components/CreditLimitNote';
 import LineEditor, { lineFromItem } from '../docs/LineEditor';
 
 /** What the counter shows after a sale is saved. */
@@ -322,6 +323,7 @@ export default function SaleScreen() {
               <IonIcon icon={personCircleOutline} />
               <IonLabel>{walkIn && (!bill.billTo || bill.billTo.name === WALK_IN.name) ? t('Walk-in customer') : bill.billTo!.name}</IonLabel>
             </IonChip>
+            {!walkIn && <CreditLimitNote businessId={actor.businessId} customerId={bill.billTo?.customerId} billAmount={totals?.grandTotal ?? 0} />}
             {regular && (
               <IonSegment value={bill.taxMode ?? 'gst'} onIonChange={sync((e) => patch({ taxMode: e.detail.value as 'gst' | 'none' }))} className="sale-tax">
                 <IonSegmentButton value="gst">

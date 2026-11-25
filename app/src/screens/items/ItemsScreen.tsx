@@ -1,6 +1,6 @@
 import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { add, chevronBackOutline, cloudUploadOutline, cubeOutline, folderOpenOutline } from 'ionicons/icons';
+import { add, alertCircleOutline, chevronBackOutline, cloudUploadOutline, cubeOutline, folderOpenOutline } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
@@ -9,6 +9,7 @@ import { db } from '../../lib/db';
 import { rupees } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { flattenCategories, useCategories, withDescendants } from '../../lib/categories';
+import { isLow, qtyText, stockLevels, tracksStock } from '../../lib/stock';
 
 export default function ItemsScreen() {
   const { actor, isOwner } = useBusiness();
@@ -27,6 +28,8 @@ export default function ItemsScreen() {
         .toArray(),
     [actor.businessId],
   );
+  const stock = useLiveQuery(() => stockLevels(actor.businessId), [actor.businessId]);
+  const lowCount = useMemo(() => (items ?? []).filter((i) => isLow(i, stock?.get(i.id) ?? 0)).length, [items, stock]);
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     const inCat = catId ? withDescendants(catId, cats) : null;
@@ -40,6 +43,12 @@ export default function ItemsScreen() {
   return (
     <PageShell title={t('Items')} padded={false}>
       <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search name, code or barcode')} />
+      {lowCount > 0 && (
+        <IonItem routerLink="/tabs/items/low-stock" detail lines="full" color="warning">
+          <IonIcon icon={alertCircleOutline} slot="start" />
+          <IonLabel>{t('{count} items low on stock', { count: lowCount })}</IonLabel>
+        </IonItem>
+      )}
       {(cats.length > 0 || isOwner) && (
         <div className="filter-chips">
           {current && (
@@ -81,6 +90,11 @@ export default function ItemsScreen() {
               </IonLabel>
               <IonNote slot="end" className="amount-note">
                 {rupees(i.rate)}
+                {tracksStock(i) && stock && (
+                  <span className={`stock-qty${(stock.get(i.id) ?? 0) < 0 || isLow(i, stock.get(i.id) ?? 0) ? ' text-danger' : ''}`}>
+                    {t('Stock {qty}', { qty: qtyText(stock.get(i.id) ?? 0) })}
+                  </span>
+                )}
               </IonNote>
             </IonItem>
           ))}

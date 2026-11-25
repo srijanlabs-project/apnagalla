@@ -13,11 +13,14 @@
 {count} changes waiting to sync,{count} बदलाव सिंक होने बाकी,{count} ફેરફારો સિંક બાકી,{count} ਤਬਦੀਲੀਆਂ ਸਿੰਕ ਦੀ ਉਡੀਕ ਵਿੱਚ,components/SyncBadge.tsx
 {count} changes waiting to upload.,{count} बदलाव अपलोड होने बाकी।,{count} ફેરફારો અપલોડ બાકી.,{count} ਤਬਦੀਲੀਆਂ ਅੱਪਲੋਡ ਦੀ ਉਡੀਕ ਵਿੱਚ।,components/SyncBadge.tsx
 {count} invites,{count} इनवाइट,{count} આમંત્રણ,{count} ਸੱਦੇ,screens/main/MoreScreen.tsx
-{count} items,{count} आइटम,{count} આઇટમ,{count} ਆਈਟਮਾਂ,screens/sale/SaleScreen.tsx
+{count} items,{count} आइटम,{count} આઇટમ,{count} ਆਈਟਮਾਂ,screens/main/Placeholders.tsx screens/purchases/PurchaseScreens.tsx screens/sale/SaleScreen.tsx
+{count} items low on stock,{count} आइटम का स्टॉक कम है,{count} આઇટમનો સ્ટોક ઓછો છે,{count} ਆਈਟਮਾਂ ਦਾ ਸਟਾਕ ਘੱਟ ਹੈ,screens/items/ItemsScreen.tsx
+"{count} items sold have no purchase price, so their cost is counted as 0.","बिके {count} आइटम का खरीद दाम नहीं है, इसलिए उनकी लागत 0 मानी गई है।","વેચાયેલી {count} આઇટમનો ખરીદ ભાવ નથી, તેથી તેમની પડતર 0 ગણી છે.","ਵਿਕੀਆਂ {count} ਆਈਟਮਾਂ ਦਾ ਖ਼ਰੀਦ ਭਾਅ ਨਹੀਂ ਹੈ, ਇਸ ਲਈ ਉਹਨਾਂ ਦੀ ਲਾਗਤ 0 ਗਿਣੀ ਗਈ ਹੈ।",lib/reports.ts
 {count} items use this category; move them first,{count} आइटम इस कैटेगरी में हैं; पहले उन्हें दूसरी कैटेगरी में डालें,{count} આઇટમ આ કેટેગરીમાં છે; પહેલાં તેને ખસેડો,{count} ਆਈਟਮਾਂ ਇਸ ਕੈਟੇਗਰੀ ਵਿੱਚ ਹਨ; ਪਹਿਲਾਂ ਉਹਨਾਂ ਨੂੰ ਹੋਰ ਕੈਟੇਗਰੀ ਵਿੱਚ ਭੇਜੋ,lib/categories.ts
 {example} · staff {staffExample},{example} · स्टाफ {staffExample},{example} · સ્ટાફ {staffExample},{example} · ਸਟਾਫ਼ {staffExample},screens/settings/InvoiceSettingsScreen.tsx
 {fresh} new · {matches} match existing customers · {bad} with problems (skipped),{fresh} नए · {matches} पुराने ग्राहकों से मेल खाते हैं · {bad} में गड़बड़ी (छोड़े गए),{fresh} નવા · {matches} હાલના ગ્રાહકો સાથે મેળ · {bad} માં ભૂલ (છોડ્યા),{fresh} ਨਵੇਂ · {matches} ਪੁਰਾਣੇ ਗਾਹਕਾਂ ਨਾਲ ਮਿਲਦੇ · {bad} ਵਿੱਚ ਗੜਬੜ (ਛੱਡੇ),screens/items/ImportScreen.tsx
 {fresh} new · {matches} match existing items · {bad} with problems (skipped),{fresh} नए · {matches} पुराने आइटम से मेल खाते हैं · {bad} में गड़बड़ी (छोड़े गए),{fresh} નવી · {matches} હાલની આઇટમ સાથે મેળ · {bad} માં ભૂલ (છોડી),{fresh} ਨਵੀਆਂ · {matches} ਪੁਰਾਣੀਆਂ ਆਈਟਮਾਂ ਨਾਲ ਮਿਲਦੀਆਂ · {bad} ਵਿੱਚ ਗੜਬੜ (ਛੱਡੀਆਂ),screens/items/ImportScreen.tsx
+{from} to {to},{from} से {to},{from} થી {to},{from} ਤੋਂ {to},lib/khata.ts
 {members} people · {bills} bills · last active {when},{members} लोग · {bills} बिल · आखिरी बार सक्रिय {when},{members} લોકો · {bills} બિલ · છેલ્લે સક્રિય {when},{members} ਲੋਕ · {bills} ਬਿੱਲ · ਆਖ਼ਰੀ ਵਾਰ ਸਰਗਰਮ {when},screens/admin/AdminScreen.tsx
 {name} already exists here,{name} यहाँ पहले से है,{name} અહીં પહેલેથી છે,{name} ਇੱਥੇ ਪਹਿਲਾਂ ਹੀ ਹੈ,lib/categories.ts
 "{store} has been suspended by ApnaGalla. Please contact ApnaGalla support, then tap Check again.","ApnaGalla ने {store} को निलंबित कर दिया है। कृपया ApnaGalla सहायता से संपर्क करें, फिर “फिर से देखें” दबाएँ।","ApnaGalla એ {store} સસ્પેન્ડ કરી છે. કૃપા કરીને ApnaGalla સપોર્ટનો સંપર્ક કરો, પછી “ફરી તપાસો” દબાવો.","ApnaGalla ਨੇ {store} ਨੂੰ ਮੁਅੱਤਲ ਕਰ ਦਿੱਤਾ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ApnaGalla ਸਹਾਇਤਾ ਨਾਲ ਸੰਪਰਕ ਕਰੋ, ਫਿਰ “ਦੁਬਾਰਾ ਚੈੱਕ ਕਰੋ” ਦਬਾਓ।",screens/stores/PausedScreen.tsx
@@ -39,12 +42,15 @@ A credit note can be at most {amount} for this invoice,इस बिल के �
 "A GSTIN has 15 characters, like 24ABCDE1234F1Z5","GSTIN में 15 अक्षर होते हैं, जैसे 24ABCDE1234F1Z5","GSTIN માં 15 અક્ષર હોય, જેમ કે 24ABCDE1234F1Z5","GSTIN ਵਿੱਚ 15 ਅੱਖਰ ਹੁੰਦੇ ਹਨ, ਜਿਵੇਂ 24ABCDE1234F1Z5",screens/customers/CustomerEditScreen.tsx
 A walk-in customer pays the full {amount}. Pick a customer to leave a balance.,नकद ग्राहक को पूरे {amount} देने होंगे। उधार बाकी रखने के लिए ग्राहक चुनें।,વૉક-ઇન ગ્રાહક પૂરા {amount} ચૂકવે. બાકી રાખવા ગ્રાહક પસંદ કરો.,ਆਮ ਗਾਹਕ ਪੂਰੇ {amount} ਦਿੰਦਾ ਹੈ। ਉਧਾਰ ਰੱਖਣ ਲਈ ਗਾਹਕ ਚੁਣੋ।,components/PaySheet.tsx
 A/c ••••{last4} · {ifsc},खाता ••••{last4} · {ifsc},ખાતું ••••{last4} · {ifsc},ਖਾਤਾ ••••{last4} · {ifsc},screens/settings/PaymentDetailsScreen.tsx
+Above the credit limit,उधार सीमा से ज़्यादा,ક્રેડિટ મર્યાદાથી વધુ,ਉਧਾਰ ਸੀਮਾ ਤੋਂ ਵੱਧ,screens/customers/CustomerDetailScreen.tsx
 Accepted,मंज़ूर,સ્વીકાર્યું,ਮਨਜ਼ੂਰ,lib/listedPhrases.ts
 Access paused,एक्सेस रुका हुआ,ઍક્સેસ અટકાવેલ છે,ਪਹੁੰਚ ਰੋਕੀ ਗਈ,screens/stores/PausedScreen.tsx
+Account,खाता,ખાતું,ਖਾਤਾ,screens/suppliers/SupplierScreens.tsx
 Account holder name,खाताधारक का नाम,ખાતાધારકનું નામ,ਖਾਤਾਧਾਰਕ ਦਾ ਨਾਂ,screens/settings/PaymentDetailsScreen.tsx
 Account number,खाता नंबर,ખાતા નંબર,ਖਾਤਾ ਨੰਬਰ,screens/settings/PaymentDetailsScreen.tsx
 Account type,खाते का प्रकार,ખાતાનો પ્રકાર,ਖਾਤੇ ਦੀ ਕਿਸਮ,screens/settings/PaymentDetailsScreen.tsx
-Add,जोड़ें,ઉમેરો,ਜੋੜੋ,screens/settings/InvoiceSettingsScreen.tsx screens/settings/PaymentDetailsScreen.tsx
+Add,जोड़ें,ઉમેરો,ਜੋੜੋ,screens/items/StockScreen.tsx screens/settings/InvoiceSettingsScreen.tsx screens/settings/PaymentDetailsScreen.tsx
+Add “{name}” as a new item,“{name}” को नए आइटम के रूप में जोड़ें,“{name}” ને નવી આઇટમ તરીકે ઉમેરો,“{name}” ਨੂੰ ਨਵੀਂ ਆਈਟਮ ਵਜੋਂ ਜੋੜੋ,components/ItemPicker.tsx
 "Add ""{name}"" as new customer","""{name}"" को नया ग्राहक जोड़ें","""{name}"" ને નવા ગ્રાહક તરીકે ઉમેરો","""{name}"" ਨੂੰ ਨਵੇਂ ਗਾਹਕ ਵਜੋਂ ਜੋੜੋ",screens/docs/CustomerPicker.tsx
 Add a store,दुकान जोड़ें,દુકાન ઉમેરો,ਦੁਕਾਨ ਜੋੜੋ,screens/stores/StoresScreen.tsx
 Add a UPI ID to print a scan-to-pay QR code with the amount pre-filled.,"UPI ID जोड़ें, तो बिल पर रकम के साथ स्कैन करके भुगतान वाला QR कोड छपेगा।",રકમ સાથેનો સ્કેન કરીને ચુકવણીનો QR કોડ છાપવા UPI ID ઉમેરો.,ਰਕਮ ਸਮੇਤ ਸਕੈਨ-ਕਰਕੇ-ਭੁਗਤਾਨ QR ਕੋਡ ਛਾਪਣ ਲਈ UPI ID ਜੋੜੋ।,screens/settings/PaymentDetailsScreen.tsx
@@ -55,17 +61,23 @@ Add category,कैटेगरी जोड़ें,કેટેગરી ઉ�
 "Add charge (delivery, packing…)","चार्ज जोड़ें (डिलीवरी, पैकिंग…)","ચાર્જ ઉમેરો (ડિલિવરી, પેકિંગ…)","ਖ਼ਰਚਾ ਜੋੜੋ (ਡਿਲੀਵਰੀ, ਪੈਕਿੰਗ…)",screens/docs/DocEditorScreen.tsx
 Add customer,ग्राहक जोड़ें,ગ્રાહક ઉમેરો,ਗਾਹਕ ਜੋੜੋ,screens/customers/CustomersScreen.tsx
 "Add customers here, or directly while creating an invoice.","ग्राहक यहाँ जोड़ें, या सीधे बिल बनाते समय।","ગ્રાહકો અહીં ઉમેરો, અથવા બિલ બનાવતી વખતે સીધા ઉમેરો.","ਗਾਹਕ ਇੱਥੇ ਜੋੜੋ, ਜਾਂ ਬਿੱਲ ਬਣਾਉਂਦੇ ਸਮੇਂ ਸਿੱਧੇ ਜੋੜੋ।",screens/customers/CustomersScreen.tsx
-Add item,आइटम जोड़ें,આઇટમ ઉમેરો,ਆਈਟਮ ਜੋੜੋ,screens/docs/DocEditorScreen.tsx screens/docs/LineEditor.tsx screens/items/ItemsScreen.tsx screens/sale/SaleScreen.tsx
+Add expense,खर्च जोड़ें,ખર્ચ ઉમેરો,ਖ਼ਰਚਾ ਜੋੜੋ,screens/expenses/ExpensesScreen.tsx
+Add item,आइटम जोड़ें,આઇટમ ઉમેરો,ਆਈਟਮ ਜੋੜੋ,screens/docs/DocEditorScreen.tsx screens/docs/LineEditor.tsx screens/items/ItemsScreen.tsx screens/purchases/PurchaseScreens.tsx screens/sale/SaleScreen.tsx
 Add items first.,पहले आइटम जोड़ें।,પહેલાં આઇટમ ઉમેરો.,ਪਹਿਲਾਂ ਆਈਟਮਾਂ ਜੋੜੋ।,screens/docs/DocEditorScreen.tsx
 Add logo,लोगो जोड़ें,લોગો ઉમેરો,ਲੋਗੋ ਜੋੜੋ,screens/settings/BusinessProfileScreen.tsx
 Add new customer,नया ग्राहक जोड़ें,નવો ગ્રાહક ઉમેરો,ਨਵਾਂ ਗਾਹਕ ਜੋੜੋ,screens/docs/CustomerPicker.tsx
 Add signature,हस्ताक्षर जोड़ें,સહી ઉમેરો,ਦਸਤਖ਼ਤ ਜੋੜੋ,screens/settings/BusinessProfileScreen.tsx
+Add supplier,सप्लायर जोड़ें,સપ્લાયર ઉમેરો,ਸਪਲਾਇਰ ਜੋੜੋ,screens/purchases/PurchaseScreens.tsx screens/suppliers/SupplierScreens.tsx
+"Add the wholesalers and companies you buy from, to track bills and what you owe them.","जिन होलसेलरों और कंपनियों से आप खरीदते हैं उन्हें जोड़ें, ताकि बिल और बकाया का हिसाब रहे।","જે હોલસેલરો અને કંપનીઓ પાસેથી તમે ખરીદો છો તેમને ઉમેરો, જેથી બિલ અને બાકીનો હિસાબ રહે.","ਜਿਨ੍ਹਾਂ ਹੋਲਸੇਲਰਾਂ ਅਤੇ ਕੰਪਨੀਆਂ ਤੋਂ ਤੁਸੀਂ ਖ਼ਰੀਦਦੇ ਹੋ ਉਹਨਾਂ ਨੂੰ ਜੋੜੋ, ਤਾਂ ਜੋ ਬਿੱਲਾਂ ਅਤੇ ਬਕਾਏ ਦਾ ਹਿਸਾਬ ਰਹੇ।",screens/suppliers/SupplierScreens.tsx
 "Add your logo, address and tax ID in {link}.","{link} में अपना लोगो, पता और टैक्स ID जोड़ें।","{link} માં તમારો લોગો, સરનામું અને ટેક્સ ID ઉમેરો.","{link} ਵਿੱਚ ਆਪਣਾ ਲੋਗੋ, ਪਤਾ ਅਤੇ ਟੈਕਸ ID ਜੋੜੋ।",screens/main/Placeholders.tsx
 Add your UPI ID in More → Payment details to show a QR here.,यहाँ QR दिखाने के लिए और → भुगतान जानकारी में अपनी UPI ID जोड़ें।,અહીં QR બતાવવા વધુ → ચુકવણી વિગતો માં તમારું UPI ID ઉમેરો.,ਇੱਥੇ QR ਦਿਖਾਉਣ ਲਈ ਹੋਰ → ਭੁਗਤਾਨ ਵੇਰਵੇ ਵਿੱਚ ਆਪਣੀ UPI ID ਜੋੜੋ।,components/PaySheet.tsx
 Additional charges,अतिरिक्त चार्ज,વધારાના ચાર્જ,ਵਾਧੂ ਖ਼ਰਚੇ,screens/docs/DocEditorScreen.tsx
-Address,पता,સરનામું,ਪਤਾ,screens/settings/BusinessProfileScreen.tsx
+Address,पता,સરનામું,ਪਤਾ,screens/settings/BusinessProfileScreen.tsx screens/suppliers/SupplierScreens.tsx
 Address line 1,पता लाइन 1,સરનામું લાઇન 1,ਪਤਾ ਲਾਈਨ 1,components/Fields.tsx
 Address line 2,पता लाइन 2,સરનામું લાઇન 2,ਪਤਾ ਲਾਈਨ 2,components/Fields.tsx
+advance,एडवांस,એડવાન્સ,ਐਡਵਾਂਸ,screens/suppliers/SupplierScreens.tsx
+Advance,एडवांस,એડવાન્સ,ਐਡਵਾਂਸ,screens/customers/CustomerDetailScreen.tsx
+Advance with supplier,सप्लायर के पास एडवांस,સપ્લાયર પાસે એડવાન્સ,ਸਪਲਾਇਰ ਕੋਲ ਐਡਵਾਂਸ,screens/suppliers/SupplierScreens.tsx
 Against bill,बिल के बदले,બિલ સામે,ਬਿੱਲ ਦੇ ਬਦਲੇ,lib/receipt/render.ts
 Against invoice {number} · up to {amount},बिल {number} के बदले · {amount} तक,બિલ {number} સામે · {amount} સુધી,ਬਿੱਲ {number} ਦੇ ਬਦਲੇ · {amount} ਤੱਕ,screens/docs/DocEditorScreen.tsx
 Against invoice {number} of {date},{date} के बिल {number} के बदले,{date} ના બિલ {number} સામે,{date} ਦੇ ਬਿੱਲ {number} ਦੇ ਬਦਲੇ,screens/docs/DocDetailScreen.tsx
@@ -75,10 +87,12 @@ All changes synced,सारे बदलाव सिंक हो गए,બ�
 All changes uploaded.,सारे बदलाव अपलोड हो गए।,બધા ફેરફારો અપલોડ થઈ ગયા.,ਸਾਰੀਆਂ ਤਬਦੀਲੀਆਂ ਅੱਪਲੋਡ ਹੋ ਗਈਆਂ।,components/SyncBadge.tsx
 Already on {item},पहले से {item} पर है,પહેલેથી {item} પર છે,ਪਹਿਲਾਂ ਹੀ {item} 'ਤੇ ਹੈ,screens/items/ItemEditScreen.tsx
 Also unlock with fingerprint,फिंगरप्रिंट से भी खोलें,ફિંગરપ્રિન્ટથી પણ ખોલો,ਫਿੰਗਰਪ੍ਰਿੰਟ ਨਾਲ ਵੀ ਖੋਲ੍ਹੋ,components/LockGate.tsx
-Amount,रकम,રકમ,ਰਕਮ,components/PaySheet.tsx screens/docs/DocEditorScreen.tsx screens/docs/LineEditor.tsx
+Amount,रकम,રકમ,ਰਕਮ,components/MoneyEntrySheet.tsx components/PaySheet.tsx lib/reports.ts screens/docs/DocEditorScreen.tsx screens/docs/LineEditor.tsx screens/purchases/PurchaseScreens.tsx
 Amount {number},रकम {number},રકમ {number},ਰਕਮ {number},components/PaySheet.tsx
 Amount in words,रकम शब्दों में,રકમ શબ્દોમાં,ਰਕਮ ਸ਼ਬਦਾਂ ਵਿੱਚ,lib/listedPhrases.ts
+Amount must be more than zero,रकम शून्य से ज़्यादा होनी चाहिए,રકમ શૂન્યથી વધુ હોવી જોઈએ,ਰਕਮ ਜ਼ੀਰੋ ਤੋਂ ਵੱਧ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ,lib/khata.ts lib/purchases.ts
 Amount this customer already owed you before you started using the app. Added to their pending total.,ऐप शुरू करने से पहले का इस ग्राहक का पुराना बकाया। यह इसके कुल बाकी में जुड़ जाएगा।,એપ વાપરવાનું શરૂ કર્યું તે પહેલાં આ ગ્રાહકના તમારે લેવાના બાકી હતા તે રકમ. તેમના બાકી કુલમાં ઉમેરાશે.,ਐਪ ਵਰਤਣ ਤੋਂ ਪਹਿਲਾਂ ਦਾ ਇਸ ਗਾਹਕ ਦਾ ਪੁਰਾਣਾ ਬਕਾਇਆ। ਇਹ ਇਸਦੇ ਕੁੱਲ ਬਕਾਏ ਵਿੱਚ ਜੁੜ ਜਾਂਦਾ ਹੈ।,screens/customers/CustomerEditScreen.tsx
+Amount you owe,आपको देनी रकम,તમારે આપવાની રકમ,ਤੁਸੀਂ ਦੇਣੀ ਰਕਮ,screens/suppliers/SupplierScreens.tsx
 ApnaGalla admin,ApnaGalla एडमिन,ApnaGalla એડમિન,ApnaGalla ਐਡਮਿਨ,screens/admin/AdminScreen.tsx screens/main/MoreScreen.tsx screens/onboarding/OnboardingScreen.tsx
 App lock,ऐप लॉक,એપ લૉક,ਐਪ ਲੌਕ,screens/main/MoreScreen.tsx screens/settings/LockSettingsScreen.tsx
 App lock is off,ऐप लॉक बंद है,એપ લૉક બંધ છે,ਐਪ ਲੌਕ ਬੰਦ ਹੈ,screens/settings/LockSettingsScreen.tsx
@@ -87,30 +101,40 @@ App lock turned off,ऐप लॉक बंद कर दिया,એપ લૉ
 Apply,लागू करें,લાગુ કરો,ਲਾਗੂ ਕਰੋ,screens/docs/DocEditorScreen.tsx
 Area (sq ft),एरिया (sq ft),ક્ષેત્રફળ (sq ft),ਖੇਤਰਫਲ (ਵਰਗ ਫੁੱਟ),screens/docs/LineEditor.tsx
 Area / job-work billing,एरिया / जॉब-वर्क बिलिंग,ક્ષેત્રફળ / જોબ-વર્ક બિલિંગ,ਖੇਤਰਫਲ / ਜੌਬ-ਵਰਕ ਬਿਲਿੰਗ,screens/settings/InvoiceSettingsScreen.tsx
+As on {date},{date} तक,{date} મુજબ,{date} ਤੱਕ,lib/reports.ts
 Authorised signature,अधिकृत हस्ताक्षर,અધિકૃત સહી,ਅਧਿਕਾਰਤ ਦਸਤਖ਼ਤ,screens/settings/BusinessProfileScreen.tsx
 Auto: {number},ऑटो: {number},ઓટો: {number},ਆਟੋ: {number},screens/docs/DocEditorScreen.tsx
 Auto: given when you save,ऑटो: सेव करने पर मिलेगा,ઓટો: સેવ કરતાં મળશે,ਆਟੋ: ਸੇਵ ਕਰਨ 'ਤੇ ਮਿਲੇਗਾ,screens/docs/DocEditorScreen.tsx
 Back,वापस,પાછા,ਪਿੱਛੇ,screens/docs/CustomerPicker.tsx
 Back to app,ऐप पर वापस,એપ પર પાછા,ਐਪ 'ਤੇ ਵਾਪਸ,screens/admin/AdminScreen.tsx
 Back to PIN,PIN पर वापस,PIN પર પાછા,PIN 'ਤੇ ਵਾਪਸ,components/LockGate.tsx
-Balance due,बाकी रकम,બાકી રકમ,ਬਕਾਇਆ ਰਕਮ,lib/receipt/render.ts
+Balance,बाकी,બાકી,ਬਕਾਇਆ,lib/khata.ts lib/reports.ts
+Balance {amount},बाकी {amount},બાકી {amount},ਬਕਾਇਆ {amount},screens/customers/CustomerDetailScreen.tsx screens/suppliers/SupplierScreens.tsx
+Balance brought forward,पिछला बाकी,પાછલી બાકી,ਪਿਛਲਾ ਬਕਾਇਆ,lib/khata.ts
+Balance due,बाकी रकम,બાકી રકમ,ਬਕਾਇਆ ਰਕਮ,lib/khata.ts lib/receipt/render.ts
 Bank account,बैंक खाता,બેંક ખાતું,ਬੈਂਕ ਖਾਤਾ,screens/docs/DocEditorScreen.tsx screens/settings/PaymentDetailsScreen.tsx
 Bank accounts,बैंक खाते,બેંક ખાતાં,ਬੈਂਕ ਖਾਤੇ,screens/settings/PaymentDetailsScreen.tsx
 Bank details,बैंक जानकारी,બેંક વિગતો,ਬੈਂਕ ਵੇਰਵੇ,lib/listedPhrases.ts
 Bank name,बैंक का नाम,બેંકનું નામ,ਬੈਂਕ ਦਾ ਨਾਂ,screens/settings/PaymentDetailsScreen.tsx
 Bank transfer,बैंक ट्रांसफ़र,બેંક ટ્રાન્સફર,ਬੈਂਕ ਟ੍ਰਾਂਸਫ਼ਰ,lib/ledger.ts
 Barcode,बारकोड,બારકોડ,ਬਾਰਕੋਡ,screens/items/ItemEditScreen.tsx
-Before tax,टैक्स से पहले,ટેક્સ પહેલાં,ਟੈਕਸ ਤੋਂ ਪਹਿਲਾਂ,screens/docs/LineEditor.tsx
+Before tax,टैक्स से पहले,ટેક્સ પહેલાં,ਟੈਕਸ ਤੋਂ ਪਹਿਲਾਂ,screens/docs/LineEditor.tsx screens/purchases/PurchaseScreens.tsx
 Before tax {taxable} + tax {tax} = {total} per {unit},टैक्स से पहले {taxable} + टैक्स {tax} = {total} प्रति {unit},ટેક્સ પહેલાં {taxable} + ટેક્સ {tax} = {total} પ્રતિ {unit},ਟੈਕਸ ਤੋਂ ਪਹਿਲਾਂ {taxable} + ਟੈਕਸ {tax} = {total} ਪ੍ਰਤੀ {unit},screens/items/ItemEditScreen.tsx
-Bill {number},बिल {number},બિલ {number},ਬਿੱਲ {number},lib/deliveries.ts
+"Best sellers first; amounts before tax, returns taken off.","सबसे ज़्यादा बिकने वाले पहले; रकम टैक्स से पहले, वापसी घटाकर।","સૌથી વધુ વેચાતી પહેલાં; રકમ ટેક્સ પહેલાંની, વાપસી બાદ કરીને.","ਸਭ ਤੋਂ ਵੱਧ ਵਿਕਣ ਵਾਲੀਆਂ ਪਹਿਲਾਂ; ਰਕਮ ਟੈਕਸ ਤੋਂ ਪਹਿਲਾਂ, ਵਾਪਸੀ ਘਟਾ ਕੇ।",lib/reports.ts
+Bill {number},बिल {number},બિલ {number},ਬਿੱਲ {number},lib/deliveries.ts lib/khata.ts
+Bill {ref},बिल {ref},બિલ {ref},ਬਿੱਲ {ref},lib/purchases.ts
+Bill amount,बिल की रकम,બિલની રકમ,ਬਿੱਲ ਦੀ ਰਕਮ,lib/khata.ts
+Bill has GST,बिल में GST है,બિલમાં GST છે,ਬਿੱਲ ਵਿੱਚ GST ਹੈ,screens/purchases/PurchaseScreens.tsx
 Bill held. Tap it at the top to resume.,बिल होल्ड हुआ। फिर से शुरू करने के लिए ऊपर उस पर टैप करें।,બિલ હોલ્ડ કર્યું. ફરી ચાલુ કરવા ઉપર તેના પર ટૅપ કરો.,ਬਿੱਲ ਹੋਲਡ ਕੀਤਾ। ਦੁਬਾਰਾ ਖੋਲ੍ਹਣ ਲਈ ਉੱਪਰ ਟੈਪ ਕਰੋ।,screens/sale/SaleScreen.tsx
+Bill no.,बिल नं.,બિલ નં.,ਬਿੱਲ ਨੰ.,lib/reports.ts
 Bill numbers with letter {letter},अक्षर {letter} वाले बिल नंबर,{letter} અક્ષરવાળા બિલ નંબર,{letter} ਅੱਖਰ ਵਾਲੇ ਬਿੱਲ ਨੰਬਰ,screens/main/TeamScreen.tsx
 Bill numbers without a letter,बिना अक्षर वाले बिल नंबर,અક્ષર વગરના બિલ નંબર,ਬਿਨਾਂ ਅੱਖਰ ਵਾਲੇ ਬਿੱਲ ਨੰਬਰ,screens/main/TeamScreen.tsx
 Bill of Supply,बिल ऑफ़ सप्लाई,બિલ ઓફ સપ્લાય,ਬਿੱਲ ਆਫ਼ ਸਪਲਾਈ,lib/gstView.ts
+Bill read. Check every line before saving.,बिल पढ़ लिया। सेव करने से पहले हर लाइन जाँच लें।,બિલ વંચાઈ ગયું. સેવ કરતાં પહેલાં દરેક લાઇન તપાસો.,ਬਿੱਲ ਪੜ੍ਹ ਲਿਆ। ਸੇਵ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਹਰ ਲਾਈਨ ਜਾਂਚੋ।,screens/purchases/PurchaseScreens.tsx
 Bill to,बिल किसको,બિલ કોને,ਬਿੱਲ ਕਿਸਨੂੰ,screens/docs/DocEditorScreen.tsx
 Bill without GST prefix,बिना GST बिल का प्रीफ़िक्स,GST વગરના બિલનું પ્રીફિક્સ,ਬਿਨਾਂ GST ਬਿੱਲ ਪ੍ਰੀਫ਼ਿਕਸ,screens/settings/InvoiceSettingsScreen.tsx
-Billed,कुल बिल,બિલ થયેલ,ਬਿੱਲ ਹੋਇਆ,screens/customers/CustomerDetailScreen.tsx
 Billing address,बिलिंग पता,બિલિંગ સરનામું,ਬਿਲਿੰਗ ਪਤਾ,screens/customers/CustomerEditScreen.tsx
+Bills,बिल,બિલ,ਬਿੱਲ,lib/reports.ts
 "Bills of supply without GST, with the composition declaration printed on them.","बिना GST के बिल ऑफ़ सप्लाई, जिन पर कंपोज़िशन वाली घोषणा छपी होती है।","GST વગરના બિલ ઓફ સપ્લાય, તેના પર કમ્પોઝિશન ડિક્લેરેશન છપાશે.","ਬਿਨਾਂ GST ਵਾਲੇ ਬਿੱਲ ਆਫ਼ ਸਪਲਾਈ, ਜਿਨ੍ਹਾਂ 'ਤੇ ਕੰਪੋਜ਼ੀਸ਼ਨ ਘੋਸ਼ਣਾ ਛਪੀ ਹੁੰਦੀ ਹੈ।",screens/settings/BusinessProfileScreen.tsx
 Bills without GST.,बिना GST के बिल।,GST વગરના બિલ.,ਬਿਨਾਂ GST ਵਾਲੇ ਬਿੱਲ।,screens/settings/BusinessProfileScreen.tsx
 "Black & white, saves ink","ब्लैक & व्हाइट, स्याही बचाए","બ્લેક & વ્હાઇટ, શાહી બચે","ਕਾਲਾ-ਚਿੱਟਾ, ਸਿਆਹੀ ਬਚਾਉਂਦਾ ਹੈ",lib/listedPhrases.ts
@@ -118,33 +142,46 @@ Bluetooth (paired),ब्लूटूथ (पेयर किए),બ્લૂ�
 Bluetooth Low Energy,ब्लूटूथ लो एनर्जी,બ્લૂટૂથ લો એનર્જી,ਬਲੂਟੁੱਥ ਲੋ ਐਨਰਜੀ,screens/settings/PrinterScreen.tsx
 "Bluetooth receipt printers work in the ApnaGalla Android app. On the web, share the PDF instead.",ब्लूटूथ रसीद प्रिंटर ApnaGalla Android ऐप में चलते हैं। वेब पर इसकी जगह PDF शेयर करें।,બ્લૂટૂથ રસીદ પ્રિન્ટર ApnaGalla Android એપમાં ચાલે છે. વેબ પર PDF શેર કરો.,ਬਲੂਟੁੱਥ ਰਸੀਦ ਪ੍ਰਿੰਟਰ ApnaGalla Android ਐਪ ਵਿੱਚ ਚੱਲਦੇ ਹਨ। ਵੈੱਬ 'ਤੇ PDF ਸ਼ੇਅਰ ਕਰੋ।,screens/settings/PrinterScreen.tsx
 "Bordered table, traditional","बॉर्डर वाली टेबल, पारंपरिक","બોર્ડરવાળું ટેબલ, પરંપરાગત","ਬਾਰਡਰ ਵਾਲੀ ਟੇਬਲ, ਰਵਾਇਤੀ",lib/listedPhrases.ts
+Bought from {name},{name} से खरीदा,{name} પાસેથી ખરીદ્યું,{name} ਤੋਂ ਖ਼ਰੀਦਿਆ,lib/stock.ts
 Branch,ब्रांच,શાખા,ਬ੍ਰਾਂਚ,screens/settings/PaymentDetailsScreen.tsx
 Business,बिज़नेस,બિઝનેસ,ਕਾਰੋਬਾਰ,screens/main/MoreScreen.tsx screens/settings/BusinessProfileScreen.tsx
 Business name,बिज़नेस का नाम,બિઝનેસનું નામ,ਕਾਰੋਬਾਰ ਦਾ ਨਾਂ,screens/onboarding/OnboardingScreen.tsx screens/settings/BusinessProfileScreen.tsx
 Business profile,बिज़नेस प्रोफ़ाइल,બિઝનેસ પ્રોફાઇલ,ਕਾਰੋਬਾਰ ਪ੍ਰੋਫ਼ਾਈਲ,screens/main/MoreScreen.tsx screens/main/Placeholders.tsx screens/settings/BusinessProfileScreen.tsx
-Call,कॉल करें,કૉલ કરો,ਕਾਲ ਕਰੋ,screens/customers/CustomerDetailScreen.tsx
+By,किसने,કોણે,ਕਿਸਨੇ,lib/reports.ts
+Call,कॉल करें,કૉલ કરો,ਕਾਲ ਕਰੋ,screens/customers/CustomerDetailScreen.tsx screens/suppliers/SupplierScreens.tsx
 Camera permission was refused. Allow the camera for ApnaGalla in your phone settings.,कैमरे की अनुमति नहीं मिली। फ़ोन की सेटिंग्स में ApnaGalla के लिए कैमरा चालू करें।,કેમેરાની પરવાનગી નકારાઈ. ફોન સેટિંગ્સમાં ApnaGalla માટે કેમેરા ચાલુ કરો.,ਕੈਮਰੇ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ ਮਿਲੀ। ਫ਼ੋਨ ਦੀਆਂ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ApnaGalla ਲਈ ਕੈਮਰਾ ਚਾਲੂ ਕਰੋ।,components/BarcodeScanner.tsx
 Can't reach the server. Check your internet connection.,सर्वर से संपर्क नहीं हो रहा। अपना इंटरनेट कनेक्शन देखें।,સર્વર સુધી પહોંચી શકાતું નથી. ઇન્ટરનેટ કનેક્શન તપાસો.,ਸਰਵਰ ਨਾਲ ਸੰਪਰਕ ਨਹੀਂ ਹੋ ਰਿਹਾ। ਆਪਣਾ ਇੰਟਰਨੈੱਟ ਚੈੱਕ ਕਰੋ।,lib/api.ts
-Cancel,रद्द करें,રદ કરો,ਰੱਦ ਕਰੋ,components/BarcodeScanner.tsx components/PaySheet.tsx screens/admin/AdminScreen.tsx screens/customers/CustomerEditScreen.tsx screens/docs/CustomerPicker.tsx screens/docs/DocEditorScreen.tsx screens/docs/LineEditor.tsx screens/items/CategoriesScreen.tsx screens/items/ItemEditScreen.tsx screens/main/DevicesScreen.tsx screens/main/MoreScreen.tsx screens/main/TeamScreen.tsx screens/sale/SaleScreen.tsx screens/settings/PaymentDetailsScreen.tsx screens/stores/AddStoreModal.tsx screens/stores/PausedScreen.tsx
+Cancel,रद्द करें,રદ કરો,ਰੱਦ ਕਰੋ,components/BarcodeScanner.tsx components/MoneyEntrySheet.tsx components/PaySheet.tsx screens/admin/AdminScreen.tsx screens/customers/CustomerEditScreen.tsx screens/docs/CustomerPicker.tsx screens/docs/DocEditorScreen.tsx screens/docs/LineEditor.tsx screens/expenses/ExpensesScreen.tsx screens/items/CategoriesScreen.tsx screens/items/ItemEditScreen.tsx screens/items/StockScreen.tsx screens/main/DevicesScreen.tsx screens/main/MoreScreen.tsx screens/main/TeamScreen.tsx screens/purchases/PurchaseScreens.tsx screens/sale/SaleScreen.tsx screens/settings/PaymentDetailsScreen.tsx screens/stores/AddStoreModal.tsx screens/stores/PausedScreen.tsx screens/suppliers/SupplierScreens.tsx
 Cancel {number}?,{number} रद्द करें?,{number} રદ કરવું છે?,{number} ਰੱਦ ਕਰਨਾ ਹੈ?,screens/docs/DocDetailScreen.tsx
 Cancel credit note,क्रेडिट नोट रद्द करें,ક્રેડિટ નોટ રદ કરો,ਕ੍ਰੈਡਿਟ ਨੋਟ ਰੱਦ ਕਰੋ,screens/docs/DocDetailScreen.tsx
 Cancel invoice,बिल रद्द करें,બિલ રદ કરો,ਬਿੱਲ ਰੱਦ ਕਰੋ,screens/docs/DocDetailScreen.tsx
 Cancel its credit notes first,पहले इसके क्रेडिट नोट रद्द करें,પહેલાં તેની ક્રેડિટ નોટ રદ કરો,ਪਹਿਲਾਂ ਇਸਦੇ ਕ੍ਰੈਡਿਟ ਨੋਟ ਰੱਦ ਕਰੋ,lib/repo.ts
+Cancel order,ऑर्डर रद्द करें,ઓર્ડર રદ કરો,ਆਰਡਰ ਰੱਦ ਕਰੋ,screens/purchases/PurchaseScreens.tsx
+Cancel purchase,खरीद रद्द करें,ખરીદી રદ કરો,ਖ਼ਰੀਦ ਰੱਦ ਕਰੋ,screens/purchases/PurchaseScreens.tsx
 Cancel this invite?,यह इनवाइट रद्द करें?,આ આમંત્રણ રદ કરવું છે?,ਇਹ ਸੱਦਾ ਰੱਦ ਕਰਨਾ ਹੈ?,screens/main/TeamScreen.tsx
-Cancelled,रद्द,રદ થયેલ,ਰੱਦ,lib/listedPhrases.ts
+Cancel this purchase?,यह खरीद रद्द करें?,આ ખરીદી રદ કરવી છે?,ਇਹ ਖ਼ਰੀਦ ਰੱਦ ਕਰਨੀ ਹੈ?,screens/purchases/PurchaseScreens.tsx
+Cancelled,रद्द,રદ થયેલ,ਰੱਦ,lib/listedPhrases.ts screens/purchases/PurchaseScreens.tsx
 Cancelled credit notes cannot be edited,रद्द क्रेडिट नोट बदले नहीं जा सकते,રદ થયેલ ક્રેડિટ નોટ સુધારી શકાતી નથી,ਰੱਦ ਕੀਤੇ ਕ੍ਰੈਡਿਟ ਨੋਟ ਬਦਲੇ ਨਹੀਂ ਜਾ ਸਕਦੇ,lib/repo.ts
 Cancelled invoices cannot be edited,रद्द बिल बदले नहीं जा सकते,રદ થયેલ બિલ સુધારી શકાતાં નથી,ਰੱਦ ਕੀਤੇ ਬਿੱਲ ਬਦਲੇ ਨਹੀਂ ਜਾ ਸਕਦੇ,lib/repo.ts
 Card,कार्ड,કાર્ડ,ਕਾਰਡ,lib/ledger.ts
 Card / slip ref. (optional),कार्ड / स्लिप नंबर (ज़रूरी नहीं),કાર્ડ / સ્લિપ નં. (વૈકલ્પિક),ਕਾਰਡ / ਸਲਿੱਪ ਨੰ. (ਮਰਜ਼ੀ ਨਾਲ),components/PaySheet.tsx
 Cash,नकद,રોકડ,ਨਕਦ,lib/ledger.ts
+Cash book,कैश बुक,કેશ બુક,ਕੈਸ਼ ਬੁੱਕ,screens/cash/CashBookScreen.tsx screens/main/MoreScreen.tsx
+Cash counted in the drawer,गल्ले में गिना गया नकद,ગલ્લામાં ગણેલી રોકડ,ਗੱਲੇ ਵਿੱਚ ਗਿਣਿਆ ਨਕਦ,screens/cash/CashBookScreen.tsx
+Cash in,नकद आया,રોકડ આવી,ਨਕਦ ਆਇਆ,screens/cash/CashBookScreen.tsx
+Cash in drawer,गल्ले में नकद,ગલ્લામાં રોકડ,ਗੱਲੇ ਵਿੱਚ ਨਕਦ,screens/main/Placeholders.tsx
+Cash in drawer (expected),गल्ले में नकद (होना चाहिए),ગલ્લામાં રોકડ (હોવી જોઈએ),ਗੱਲੇ ਵਿੱਚ ਨਕਦ (ਹੋਣਾ ਚਾਹੀਦਾ),screens/cash/CashBookScreen.tsx
+Cash out,नकद गया,રોકડ ગઈ,ਨਕਦ ਗਿਆ,screens/cash/CashBookScreen.tsx
 Cash received,नकद मिला,મળેલ રોકડ,ਨਕਦ ਮਿਲੇ,components/PaySheet.tsx
 Categories,कैटेगरी,કેટેગરી,ਕੈਟੇਗਰੀਆਂ,screens/items/CategoriesScreen.tsx screens/items/ItemsScreen.tsx
 Categories go {levels} levels deep at most,कैटेगरी ज़्यादा से ज़्यादा {levels} लेवल तक बन सकती हैं,કેટેગરી વધુમાં વધુ {levels} લેવલ ઊંડી હોઈ શકે,ਕੈਟੇਗਰੀਆਂ ਵੱਧ ਤੋਂ ਵੱਧ {levels} ਪੱਧਰ ਤੱਕ ਹੋ ਸਕਦੀਆਂ ਹਨ,lib/categories.ts
-Category,कैटेगरी,કેટેગરી,ਕੈਟੇਗਰੀ,screens/items/ItemEditScreen.tsx
+Category,कैटेगरी,કેટેગરી,ਕੈਟੇਗਰੀ,lib/reports.ts screens/items/ItemEditScreen.tsx
+Category-wise sales,कैटेगरी के हिसाब से बिक्री,કેટેગરી મુજબ વેચાણ,ਕੈਟੇਗਰੀ ਅਨੁਸਾਰ ਵਿਕਰੀ,lib/reports.ts
 Change,बदलें,બદલો,ਬਦਲੋ,components/ImagePicker.tsx
 Change number,नंबर बदलें,નંબર બદલો,ਨੰਬਰ ਬਦਲੋ,screens/auth/LoginScreen.tsx
 Change PIN,PIN बदलें,PIN બદલો,PIN ਬਦਲੋ,screens/settings/LockSettingsScreen.tsx
 Change returned,वापस दिए पैसे,પાછા આપેલા પૈસા,ਵਾਪਸ ਦਿੱਤੇ ਪੈਸੇ,lib/receipt/render.ts
+Change stock,स्टॉक बदलें,સ્ટોક બદલો,ਸਟਾਕ ਬਦਲੋ,screens/items/StockScreen.tsx
 Charge,चार्ज,ચાર્જ,ਚਾਰਜ,screens/docs/DocEditorScreen.tsx
 Charge by,किस हिसाब से,શેના પ્રમાણે ભાવ,ਚਾਰਜ ਕਿਵੇਂ,screens/docs/LineEditor.tsx
 Charges,चार्ज,ચાર્જ,ਖ਼ਰਚੇ,lib/receipt/render.ts screens/docs/DocEditorScreen.tsx
@@ -160,7 +197,9 @@ Choose the state,राज्य चुनें,રાજ્ય પસંદ �
 Choose your printer first.,पहले अपना प्रिंटर चुनें।,પહેલાં તમારું પ્રિન્ટર પસંદ કરો.,ਪਹਿਲਾਂ ਆਪਣਾ ਪ੍ਰਿੰਟਰ ਚੁਣੋ।,lib/usePrint.ts
 City,शहर,શહેર,ਸ਼ਹਿਰ,components/Fields.tsx screens/admin/AdminScreen.tsx screens/onboarding/OnboardingScreen.tsx screens/stores/AddStoreModal.tsx
 Classic,क्लासिक,ક્લાસિક,ਕਲਾਸਿਕ,lib/listedPhrases.ts
-Close,बंद करें,બંધ કરો,ਬੰਦ ਕਰੋ,components/SyncBadge.tsx screens/admin/AdminScreen.tsx screens/docs/DocDetailScreen.tsx screens/items/CategoriesScreen.tsx
+Close,बंद करें,બંધ કરો,ਬੰਦ ਕਰੋ,components/ItemPicker.tsx components/SyncBadge.tsx screens/admin/AdminScreen.tsx screens/customers/CustomerDetailScreen.tsx screens/docs/DocDetailScreen.tsx screens/items/CategoriesScreen.tsx
+Close the day,दिन बंद करें,દિવસ બંધ કરો,ਦਿਨ ਬੰਦ ਕਰੋ,screens/cash/CashBookScreen.tsx
+Cloud folder,क्लाउड फ़ोल्डर,ક્લાઉડ ફોલ્ડર,ਕਲਾਊਡ ਫ਼ੋਲਡਰ,screens/settings/BackupScreen.tsx
 Code,कोड,કોડ,ਕੋਡ,components/LockGate.tsx
 Colour,रंग,રંગ,ਰੰਗ,screens/settings/DesignScreen.tsx
 Colour {color},रंग {color},રંગ {color},ਰੰਗ {color},screens/settings/DesignScreen.tsx
@@ -168,10 +207,17 @@ Colour header band,रंगीन हेडर पट्टी,રંગીન 
 Columns not used: {columns},इस्तेमाल नहीं हुए कॉलम: {columns},ન વપરાયેલ કૉલમ: {columns},ਇਹ ਕਾਲਮ ਨਹੀਂ ਵਰਤੇ: {columns},screens/items/ImportScreen.tsx
 Composition scheme: bills of supply without GST. Change this in More → Business profile.,कंपोज़िशन स्कीम: बिना GST के बिल ऑफ़ सप्लाई। इसे और → बिज़नेस प्रोफ़ाइल में बदलें।,કમ્પોઝિશન સ્કીમ: GST વગરના બિલ ઓફ સપ્લાય. આ વધુ → બિઝનેસ પ્રોફાઇલ માં બદલો.,ਕੰਪੋਜ਼ੀਸ਼ਨ ਸਕੀਮ: ਬਿਨਾਂ GST ਵਾਲੇ ਬਿੱਲ ਆਫ਼ ਸਪਲਾਈ। ਇਸਨੂੰ ਹੋਰ → ਕਾਰੋਬਾਰ ਪ੍ਰੋਫ਼ਾਈਲ ਵਿੱਚ ਬਦਲੋ।,screens/docs/DocEditorScreen.tsx
 "Composition taxable person, not eligible to collect tax on supplies","कंपोज़िशन करदाता, सप्लाई पर टैक्स वसूलने का पात्र नहीं","કમ્પોઝિશન કરપાત્ર વ્યક્તિ, સપ્લાય પર ટેક્સ લેવા પાત્ર નથી","ਕੰਪੋਜ਼ੀਸ਼ਨ ਟੈਕਸਯੋਗ ਵਿਅਕਤੀ, ਸਪਲਾਈ 'ਤੇ ਟੈਕਸ ਲੈਣ ਦਾ ਹੱਕਦਾਰ ਨਹੀਂ",lib/gstView.ts
+Connect {name},{name} जोड़ें,{name} જોડો,{name} ਜੋੜੋ,screens/settings/BackupScreen.tsx
+Connected: {name},जुड़ा हुआ: {name},જોડાયેલું: {name},ਜੁੜਿਆ ਹੋਇਆ: {name},screens/settings/BackupScreen.tsx
 Contact,संपर्क,સંપર્ક,ਸੰਪਰਕ,screens/settings/BusinessProfileScreen.tsx
 Continue,आगे बढ़ें,આગળ વધો,ਅੱਗੇ ਵਧੋ,screens/onboarding/OnboardingScreen.tsx
 Convert to invoice,बिल में बदलें,બિલમાં ફેરવો,ਬਿੱਲ ਵਿੱਚ ਬਦਲੋ,screens/docs/DocDetailScreen.tsx
 Converted,बिल बना,બિલમાં ફેરવ્યું,ਬਿੱਲ ਬਣਿਆ,lib/listedPhrases.ts
+Cost,लागत,પડતર,ਲਾਗਤ,lib/reports.ts
+Cost (before tax),लागत (टैक्स से पहले),પડતર (ટેક્સ પહેલાં),ਲਾਗਤ (ਟੈਕਸ ਤੋਂ ਪਹਿਲਾਂ),screens/purchases/PurchaseScreens.tsx
+Cost (incl. tax),लागत (टैक्स सहित),પડતર (ટેક્સ સહિત),ਲਾਗਤ (ਟੈਕਸ ਸਮੇਤ),screens/purchases/PurchaseScreens.tsx
+Cost of goods sold,बिके माल की लागत,વેચાયેલા માલની પડતર,ਵਿਕੇ ਮਾਲ ਦੀ ਲਾਗਤ,lib/reports.ts
+Cost uses each item’s current purchase price.,लागत में हर आइटम का अभी का खरीद दाम लगाया गया है।,પડતરમાં દરેક આઇટમનો હાલનો ખરીદ ભાવ વપરાય છે.,ਲਾਗਤ ਵਿੱਚ ਹਰ ਆਈਟਮ ਦਾ ਮੌਜੂਦਾ ਖ਼ਰੀਦ ਭਾਅ ਵਰਤਿਆ ਗਿਆ ਹੈ।,lib/reports.ts
 Could not check right now.,अभी जाँच नहीं हो सकी।,અત્યારે તપાસી શકાયું નહીં.,ਹੁਣੇ ਚੈੱਕ ਨਹੀਂ ਹੋ ਸਕਿਆ।,components/GstinCheck.tsx
 Could not find a free number. Please try again.,कोई खाली नंबर नहीं मिला। फिर से कोशिश करें।,ખાલી નંબર મળ્યો નહીં. ફરી પ્રયાસ કરો.,ਖਾਲੀ ਨੰਬਰ ਨਹੀਂ ਮਿਲਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।,lib/repo.ts
 Could not print,प्रिंट नहीं हो सका,પ્રિન્ટ થઈ શક્યું નહીં,ਪ੍ਰਿੰਟ ਨਹੀਂ ਹੋ ਸਕਿਆ,lib/usePrint.ts
@@ -182,12 +228,19 @@ Could not send the code,कोड नहीं भेज सके,કોડ મ
 Could not show preview,प्रीव्यू नहीं दिख सका,પ્રિવ્યૂ બતાવી શકાયું નહીં,ਪ੍ਰੀਵਿਊ ਨਹੀਂ ਦਿਖਾ ਸਕੇ,components/PdfPreview.tsx
 Could not start the camera.,कैमरा चालू नहीं हो सका।,કેમેરા ચાલુ થઈ શક્યો નહીં.,ਕੈਮਰਾ ਚਾਲੂ ਨਹੀਂ ਹੋ ਸਕਿਆ।,components/BarcodeScanner.tsx
 Could not verify,वेरिफ़ाई नहीं हो सका,ચકાસી શકાયું નહીં,ਪੁਸ਼ਟੀ ਨਹੀਂ ਹੋ ਸਕੀ,components/LockGate.tsx
+Count,गिनती,ગણતરી,ਗਿਣਤੀ,screens/items/StockScreen.tsx
+Count again,फिर से गिनें,ફરી ગણો,ਦੁਬਾਰਾ ਗਿਣੋ,screens/cash/CashBookScreen.tsx
+Count what is on the shelf and enter the number; the app records the difference.,शेल्फ़ पर जो है उसे गिनकर नंबर डालें; ऐप फ़र्क खुद दर्ज करेगा।,શેલ્ફ પર જે છે તે ગણીને નંબર નાખો; એપ ફરક જાતે નોંધશે.,ਸ਼ੈਲਫ਼ 'ਤੇ ਜੋ ਹੈ ਉਹ ਗਿਣ ਕੇ ਨੰਬਰ ਪਾਓ; ਐਪ ਫ਼ਰਕ ਆਪੇ ਦਰਜ ਕਰੇਗੀ।,screens/items/StockScreen.tsx
+Counted,गिना गया,ગણેલું,ਗਿਣਿਆ,screens/items/StockScreen.tsx
+Counted {counted} by {name},{name} ने {counted} गिना,{name} એ {counted} ગણ્યા,{name} ਨੇ {counted} ਗਿਣਿਆ,screens/cash/CashBookScreen.tsx
 Create,बनाएँ,બનાવો,ਬਣਾਓ,screens/admin/AdminScreen.tsx screens/stores/AddStoreModal.tsx
 Create business,बिज़नेस बनाएँ,બિઝનેસ બનાવો,ਕਾਰੋਬਾਰ ਬਣਾਓ,screens/onboarding/OnboardingScreen.tsx
 Create your business,अपना बिज़नेस बनाएँ,તમારો બિઝનેસ બનાવો,ਆਪਣਾ ਕਾਰੋਬਾਰ ਬਣਾਓ,screens/onboarding/OnboardingScreen.tsx
 Create your first invoice and share it on WhatsApp.,अपना पहला बिल बनाएँ और WhatsApp पर शेयर करें।,તમારું પહેલું બિલ બનાવો અને WhatsApp પર શેર કરો.,ਆਪਣਾ ਪਹਿਲਾ ਬਿੱਲ ਬਣਾਓ ਅਤੇ WhatsApp 'ਤੇ ਸ਼ੇਅਰ ਕਰੋ।,screens/main/Placeholders.tsx
 "Create, share and track invoices — even without internet.","बिल बनाएँ, शेयर करें और हिसाब रखें — बिना इंटरनेट के भी।","બિલ બનાવો, શેર કરો અને ટ્રૅક કરો — ઇન્ટરનેટ વગર પણ.","ਬਿੱਲ ਬਣਾਓ, ਸ਼ੇਅਰ ਕਰੋ ਅਤੇ ਹਿਸਾਬ ਰੱਖੋ — ਇੰਟਰਨੈੱਟ ਤੋਂ ਬਿਨਾਂ ਵੀ।",screens/auth/LoginScreen.tsx
-Credit note,क्रेडिट नोट,ક્રેડિટ નોટ,ਕ੍ਰੈਡਿਟ ਨੋਟ,screens/docs/DocEditorScreen.tsx
+Credit limit,उधार सीमा,ક્રેડિટ મર્યાદા,ਉਧਾਰ ਸੀਮਾ,screens/customers/CustomerDetailScreen.tsx screens/customers/CustomerEditScreen.tsx
+Credit limit {limit}: already owes {balance}; with this bill {after}.,उधार सीमा {limit}: पहले से {balance} बाकी; इस बिल के साथ {after}।,ક્રેડિટ મર્યાદા {limit}: પહેલેથી {balance} બાકી; આ બિલ સાથે {after}.,ਉਧਾਰ ਸੀਮਾ {limit}: ਪਹਿਲਾਂ ਹੀ {balance} ਬਕਾਇਆ; ਇਸ ਬਿੱਲ ਨਾਲ {after}।,components/CreditLimitNote.tsx
+Credit note,क्रेडिट नोट,ક્રેડિટ નોટ,ਕ੍ਰੈਡਿਟ ਨੋਟ,lib/reports.ts screens/docs/DocEditorScreen.tsx
 Credit Note,क्रेडिट नोट,ક્રેડિટ નોટ,ਕ੍ਰੈਡਿਟ ਨੋਟ,lib/gstView.ts
 Credit note {number} saved,क्रेडिट नोट {number} सेव हुआ,ક્રેડિટ નોટ {number} સેવ થઈ,ਕ੍ਰੈਡਿਟ ਨੋਟ {number} ਸੇਵ ਹੋ ਗਿਆ,screens/docs/DocEditorScreen.tsx
 Credit note details,क्रेडिट नोट की जानकारी,ક્રેડિટ નોટની વિગતો,ਕ੍ਰੈਡਿਟ ਨੋਟ ਵੇਰਵੇ,screens/docs/DocEditorScreen.tsx
@@ -197,6 +250,7 @@ Credit note number {number} is already used,क्रेडिट नोट न�
 Credit note prefix,क्रेडिट नोट प्रीफ़िक्स,ક્રેડિટ નોટ પ્રીફિક્સ,ਕ੍ਰੈਡਿਟ ਨੋਟ ਪ੍ਰੀਫ਼ਿਕਸ,screens/settings/InvoiceSettingsScreen.tsx
 Credit notes,क्रेडिट नोट,ક્રેડિટ નોટ,ਕ੍ਰੈਡਿਟ ਨੋਟ,lib/receipt/render.ts screens/docs/DocDetailScreen.tsx screens/docs/DocListScreen.tsx
 Credit notes are made against a saved invoice,क्रेडिट नोट किसी सेव किए बिल के बदले ही बनते हैं,ક્રેડિટ નોટ સેવ થયેલા બિલ સામે જ બને છે,ਕ੍ਰੈਡਿਟ ਨੋਟ ਸੇਵ ਕੀਤੇ ਬਿੱਲ ਦੇ ਬਦਲੇ ਬਣਦੇ ਹਨ,lib/repo.ts
+Credit notes are shown with a minus sign.,क्रेडिट नोट माइनस निशान के साथ दिखते हैं।,ક્રેડિટ નોટ માઇનસ નિશાની સાથે દેખાય છે.,ਕ੍ਰੈਡਿਟ ਨੋਟ ਮਾਇਨਸ ਨਿਸ਼ਾਨ ਨਾਲ ਦਿਖਦੇ ਹਨ।,lib/reports.ts
 Credited,क्रेडिट हुआ,ક્રેડિટ થયું,ਕ੍ਰੈਡਿਟ ਹੋਇਆ,lib/listedPhrases.ts
 Current,करंट,કરંટ,ਮੌਜੂਦਾ,screens/settings/PaymentDetailsScreen.tsx
 Current PIN,मौजूदा PIN,હાલનો PIN,ਮੌਜੂਦਾ PIN,screens/settings/LockSettingsScreen.tsx
@@ -207,10 +261,20 @@ Custom fields (up to 3),अपनी फ़ील्ड (3 तक),કસ્ટ�
 Custom pattern,अपना पैटर्न,કસ્ટમ પેટર્ન,ਆਪਣਾ ਪੈਟਰਨ,screens/settings/InvoiceSettingsScreen.tsx
 Custom…,अपना…,કસ્ટમ…,ਆਪਣਾ…,screens/settings/InvoiceSettingsScreen.tsx
 customer,ग्राहक,ગ્રાહક,ਗਾਹਕ,lib/deliveries.ts
-Customer,ग्राहक,ગ્રાહક,ਗਾਹਕ,lib/receipt/render.ts
+Customer,ग्राहक,ગ્રાહક,ਗਾਹਕ,lib/khata.ts lib/receipt/render.ts lib/reports.ts
 Customer saved,ग्राहक सेव हुआ,ગ્રાહક સેવ થયો,ਗਾਹਕ ਸੇਵ ਹੋ ਗਿਆ,screens/customers/CustomerEditScreen.tsx
 Customers,ग्राहक,ગ્રાહકો,ਗਾਹਕ,screens/customers/CustomersScreen.tsx screens/items/ImportScreen.tsx screens/main/MainTabs.tsx
-Date,तारीख,તારીખ,ਤਾਰੀਖ਼,components/PaySheet.tsx lib/receipt/render.ts screens/docs/DocEditorScreen.tsx
+Daily Excel backup,रोज़ का Excel बैकअप,રોજનો Excel બેકઅપ,ਰੋਜ਼ਾਨਾ Excel ਬੈਕਅੱਪ,screens/main/MoreScreen.tsx screens/settings/BackupScreen.tsx
+Damaged,खराब,ખરાબ,ਖ਼ਰਾਬ,lib/stock.ts
+"Damaged, lost, expired or taken out of stock.","खराब, गुम, एक्सपायर या स्टॉक से निकाला गया।","ખરાબ, ખોવાયેલું, એક્સપાયર કે સ્ટોકમાંથી કાઢેલું.","ਖ਼ਰਾਬ, ਗੁੰਮ, ਮਿਆਦ ਪੁੱਗੀ ਜਾਂ ਸਟਾਕ ਵਿੱਚੋਂ ਕੱਢਿਆ।",screens/items/StockScreen.tsx
+Date,तारीख,તારીખ,ਤਾਰੀਖ਼,components/MoneyEntrySheet.tsx components/PaySheet.tsx lib/khata.ts lib/receipt/render.ts lib/reports.ts screens/docs/DocEditorScreen.tsx screens/purchases/PurchaseScreens.tsx
+Date: {date},तारीख: {date},તારીખ: {date},ਤਾਰੀਖ਼: {date},lib/purchases.ts screens/purchases/PurchaseScreens.tsx
+Dates,तारीखें,તારીખો,ਤਾਰੀਖ਼ਾਂ,screens/reports/ReportsScreen.tsx
+Day book,रोज़नामचा,રોજમેળ,ਰੋਜ਼ਨਾਮਚਾ,lib/reports.ts
+Day closed,दिन बंद हुआ,દિવસ બંધ થયો,ਦਿਨ ਬੰਦ ਹੋਇਆ,screens/cash/CashBookScreen.tsx
+Day-end count,दिन के आखिर की गिनती,દિવસના અંતની ગણતરી,ਦਿਨ ਦੇ ਅੰਤ ਦੀ ਗਿਣਤੀ,screens/cash/CashBookScreen.tsx
+Debit note {ref},डेबिट नोट {ref},ડેબિટ નોટ {ref},ਡੈਬਿਟ ਨੋਟ {ref},screens/purchases/PurchaseScreens.tsx
+Debit note no.,डेबिट नोट नं.,ડેબિટ નોટ નં.,ਡੈਬਿਟ ਨੋਟ ਨੰ.,screens/purchases/PurchaseScreens.tsx
 Decline,मना करें,નકારો,ਨਾਮਨਜ਼ੂਰ ਕਰੋ,screens/onboarding/OnboardingScreen.tsx screens/stores/StoreList.tsx
 Declined,नामंज़ूर,નકાર્યું,ਨਾਮਨਜ਼ੂਰ,lib/listedPhrases.ts
 Default,डिफ़ॉल्ट,ડિફૉલ્ટ,ਡਿਫ਼ਾਲਟ,screens/settings/PaymentDetailsScreen.tsx
@@ -220,34 +284,40 @@ Default notes,डिफ़ॉल्ट नोट्स,ડિફૉલ્ટ ન
 Default tax %,डिफ़ॉल्ट टैक्स %,ડિફૉલ્ટ ટેક્સ %,ਡਿਫ਼ਾਲਟ ਟੈਕਸ %,screens/settings/InvoiceSettingsScreen.tsx
 Default terms & conditions,डिफ़ॉल्ट नियम व शर्तें,ડિફૉલ્ટ નિયમો અને શરતો,ਡਿਫ਼ਾਲਟ ਨਿਯਮ ਅਤੇ ਸ਼ਰਤਾਂ,screens/settings/InvoiceSettingsScreen.tsx
 Defaults for new invoices,नए बिलों के लिए डिफ़ॉल्ट,નવા બિલ માટે ડિફૉલ્ટ,ਨਵੇਂ ਬਿੱਲਾਂ ਲਈ ਡਿਫ਼ਾਲਟ,screens/settings/InvoiceSettingsScreen.tsx
-Delete,हटाएँ,કાઢી નાખો,ਮਿਟਾਓ,screens/customers/CustomerEditScreen.tsx screens/items/CategoriesScreen.tsx screens/items/ItemEditScreen.tsx screens/settings/PaymentDetailsScreen.tsx
+Delete,हटाएँ,કાઢી નાખો,ਮਿਟਾਓ,screens/customers/CustomerEditScreen.tsx screens/expenses/ExpensesScreen.tsx screens/items/CategoriesScreen.tsx screens/items/ItemEditScreen.tsx screens/settings/PaymentDetailsScreen.tsx screens/suppliers/SupplierScreens.tsx
 Delete {customer}? Their past invoices are kept.,{customer} को हटाएँ? उनके पुराने बिल बने रहेंगे।,{customer} ને કાઢી નાખવા છે? તેમના જૂના બિલ રહેશે.,{customer} ਨੂੰ ਮਿਟਾਉਣਾ ਹੈ? ਇਸਦੇ ਪੁਰਾਣੇ ਬਿੱਲ ਰਹਿਣਗੇ।,screens/customers/CustomerEditScreen.tsx
 Delete {item}? Existing invoices keep their lines.,{item} हटाएँ? पुराने बिलों में इसकी लाइनें बनी रहेंगी।,{item} કાઢી નાખવી છે? હાલનાં બિલમાં તેની લાઇન રહેશે.,{item} ਨੂੰ ਮਿਟਾਉਣਾ ਹੈ? ਮੌਜੂਦਾ ਬਿੱਲਾਂ ਵਿੱਚ ਇਸਦੀਆਂ ਲਾਈਨਾਂ ਰਹਿਣਗੀਆਂ।,screens/items/ItemEditScreen.tsx
+Delete {name}? Their bills stay.,{name} हटाएँ? उनके बिल बने रहेंगे।,{name} કાઢી નાખવા છે? તેમના બિલ રહેશે.,{name} ਮਿਟਾਉਣਾ ਹੈ? ਉਹਨਾਂ ਦੇ ਬਿੱਲ ਰਹਿਣਗੇ।,screens/suppliers/SupplierScreens.tsx
 Delete bank account,बैंक खाता हटाएँ,બેંક ખાતું કાઢી નાખો,ਬੈਂਕ ਖਾਤਾ ਮਿਟਾਓ,screens/settings/PaymentDetailsScreen.tsx
 Delete customer,ग्राहक हटाएँ,ગ્રાહક કાઢી નાખો,ਗਾਹਕ ਮਿਟਾਓ,screens/customers/CustomerEditScreen.tsx
-Delete draft,ड्राफ़्ट हटाएँ,ડ્રાફ્ટ કાઢી નાખો,ਡਰਾਫ਼ਟ ਮਿਟਾਓ,screens/docs/DocDetailScreen.tsx
+Delete draft,ड्राफ़्ट हटाएँ,ડ્રાફ્ટ કાઢી નાખો,ਡਰਾਫ਼ਟ ਮਿਟਾਓ,screens/docs/DocDetailScreen.tsx screens/purchases/PurchaseScreens.tsx
 Delete item,आइटम हटाएँ,આઇટમ કાઢી નાખો,ਆਈਟਮ ਮਿਟਾਓ,screens/items/ItemEditScreen.tsx
 Delete or move its sub-categories first,पहले इसकी उप-कैटेगरी हटाएँ या दूसरी जगह डालें,પહેલાં તેની પેટા-કેટેગરી કાઢી નાખો અથવા ખસેડો,ਪਹਿਲਾਂ ਇਸਦੀਆਂ ਸਬ-ਕੈਟੇਗਰੀਆਂ ਮਿਟਾਓ ਜਾਂ ਹੋਰ ਥਾਂ ਭੇਜੋ,lib/categories.ts
+Delete supplier,सप्लायर हटाएँ,સપ્લાયર કાઢી નાખો,ਸਪਲਾਇਰ ਮਿਟਾਓ,screens/suppliers/SupplierScreens.tsx
 Delete this bank account?,यह बैंक खाता हटाएँ?,આ બેંક ખાતું કાઢી નાખવું છે?,ਇਹ ਬੈਂਕ ਖਾਤਾ ਮਿਟਾਉਣਾ ਹੈ?,screens/settings/PaymentDetailsScreen.tsx
 Delete this UPI ID?,यह UPI ID हटाएँ?,આ UPI ID કાઢી નાખવું છે?,ਇਹ UPI ID ਮਿਟਾਉਣੀ ਹੈ?,screens/settings/PaymentDetailsScreen.tsx
 Delete UPI ID,UPI ID हटाएँ,UPI ID કાઢી નાખો,UPI ID ਮਿਟਾਓ,screens/settings/PaymentDetailsScreen.tsx
 delivered,डिलीवर हुआ,ડિલિવર થયું,ਡਿਲੀਵਰ ਹੋਇਆ,screens/docs/DocDetailScreen.tsx
-Delivered,डिलीवर हुआ,ડિલિવર થયું,ਡਿਲੀਵਰ ਹੋਇਆ,screens/main/Placeholders.tsx
+Delivered,डिलीवर हुआ,ડિલિવર થયું,ਡਿਲੀਵਰ ਹੋਇਆ,lib/reports.ts screens/main/Placeholders.tsx
 Delivered by,डिलीवरी करने वाला,ડિલિવરી કોણ કરશે,ਡਿਲੀਵਰੀ ਕਰਨ ਵਾਲਾ,screens/docs/DocEditorScreen.tsx
 delivered by {name},{name} ने डिलीवर किया,{name} એ ડિલિવર કર્યું,{name} ਨੇ ਡਿਲੀਵਰ ਕੀਤਾ,screens/docs/DocDetailScreen.tsx
+Delivered late,देर से डिलीवर हुआ,મોડું ડિલિવર થયું,ਦੇਰ ਨਾਲ ਡਿਲੀਵਰ ਹੋਇਆ,lib/reports.ts
 Deliveries,डिलीवरी,ડિલિવરી,ਡਿਲੀਵਰੀਆਂ,screens/main/Placeholders.tsx
 Delivery,डिलीवरी,ડિલિવરી,ਡਿਲੀਵਰੀ,screens/docs/DocEditorScreen.tsx
 Delivery {date},डिलीवरी {date},ડિલિવરી {date},ਡਿਲੀਵਰੀ {date},screens/docs/DocDetailScreen.tsx
 Delivery alert,डिलीवरी अलर्ट,ડિલિવરી એલર્ટ,ਡਿਲੀਵਰੀ ਅਲਰਟ,screens/settings/InvoiceSettingsScreen.tsx
-Delivery date,डिलीवरी की तारीख,ડિલિવરીની તારીખ,ਡਿਲੀਵਰੀ ਦੀ ਤਾਰੀਖ਼,screens/docs/DocEditorScreen.tsx
+Delivery date,डिलीवरी की तारीख,ડિલિવરીની તારીખ,ਡਿਲੀਵਰੀ ਦੀ ਤਾਰੀਖ਼,lib/reports.ts screens/docs/DocEditorScreen.tsx
+Delivery report,डिलीवरी रिपोर्ट,ડિલિવરી રિપોર્ટ,ਡਿਲੀਵਰੀ ਰਿਪੋਰਟ,lib/reports.ts
 Delivery tomorrow,कल डिलीवरी,કાલે ડિલિવરી,ਕੱਲ੍ਹ ਡਿਲੀਵਰੀ,lib/deliveries.ts
 Description,विवरण,વર્ણન,ਵੇਰਵਾ,screens/docs/LineEditor.tsx
 Description (optional),विवरण (ज़रूरी नहीं),વર્ણન (વૈકલ્પિક),ਵੇਰਵਾ (ਮਰਜ਼ੀ ਨਾਲ),screens/items/ItemEditScreen.tsx
+Details,जानकारी,વિગતો,ਵੇਰਵੇ,lib/khata.ts lib/reports.ts
 Devices,डिवाइस,ડિવાઇસ,ਡਿਵਾਈਸਾਂ,screens/main/DevicesScreen.tsx screens/main/MoreScreen.tsx
 Digits,अंक,અંક,ਅੰਕ,screens/settings/InvoiceSettingsScreen.tsx
 Discard,छोड़ दें,કાઢી નાખો,ਛੱਡ ਦਿਓ,screens/sale/SaleScreen.tsx
 Discard changes,बदलाव छोड़ दें,ફેરફારો રદ કરો,ਤਬਦੀਲੀਆਂ ਛੱਡ ਦਿਓ,screens/settings/DesignScreen.tsx
 Discard this held bill?,यह होल्ड बिल छोड़ दें?,આ હોલ્ડ બિલ કાઢી નાખવું છે?,ਇਹ ਹੋਲਡ ਕੀਤਾ ਬਿੱਲ ਛੱਡਣਾ ਹੈ?,screens/sale/SaleScreen.tsx
+Disconnect,डिस्कनेक्ट करें,ડિસ્કનેક્ટ કરો,ਡਿਸਕਨੈਕਟ ਕਰੋ,screens/settings/BackupScreen.tsx
 Discount,छूट,ડિસ્કાઉન્ટ,ਛੋਟ,lib/receipt/render.ts
 Discount %,छूट %,ડિસ્કાઉન્ટ %,ਛੋਟ %,screens/docs/DocEditorScreen.tsx screens/docs/LineEditor.tsx
 Discount ₹,छूट ₹,ડિસ્કાઉન્ટ ₹,ਛੋਟ ₹,screens/docs/DocEditorScreen.tsx
@@ -258,8 +328,9 @@ Discount on total,कुल पर छूट,કુલ પર ડિસ્કા
 Discount on total (before tax),कुल पर छूट (टैक्स से पहले),કુલ પર ડિસ્કાઉન્ટ (ટેક્સ પહેલાં),ਕੁੱਲ 'ਤੇ ਛੋਟ (ਟੈਕਸ ਤੋਂ ਪਹਿਲਾਂ),screens/docs/DocEditorScreen.tsx
 Don't show,न दिखाएँ,ન બતાવો,ਨਾ ਦਿਖਾਓ,screens/docs/DocEditorScreen.tsx
 Done,हो गया,થઈ ગયું,ਹੋ ਗਿਆ,components/BarcodeScanner.tsx screens/docs/LineEditor.tsx
-Draft,ड्राफ़्ट,ડ્રાફ્ટ,ਡਰਾਫ਼ਟ,lib/listedPhrases.ts lib/receipt/render.ts screens/customers/CustomerDetailScreen.tsx screens/docs/DocDetailScreen.tsx screens/docs/DocListScreen.tsx screens/main/Placeholders.tsx
-Draft saved,ड्राफ़्ट सेव हुआ,ડ્રાફ્ટ સેવ થયો,ਡਰਾਫ਼ਟ ਸੇਵ ਹੋ ਗਿਆ,screens/docs/DocEditorScreen.tsx
+Draft,ड्राफ़्ट,ડ્રાફ્ટ,ਡਰਾਫ਼ਟ,lib/listedPhrases.ts lib/receipt/render.ts lib/reports.ts screens/customers/CustomerDetailScreen.tsx screens/docs/DocDetailScreen.tsx screens/docs/DocListScreen.tsx screens/main/Placeholders.tsx screens/purchases/PurchaseScreens.tsx
+Draft saved,ड्राफ़्ट सेव हुआ,ડ્રાફ્ટ સેવ થયો,ਡਰਾਫ਼ਟ ਸੇਵ ਹੋ ਗਿਆ,screens/docs/DocEditorScreen.tsx screens/purchases/PurchaseScreens.tsx
+Due,बाकी,બાકી,ਬਕਾਇਆ,lib/reports.ts
 due {date},{date} तक बाकी,{date} સુધીમાં,{date} ਤੱਕ ਬਕਾਇਆ,screens/docs/DocDetailScreen.tsx
 Due date,भुगतान की आखिरी तारीख,છેલ્લી તારીખ,ਭੁਗਤਾਨ ਦੀ ਤਾਰੀਖ਼,screens/docs/DocEditorScreen.tsx
 Due on receipt,मिलते ही भुगतान,મળતાં જ ચૂકવવાનું,ਮਿਲਦੇ ਹੀ ਭੁਗਤਾਨ,lib/listedPhrases.ts
@@ -271,19 +342,23 @@ e.g. PAN,जैसे PAN,દા.ત. PAN,ਜਿਵੇਂ PAN,screens/settings/B
 Each person has their own series (works offline),हर व्यक्ति की अपनी सीरीज़ (बिना इंटरनेट भी चले),દરેક વ્યક્તિની પોતાની સિરીઝ (ઓફલાઇન પણ ચાલે),ਹਰ ਵਿਅਕਤੀ ਦੀ ਆਪਣੀ ਸੀਰੀਜ਼ (ਆਫ਼ਲਾਈਨ ਵੀ ਚੱਲਦੀ ਹੈ),screens/settings/InvoiceSettingsScreen.tsx
 Each series needs a different prefix,हर सीरीज़ का प्रीफ़िक्स अलग होना चाहिए,દરેક સિરીઝનું પ્રીફિક્સ અલગ જોઈએ,ਹਰ ਸੀਰੀਜ਼ ਦਾ ਪ੍ਰੀਫ਼ਿਕਸ ਵੱਖਰਾ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ,screens/settings/InvoiceSettingsScreen.tsx
 "Each store has its own customers, items, invoice numbers, GST details and team. You can add the logo, address, bank and UPI details after creating it.","हर दुकान के अपने ग्राहक, आइटम, बिल नंबर, GST जानकारी और टीम होती है। लोगो, पता, बैंक और UPI जानकारी आप दुकान बनाने के बाद जोड़ सकते हैं।","દરેક દુકાનના પોતાના ગ્રાહકો, આઇટમ, બિલ નંબર, GST વિગતો અને ટીમ હોય છે. લોગો, સરનામું, બેંક અને UPI વિગતો દુકાન બનાવ્યા પછી ઉમેરી શકો.","ਹਰ ਦੁਕਾਨ ਦੇ ਆਪਣੇ ਗਾਹਕ, ਆਈਟਮਾਂ, ਬਿੱਲ ਨੰਬਰ, GST ਵੇਰਵੇ ਅਤੇ ਟੀਮ ਹੁੰਦੀ ਹੈ। ਲੋਗੋ, ਪਤਾ, ਬੈਂਕ ਅਤੇ UPI ਵੇਰਵੇ ਦੁਕਾਨ ਬਣਾਉਣ ਤੋਂ ਬਾਅਦ ਜੋੜ ਸਕਦੇ ਹੋ।",screens/stores/AddStoreModal.tsx
-Edit,एडिट करें,સુધારો,ਬਦਲੋ,screens/customers/CustomerDetailScreen.tsx screens/docs/DocDetailScreen.tsx screens/items/CategoriesScreen.tsx
+Edit,एडिट करें,સુધારો,ਬਦਲੋ,screens/customers/CustomerDetailScreen.tsx screens/docs/DocDetailScreen.tsx screens/items/CategoriesScreen.tsx screens/purchases/PurchaseScreens.tsx screens/suppliers/SupplierScreens.tsx
 Edit {number},{number} एडिट करें,{number} સુધારો,{number} ਬਦਲੋ,screens/docs/DocEditorScreen.tsx
 Edit customer,ग्राहक एडिट करें,ગ્રાહક સુધારો,ਗਾਹਕ ਬਦਲੋ,screens/customers/CustomerEditScreen.tsx
 Edit item,आइटम एडिट करें,આઇટમ સુધારો,ਆਈਟਮ ਬਦਲੋ,screens/docs/LineEditor.tsx screens/items/ItemEditScreen.tsx
-Email,ईमेल,ઈમેલ,ਈਮੇਲ,screens/customers/CustomerEditScreen.tsx screens/settings/BusinessProfileScreen.tsx
+Edit purchase,खरीद एडिट करें,ખરીદી સુધારો,ਖ਼ਰੀਦ ਬਦਲੋ,screens/purchases/PurchaseScreens.tsx
+Edit supplier,सप्लायर एडिट करें,સપ્લાયર સુધારો,ਸਪਲਾਇਰ ਬਦਲੋ,screens/suppliers/SupplierScreens.tsx
+Electricity,बिजली,વીજળી,ਬਿਜਲੀ,lib/purchases.ts
+Email,ईमेल,ઈમેલ,ਈਮੇਲ,screens/customers/CustomerEditScreen.tsx screens/settings/BackupScreen.tsx screens/settings/BusinessProfileScreen.tsx
 "Email ""{value}"" looks wrong","ईमेल ""{value}"" गलत लगता है","ઈમેલ ""{value}"" ખોટો લાગે છે","ਈਮੇਲ ""{value}"" ਗਲਤ ਲੱਗਦੀ ਹੈ",lib/importer.ts
 Enter a name,नाम डालें,નામ લખો,ਨਾਂ ਭਰੋ,lib/categories.ts
 Enter a valid 10-digit mobile number,सही 10 अंकों का मोबाइल नंबर डालें,સાચો 10 અંકનો મોબાઇલ નંબર લખો,ਸਹੀ 10-ਅੰਕਾਂ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ ਭਰੋ,screens/auth/LoginScreen.tsx screens/main/TeamScreen.tsx
-Enter a valid 10-digit mobile number (or leave it empty),सही 10 अंकों का मोबाइल नंबर डालें (या खाली छोड़ें),સાચો 10 અંકનો મોબાઇલ નંબર લખો (અથવા ખાલી રાખો),ਸਹੀ 10-ਅੰਕਾਂ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ ਭਰੋ (ਜਾਂ ਖਾਲੀ ਛੱਡੋ),screens/customers/CustomerEditScreen.tsx
+Enter a valid 10-digit mobile number (or leave it empty),सही 10 अंकों का मोबाइल नंबर डालें (या खाली छोड़ें),સાચો 10 અંકનો મોબાઇલ નંબર લખો (અથવા ખાલી રાખો),ਸਹੀ 10-ਅੰਕਾਂ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ ਭਰੋ (ਜਾਂ ਖਾਲੀ ਛੱਡੋ),screens/customers/CustomerEditScreen.tsx screens/suppliers/SupplierScreens.tsx
 Enter a valid email (or leave it empty),सही ईमेल डालें (या खाली छोड़ें),સાચો ઈમેલ લખો (અથવા ખાલી રાખો),ਸਹੀ ਈਮੇਲ ਭਰੋ (ਜਾਂ ਖਾਲੀ ਛੱਡੋ),screens/customers/CustomerEditScreen.tsx
 Enter a valid UPI ID (like name@bank) and payee name,सही UPI ID (जैसे name@bank) और पाने वाले का नाम डालें,સાચું UPI ID (જેમ કે name@bank) અને લેનારનું નામ લખો,ਸਹੀ UPI ID (ਜਿਵੇਂ name@bank) ਅਤੇ ਪ੍ਰਾਪਤਕਰਤਾ ਦਾ ਨਾਂ ਭਰੋ,screens/settings/PaymentDetailsScreen.tsx
 Enter an amount,रकम डालें,રકમ લખો,ਰਕਮ ਭਰੋ,lib/repo.ts
 Enter an amount like 1250 or 1250.50,रकम ऐसे डालें: 1250 या 1250.50,1250 અથવા 1250.50 જેવી રકમ લખો,ਰਕਮ ਇਸ ਤਰ੍ਹਾਂ ਭਰੋ: 1250 ਜਾਂ 1250.50,components/Fields.tsx
+Enter the bills from your suppliers: stock goes up and you see what you owe.,अपने सप्लायरों के बिल डालें: स्टॉक बढ़ता है और दिखता है कि आपको कितना देना है।,તમારા સપ્લાયરોના બિલ નાખો: સ્ટોક વધે છે અને દેખાય છે કે તમારે કેટલું આપવાનું છે.,ਆਪਣੇ ਸਪਲਾਇਰਾਂ ਦੇ ਬਿੱਲ ਪਾਓ: ਸਟਾਕ ਵਧਦਾ ਹੈ ਅਤੇ ਦਿਖਦਾ ਹੈ ਕਿ ਤੁਸੀਂ ਕਿੰਨਾ ਦੇਣਾ ਹੈ।,screens/purchases/PurchaseScreens.tsx
 Enter the code sent to {phone},{phone} पर भेजा गया कोड डालें,{phone} પર મોકલેલો કોડ લખો,{phone} 'ਤੇ ਭੇਜਿਆ ਕੋਡ ਭਰੋ,screens/auth/LoginScreen.tsx
 Enter the total the customer will pay (including tax). The discount is worked out automatically.,"ग्राहक जो कुल रकम देगा (टैक्स मिलाकर), वह डालें। छूट अपने आप निकल जाएगी।",ગ્રાહક ચૂકવશે તે કુલ રકમ (ટેક્સ સાથે) લખો. ડિસ્કાઉન્ટ આપમેળે ગણાશે.,ਗਾਹਕ ਜੋ ਕੁੱਲ ਰਕਮ ਦੇਵੇਗਾ (ਟੈਕਸ ਸਮੇਤ) ਉਹ ਭਰੋ। ਛੋਟ ਆਪਣੇ-ਆਪ ਲੱਗ ਜਾਵੇਗੀ।,screens/docs/DocEditorScreen.tsx
 Enter your PIN,अपना PIN डालें,તમારો PIN નાખો,ਆਪਣਾ PIN ਪਾਓ,components/LockGate.tsx
@@ -296,8 +371,16 @@ Estimate not found,एस्टिमेट नहीं मिला,એસ્�
 Estimate number {number} is already used,एस्टिमेट नंबर {number} पहले से इस्तेमाल हो चुका है,એસ્ટિમેટ નંબર {number} પહેલેથી વપરાયેલ છે,ਐਸਟੀਮੇਟ ਨੰਬਰ {number} ਪਹਿਲਾਂ ਹੀ ਵਰਤਿਆ ਗਿਆ ਹੈ,screens/docs/DocEditorScreen.tsx
 Estimate prefix,एस्टिमेट प्रीफ़िक्स,એસ્ટિમેટ પ્રીફિક્સ,ਐਸਟੀਮੇਟ ਪ੍ਰੀਫ਼ਿਕਸ,screens/settings/InvoiceSettingsScreen.tsx
 Estimates,एस्टिमेट,એસ્ટિમેટ,ਐਸਟੀਮੇਟ,screens/docs/DocListScreen.tsx screens/main/MoreScreen.tsx
+"Every night ApnaGalla makes an Excel of the day’s bills, payments, purchases and expenses, and sends it where you choose.","हर रात ApnaGalla दिन के बिल, भुगतान, खरीद और खर्च का Excel बनाकर वहाँ भेजता है जहाँ आप चुनें।","દર રાત્રે ApnaGalla દિવસના બિલ, ચુકવણી, ખરીદી અને ખર્ચનું Excel બનાવીને તમે પસંદ કરો ત્યાં મોકલે છે.","ਹਰ ਰਾਤ ApnaGalla ਦਿਨ ਦੇ ਬਿੱਲਾਂ, ਭੁਗਤਾਨਾਂ, ਖ਼ਰੀਦ ਅਤੇ ਖ਼ਰਚਿਆਂ ਦੀ Excel ਬਣਾ ਕੇ ਉੱਥੇ ਭੇਜਦਾ ਹੈ ਜਿੱਥੇ ਤੁਸੀਂ ਚੁਣੋ।",screens/settings/BackupScreen.tsx
 "Every phone keeps a block of numbers sized to how much it bills, and gives unused ones back on logout. Best switched on 1 April.","हर फ़ोन अपनी बिक्री के हिसाब से नंबरों का एक ब्लॉक रखता है, और लॉग आउट पर बचे नंबर वापस कर देता है। इसे 1 अप्रैल को चालू करना सबसे अच्छा है।","દરેક ફોન તેના બિલિંગ પ્રમાણે નંબરનો જથ્થો રાખે છે, અને લૉગ આઉટ વખતે ન વપરાયેલા નંબર પાછા આપે છે. 1 એપ્રિલે ચાલુ કરવું સૌથી સારું.","ਹਰ ਫ਼ੋਨ ਆਪਣੀ ਬਿਲਿੰਗ ਦੇ ਹਿਸਾਬ ਨਾਲ ਨੰਬਰਾਂ ਦਾ ਇੱਕ ਬਲਾਕ ਰੱਖਦਾ ਹੈ, ਅਤੇ ਲੌਗ ਆਊਟ 'ਤੇ ਨਾ ਵਰਤੇ ਨੰਬਰ ਵਾਪਸ ਕਰ ਦਿੰਦਾ ਹੈ। 1 ਅਪ੍ਰੈਲ ਨੂੰ ਚਾਲੂ ਕਰਨਾ ਵਧੀਆ ਹੈ।",screens/settings/InvoiceSettingsScreen.tsx
+Everyone,सभी,બધા,ਸਾਰੇ,screens/reports/ReportsScreen.tsx
 "Everyone in this store is blocked at once, on every phone, until you reactivate it.","इस दुकान के सभी लोग तुरंत, हर फ़ोन पर, रोक दिए जाएँगे, जब तक आप इसे फिर से चालू न करें।","આ દુકાનના બધા લોકો તરત જ, દરેક ફોન પર, રોકાઈ જશે, જ્યાં સુધી તમે ફરી ચાલુ ન કરો.","ਇਸ ਦੁਕਾਨ ਦੇ ਸਾਰੇ ਲੋਕ ਤੁਰੰਤ, ਹਰ ਫ਼ੋਨ 'ਤੇ, ਰੋਕ ਦਿੱਤੇ ਜਾਣਗੇ, ਜਦੋਂ ਤੱਕ ਤੁਸੀਂ ਇਸਨੂੰ ਦੁਬਾਰਾ ਚਾਲੂ ਨਹੀਂ ਕਰਦੇ।",screens/admin/AdminScreen.tsx
+Excel import,Excel इम्पोर्ट,Excel ઇમ્પોર્ટ,Excel ਇੰਪੋਰਟ,lib/importer.ts
+Expense · {what},खर्च · {what},ખર્ચ · {what},ਖ਼ਰਚਾ · {what},lib/reports.ts
+Expense saved,खर्च सेव हुआ,ખર્ચ સેવ થયો,ਖ਼ਰਚਾ ਸੇਵ ਹੋ ਗਿਆ,screens/expenses/ExpensesScreen.tsx
+Expenses,खर्च,ખર્ચ,ਖ਼ਰਚੇ,lib/reports.ts screens/expenses/ExpensesScreen.tsx screens/main/MoreScreen.tsx
+Expired,एक्सपायर,એક્સપાયર,ਮਿਆਦ ਪੁੱਗੀ,lib/stock.ts
+Extra {amount},{amount} ज़्यादा,{amount} વધારે,{amount} ਵੱਧ,screens/cash/CashBookScreen.tsx
 "Extra header fields you fill on each invoice, e.g. ""Vehicle No."" or ""Order ID"".","हर बिल पर भरने वाली अतिरिक्त हेडर फ़ील्ड, जैसे ""गाड़ी नं."" या ""ऑर्डर ID""।","દરેક બિલ પર ભરવાના વધારાના હેડર ફીલ્ડ, દા.ત. ""ગાડી નં."" અથવા ""ઓર્ડર ID"".","ਹਰ ਬਿੱਲ 'ਤੇ ਭਰਨ ਲਈ ਵਾਧੂ ਹੈਡਰ ਖ਼ਾਨੇ, ਜਿਵੇਂ ""ਗੱਡੀ ਨੰ."" ਜਾਂ ""ਆਰਡਰ ID""।",screens/settings/InvoiceSettingsScreen.tsx
 Feet,फ़ुट,ફૂટ,ਫੁੱਟ,screens/docs/LineEditor.tsx
 Field {number} label,फ़ील्ड {number} का नाम,ફીલ્ડ {number} નું લેબલ,ਖ਼ਾਨਾ {number} ਦਾ ਨਾਂ,screens/settings/InvoiceSettingsScreen.tsx
@@ -308,32 +391,48 @@ Final amount cannot be more than the current total. Change the rates instead.,�
 Final amount must be more than the extra charges.,फ़ाइनल रकम अतिरिक्त चार्ज से ज़्यादा होनी चाहिए।,આખરી રકમ વધારાના ચાર્જથી વધુ હોવી જોઈએ.,ਅੰਤਿਮ ਰਕਮ ਵਾਧੂ ਖ਼ਰਚਿਆਂ ਤੋਂ ਵੱਧ ਹੋਣੀ ਚਾਹੀਦੀ ਹੈ।,screens/docs/DocEditorScreen.tsx
 Final amount set to {amount} → discount {discount},फ़ाइनल रकम {amount} रखी → छूट {discount},આખરી રકમ {amount} કરી → ડિસ્કાઉન્ટ {discount},ਅੰਤਿਮ ਰਕਮ {amount} ਰੱਖੀ → ਛੋਟ {discount},screens/docs/DocEditorScreen.tsx
 Find BLE printer,BLE प्रिंटर खोजें,BLE પ્રિન્ટર શોધો,BLE ਪ੍ਰਿੰਟਰ ਲੱਭੋ,screens/settings/PrinterScreen.tsx
+For,किसके लिए,કોના માટે,ਕਿਸ ਲਈ,lib/reports.ts screens/expenses/ExpensesScreen.tsx
 "For a return or a price cut, open the invoice and choose More actions → Credit note.","वापसी या दाम घटाने के लिए, बिल खोलकर और विकल्प → क्रेडिट नोट चुनें।","માલ પાછો કે ભાવ ઘટાડા માટે, બિલ ખોલી વધુ વિકલ્પો → ક્રેડિટ નોટ પસંદ કરો.","ਵਾਪਸੀ ਜਾਂ ਕੀਮਤ ਘਟਾਉਣ ਲਈ, ਬਿੱਲ ਖੋਲ੍ਹੋ ਅਤੇ ਹੋਰ ਕਾਰਵਾਈਆਂ → ਕ੍ਰੈਡਿਟ ਨੋਟ ਚੁਣੋ।",screens/docs/DocListScreen.tsx
+"For goods bought, enter a purchase bill instead, so the supplier’s account stays right.","खरीदे गए माल के लिए खरीद बिल डालें, ताकि सप्लायर का खाता सही रहे।","ખરીદેલા માલ માટે ખરીદ બિલ નાખો, જેથી સપ્લાયરનું ખાતું સાચું રહે.","ਖ਼ਰੀਦੇ ਮਾਲ ਲਈ ਖ਼ਰੀਦ ਬਿੱਲ ਪਾਓ, ਤਾਂ ਜੋ ਸਪਲਾਇਰ ਦਾ ਖਾਤਾ ਸਹੀ ਰਹੇ।",screens/items/StockScreen.tsx
+For GSTR-3B. Check with your CA before filing.,GSTR-3B के लिए। फ़ाइल करने से पहले अपने CA से जाँच करवाएँ।,GSTR-3B માટે. ફાઇલ કરતાં પહેલાં તમારા CA સાથે તપાસો.,GSTR-3B ਲਈ। ਫ਼ਾਈਲ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਆਪਣੇ CA ਤੋਂ ਜਾਂਚ ਕਰਵਾਓ।,lib/reports.ts
 Forget,भूल जाएँ,ભૂલી જાઓ,ਭੁੱਲ ਜਾਓ,screens/settings/PrinterScreen.tsx
 Forgot PIN? Verify with OTP,PIN भूल गए? OTP से वेरिफ़ाई करें,PIN ભૂલી ગયા? OTP થી ચકાસો,PIN ਭੁੱਲ ਗਏ? OTP ਨਾਲ ਪੁਸ਼ਟੀ ਕਰੋ,components/LockGate.tsx
+Free / sample,मुफ़्त / सैंपल,મફત / સેમ્પલ,ਮੁਫ਼ਤ / ਸੈਂਪਲ,lib/stock.ts
 "Free text printed on invoices, e.g. ""Cheques in favour of …""","बिलों पर छपने वाला अपना टेक्स्ट, जैसे ""चेक … के नाम से""","બિલ પર છપાતું લખાણ, દા.ત. ""ચેક … ના નામે""","ਬਿੱਲਾਂ 'ਤੇ ਛਪਣ ਵਾਲਾ ਲਿਖਤ, ਜਿਵੇਂ ""ਚੈੱਕ … ਦੇ ਨਾਂ 'ਤੇ""",screens/settings/PaymentDetailsScreen.tsx
+From,से,થી,ਤੋਂ,screens/customers/CustomerDetailScreen.tsx screens/purchases/PurchaseScreens.tsx screens/reports/ReportsScreen.tsx
+From advance,एडवांस से,એડવાન્સમાંથી,ਐਡਵਾਂਸ ਵਿੱਚੋਂ,lib/ledger.ts
 Get OTP,OTP पाएँ,OTP મેળવો,OTP ਲਓ,screens/auth/LoginScreen.tsx
 Get started,शुरू करें,શરૂ કરો,ਸ਼ੁਰੂ ਕਰੋ,screens/main/Placeholders.tsx
 Give back,वापस दें,પાછા આપો,ਵਾਪਸ ਦਿਓ,components/PaySheet.tsx
 Give back {amount},{amount} वापस दें,{amount} પાછા આપો,{amount} ਵਾਪਸ ਦਿਓ,screens/sale/SaleScreen.tsx
+Given on credit today,आज उधार दिया,આજે ઉધાર આપ્યું,ਅੱਜ ਉਧਾਰ ਦਿੱਤਾ,screens/main/Placeholders.tsx
+Goods arrived,माल आ गया,માલ આવી ગયો,ਮਾਲ ਆ ਗਿਆ,screens/purchases/PurchaseScreens.tsx
 Goods returned,सामान वापस आया,માલ પાછો આવ્યો,ਮਾਲ ਵਾਪਸ ਆਇਆ,lib/listedPhrases.ts
+Gross profit,कुल मुनाफ़ा,કુલ નફો,ਕੁੱਲ ਮੁਨਾਫ਼ਾ,lib/reports.ts
 "Group items, e.g. Paints › Emulsion › Interior. Up to 3 levels.","आइटम को ग्रुप में रखें, जैसे पेंट › इमल्शन › इंटीरियर। 3 लेवल तक।","આઇટમનું ગ્રુપ બનાવો, દા.ત. પેઇન્ટ › ઇમલ્શન › ઇન્ટિરિયર. 3 લેવલ સુધી.","ਆਈਟਮਾਂ ਦਾ ਗਰੁੱਪ ਬਣਾਓ, ਜਿਵੇਂ Paints › Emulsion › Interior। 3 ਪੱਧਰ ਤੱਕ।",screens/items/CategoriesScreen.tsx
-GST,GST,GST,GST,screens/sale/SaleScreen.tsx
+GST,GST,GST,GST,screens/reports/ReportsScreen.tsx screens/sale/SaleScreen.tsx
 GST {taxPct}%,GST {taxPct}%,GST {taxPct}%,GST {taxPct}%,screens/items/ImportScreen.tsx
+GST %,GST %,GST %,GST %,lib/reports.ts screens/purchases/PurchaseScreens.tsx
 "GST % ""{value}"" is not a number","GST % ""{value}"" नंबर नहीं है","GST % ""{value}"" નંબર નથી","GST % ""{value}"" ਨੰਬਰ ਨਹੀਂ ਹੈ",lib/importer.ts
 "GST allows at most 16 characters: letters, digits, - and /. Numbers are never reused.","GST में ज़्यादा से ज़्यादा 16 अक्षर: अक्षर, अंक, - और /। नंबर कभी दोबारा इस्तेमाल नहीं होते।","GST માં વધુમાં વધુ 16 અક્ષર ચાલે: અક્ષર, અંક, - અને /. નંબર ક્યારેય ફરી વપરાતા નથી.","GST ਵੱਧ ਤੋਂ ਵੱਧ 16 ਅੱਖਰਾਂ ਦੀ ਇਜਾਜ਼ਤ ਦਿੰਦਾ ਹੈ: ਅੱਖਰ, ਅੰਕ, - ਅਤੇ /। ਨੰਬਰ ਕਦੇ ਦੁਬਾਰਾ ਨਹੀਂ ਵਰਤੇ ਜਾਂਦੇ।",screens/settings/InvoiceSettingsScreen.tsx
+GST bills less credit notes.,"GST बिल, क्रेडिट नोट घटाकर।","GST બિલ, ક્રેડિટ નોટ બાદ કરીને.","GST ਬਿੱਲ, ਕ੍ਰੈਡਿਟ ਨੋਟ ਘਟਾ ਕੇ।",lib/reports.ts
 GST registration,GST रजिस्ट्रेशन,GST રજિસ્ટ્રેશન,GST ਰਜਿਸਟ੍ਰੇਸ਼ਨ,screens/settings/BusinessProfileScreen.tsx
-GSTIN (if registered),GSTIN (अगर रजिस्टर्ड है),GSTIN (જો રજિસ્ટર્ડ હોય),GSTIN (ਜੇ ਰਜਿਸਟਰਡ ਹੈ),screens/customers/CustomerEditScreen.tsx
+GST summary,GST सारांश,GST સારાંશ,GST ਸਾਰ,lib/reports.ts
+GSTIN (if registered),GSTIN (अगर रजिस्टर्ड है),GSTIN (જો રજિસ્ટર્ડ હોય),GSTIN (ਜੇ ਰਜਿਸਟਰਡ ਹੈ),screens/customers/CustomerEditScreen.tsx screens/suppliers/SupplierScreens.tsx
 GSTIN: {problem},GSTIN: {problem},GSTIN: {problem},GSTIN: {problem},lib/importer.ts
 Held:,होल्ड:,હોલ્ડ:,ਹੋਲਡ:,screens/sale/SaleScreen.tsx
 Hi,नमस्ते,નમસ્તે,ਸਤ ਸ੍ਰੀ ਅਕਾਲ,screens/main/Placeholders.tsx
 "Hi, {name}","नमस्ते, {name}","નમસ્તે, {name}","ਸਤ ਸ੍ਰੀ ਅਕਾਲ, {name}",screens/main/Placeholders.tsx
-History,इतिहास,ઇતિહાસ,ਇਤਿਹਾਸ,screens/docs/DocDetailScreen.tsx
+History,इतिहास,ઇતિહાસ,ਇਤਿਹਾਸ,screens/docs/DocDetailScreen.tsx screens/items/StockScreen.tsx
 Hold,होल्ड करें,હોલ્ડ,ਹੋਲਡ ਕਰੋ,screens/sale/SaleScreen.tsx
 Home,होम,હોમ,ਹੋਮ,screens/main/MainTabs.tsx
+How many you have now.,अभी आपके पास कितने हैं।,હાલ તમારી પાસે કેટલા છે.,ਹੁਣ ਤੁਹਾਡੇ ਕੋਲ ਕਿੰਨੇ ਹਨ।,screens/items/ItemEditScreen.tsx
+HSN,HSN,HSN,HSN,screens/purchases/PurchaseScreens.tsx
 "HSN ""{value}"" should be 4, 6 or 8 digits","HSN ""{value}"" 4, 6 या 8 अंकों का होना चाहिए","HSN ""{value}"" 4, 6 અથવા 8 અંકનો હોવો જોઈએ","HSN ""{value}"" 4, 6 ਜਾਂ 8 ਅੰਕਾਂ ਦਾ ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ",lib/importer.ts
 HSN {code},HSN {code},HSN {code},HSN {code},screens/docs/DocDetailScreen.tsx screens/docs/DocEditorScreen.tsx
-HSN / SAC,HSN / SAC,HSN / SAC,HSN / SAC,screens/docs/LineEditor.tsx screens/items/ItemEditScreen.tsx
+HSN / SAC,HSN / SAC,HSN / SAC,HSN / SAC,screens/docs/LineEditor.tsx screens/items/ItemEditScreen.tsx screens/purchases/PurchaseScreens.tsx
+HSN summary,HSN सारांश,HSN સારાંશ,HSN ਸਾਰ,lib/reports.ts
+I have connected it,मैंने जोड़ दिया है,મેં જોડી દીધું છે,ਮੈਂ ਜੋੜ ਦਿੱਤਾ ਹੈ,screens/settings/BackupScreen.tsx
 Import,इम्पोर्ट,ઇમ્પોર્ટ,ਇੰਪੋਰਟ ਕਰੋ,screens/items/ImportScreen.tsx screens/items/ItemsScreen.tsx
 Import {count} customers,{count} ग्राहक इम्पोर्ट करें,{count} ગ્રાહકો ઇમ્પોર્ટ કરો,{count} ਗਾਹਕ ਇੰਪੋਰਟ ਕਰੋ,screens/items/ImportScreen.tsx
 Import {count} items,{count} आइटम इम्पोर्ट करें,{count} આઇટમ ઇમ્પોર્ટ કરો,{count} ਆਈਟਮਾਂ ਇੰਪੋਰਟ ਕਰੋ,screens/items/ImportScreen.tsx
@@ -344,6 +443,8 @@ Import finished,इम्पोर्ट पूरा हुआ,ઇમ્પો�
 Import from Excel,Excel से इम्पोर्ट करें,Excel માંથી ઇમ્પોર્ટ કરો,Excel ਤੋਂ ਇੰਪੋਰਟ ਕਰੋ,screens/customers/CustomersScreen.tsx
 Import items,आइटम इम्पोर्ट करें,આઇટમ ઇમ્પોર્ટ કરો,ਆਈਟਮਾਂ ਇੰਪੋਰਟ ਕਰੋ,screens/items/ImportScreen.tsx
 Importing {done} / {total}…,इम्पोर्ट हो रहा है {done} / {total}…,ઇમ્પોર્ટ થાય છે {done} / {total}…,ਇੰਪੋਰਟ ਹੋ ਰਿਹਾ ਹੈ {done} / {total}…,screens/items/ImportScreen.tsx
+In stock,स्टॉक में,સ્ટોકમાં,ਸਟਾਕ ਵਿੱਚ,screens/items/StockScreen.tsx
+In stock but not sold in this period.,स्टॉक में हैं पर इस समय में नहीं बिके।,સ્ટોકમાં છે પણ આ સમયમાં વેચાઈ નથી.,ਸਟਾਕ ਵਿੱਚ ਹਨ ਪਰ ਇਸ ਸਮੇਂ ਵਿੱਚ ਨਹੀਂ ਵਿਕੀਆਂ।,lib/reports.ts
 Inches,इंच,ઇંચ,ਇੰਚ,screens/docs/LineEditor.tsx
 incl.,सहित,સહિત,ਸਮੇਤ,screens/docs/DocEditorScreen.tsx
 Instructions,निर्देश,સૂચના,ਹਦਾਇਤਾਂ,screens/settings/PaymentDetailsScreen.tsx
@@ -364,23 +465,32 @@ Invoice prefix,बिल प्रीफ़िक्स,બિલ પ્રી�
 Invoice settings,बिल सेटिंग्स,બિલ સેટિંગ્સ,ਬਿੱਲ ਸੈਟਿੰਗਾਂ,screens/main/MoreScreen.tsx screens/settings/InvoiceSettingsScreen.tsx
 Invoices,बिल,બિલ,ਬਿੱਲ,screens/customers/CustomerDetailScreen.tsx screens/docs/DocListScreen.tsx screens/main/MainTabs.tsx
 "Invoices are created in the ApnaGalla phone app. On the web you can view, share and record payments.","बिल ApnaGalla फ़ोन ऐप में बनते हैं। वेब पर आप बिल देख सकते हैं, शेयर कर सकते हैं और भुगतान दर्ज कर सकते हैं।","બિલ ApnaGalla ફોન એપમાં બને છે. વેબ પર તમે જોઈ, શેર કરી અને ચુકવણી નોંધી શકો.","ਬਿੱਲ ApnaGalla ਫ਼ੋਨ ਐਪ ਵਿੱਚ ਬਣਦੇ ਹਨ। ਵੈੱਬ 'ਤੇ ਤੁਸੀਂ ਦੇਖ, ਸ਼ੇਅਰ ਅਤੇ ਭੁਗਤਾਨ ਦਰਜ ਕਰ ਸਕਦੇ ਹੋ।",lib/platform.ts
-Item,आइटम,આઇટમ,ਆਈਟਮ,screens/docs/LineEditor.tsx
+Item,आइटम,આઇટમ,ਆਈਟਮ,lib/purchases.ts lib/reports.ts screens/docs/LineEditor.tsx screens/purchases/PurchaseScreens.tsx
 Item / service name,आइटम / सर्विस का नाम,આઇટમ / સેવાનું નામ,ਆਈਟਮ / ਸੇਵਾ ਦਾ ਨਾਂ,screens/items/ItemEditScreen.tsx
 Item code,आइटम कोड,આઇટમ કોડ,ਆਈਟਮ ਕੋਡ,screens/items/ItemEditScreen.tsx
 Item description,आइटम का विवरण,આઇટમનું વર્ણન,ਆਈਟਮ ਦਾ ਵੇਰਵਾ,lib/listedPhrases.ts
 Item discounts,आइटम पर छूट,આઇટમ ડિસ્કાઉન્ટ,ਆਈਟਮ ਛੋਟ,lib/receipt/render.ts screens/docs/DocEditorScreen.tsx
 Item saved,आइटम सेव हुआ,આઇટમ સેવ થઈ,ਆਈਟਮ ਸੇਵ ਹੋ ਗਈ,screens/items/ItemEditScreen.tsx
-Items,आइटम,આઇટમ,ਆਈਟਮਾਂ,screens/docs/DocDetailScreen.tsx screens/docs/DocEditorScreen.tsx screens/items/ImportScreen.tsx screens/items/ItemsScreen.tsx screens/main/MainTabs.tsx
+Item-wise sales,आइटम के हिसाब से बिक्री,આઇટમ મુજબ વેચાણ,ਆਈਟਮ ਅਨੁਸਾਰ ਵਿਕਰੀ,lib/reports.ts
+Items,आइटम,આઇટમ,ਆਈਟਮਾਂ,lib/reports.ts screens/docs/DocDetailScreen.tsx screens/docs/DocEditorScreen.tsx screens/items/ImportScreen.tsx screens/items/ItemsScreen.tsx screens/main/MainTabs.tsx screens/purchases/PurchaseScreens.tsx
+Its stock and amount are taken back out.,इसका स्टॉक और रकम वापस घटा दिए जाएँगे।,તેનો સ્ટોક અને રકમ પાછા બાદ થશે.,ਇਸਦਾ ਸਟਾਕ ਅਤੇ ਰਕਮ ਵਾਪਸ ਘਟਾ ਦਿੱਤੇ ਜਾਣਗੇ।,screens/purchases/PurchaseScreens.tsx
 Join,जुड़ें,જોડાઓ,ਜੁੜੋ,screens/onboarding/OnboardingScreen.tsx screens/stores/StoreList.tsx
 Join as owner,मालिक के रूप में जुड़ें,માલિક તરીકે જોડાઓ,ਮਾਲਕ ਵਜੋਂ ਜੁੜੋ,screens/onboarding/OnboardingScreen.tsx screens/stores/StoreList.tsx
 Join as staff,स्टाफ के रूप में जुड़ें,સ્ટાફ તરીકે જોડાઓ,ਸਟਾਫ਼ ਵਜੋਂ ਜੁੜੋ,screens/onboarding/OnboardingScreen.tsx screens/stores/StoreList.tsx
-Keep,रखें,રાખો,ਰੱਖੋ,screens/docs/DocDetailScreen.tsx screens/sale/SaleScreen.tsx
+Keep,रखें,રાખો,ਰੱਖੋ,screens/docs/DocDetailScreen.tsx screens/purchases/PurchaseScreens.tsx screens/sale/SaleScreen.tsx
+Keep count of stock,स्टॉक की गिनती रखें,સ્ટોકની ગણતરી રાખો,ਸਟਾਕ ਦੀ ਗਿਣਤੀ ਰੱਖੋ,screens/items/ItemEditScreen.tsx
+Khata,खाता,ખાતું,ਖਾਤਾ,screens/customers/CustomerDetailScreen.tsx
+Khata payment · {name},खाता भुगतान · {name},ખાતું ચુકવણી · {name},ਖਾਤਾ ਭੁਗਤਾਨ · {name},lib/cashbook.ts
 Language,भाषा,ભાષા,ਭਾਸ਼ਾ,screens/main/MoreScreen.tsx
 Large,बड़ा,મોટું,ਵੱਡਾ,screens/settings/DesignScreen.tsx
 last active {time},आखिरी बार चालू {time},છેલ્લે સક્રિય {time},ਆਖ਼ਰੀ ਵਾਰ ਸਰਗਰਮ {time},screens/main/DevicesScreen.tsx
+Last month,पिछला महीना,ગયો મહિનો,ਪਿਛਲਾ ਮਹੀਨਾ,screens/reports/ReportsScreen.tsx
+Last sent,पिछली बार भेजा,છેલ્લે મોકલ્યું,ਪਿਛਲੀ ਵਾਰ ਭੇਜਿਆ,screens/settings/BackupScreen.tsx
 Last synced: {count} min ago.,आखिरी सिंक: {count} मिनट पहले।,છેલ્લું સિંક: {count} મિનિટ પહેલાં.,ਆਖ਼ਰੀ ਸਿੰਕ: {count} ਮਿੰਟ ਪਹਿਲਾਂ।,components/SyncBadge.tsx
 Last synced: just now.,आखिरी सिंक: अभी-अभी।,છેલ્લું સિંક: હમણાં જ.,ਆਖ਼ਰੀ ਸਿੰਕ: ਹੁਣੇ।,components/SyncBadge.tsx
 Last synced: not yet.,आखिरी सिंक: अभी तक नहीं।,છેલ્લું સિંક: હજુ નહીં.,ਆਖ਼ਰੀ ਸਿੰਕ: ਅਜੇ ਨਹੀਂ।,components/SyncBadge.tsx
+Late,देर,મોડું,ਦੇਰੀ,lib/reports.ts
+Left {qty},{qty} बचे,{qty} બાકી,{qty} ਬਚੇ,screens/items/StockScreen.tsx
 Legal name (if different),कानूनी नाम (अगर अलग है),કાનૂની નામ (જો અલગ હોય),ਕਾਨੂੰਨੀ ਨਾਂ (ਜੇ ਵੱਖਰਾ ਹੈ),screens/settings/BusinessProfileScreen.tsx
 Length ({unit}),लंबाई ({unit}),લંબાઈ ({unit}),ਲੰਬਾਈ ({unit}),screens/docs/LineEditor.tsx
 Length (running ft),लंबाई (रनिंग फ़ुट),લંબાઈ (રનિંગ ફૂટ),ਲੰਬਾਈ (ਰਨਿੰਗ ਫੁੱਟ),screens/docs/LineEditor.tsx
@@ -392,37 +502,58 @@ Log out,लॉग आउट,લૉગ આઉટ,ਲੌਗ ਆਊਟ ਕਰੋ,sc
 Log out anyway,फिर भी लॉग आउट करें,તો પણ લૉગ આઉટ કરો,ਫਿਰ ਵੀ ਲੌਗ ਆਊਟ ਕਰੋ,screens/main/MoreScreen.tsx screens/stores/PausedScreen.tsx
 Logo,लोगो,લોગો,ਲੋਗੋ,lib/listedPhrases.ts screens/settings/BusinessProfileScreen.tsx
 Looks like name@bank,ऐसा दिखता है: name@bank,name@bank જેવું,ਇਸ ਤਰ੍ਹਾਂ: name@bank,screens/settings/PaymentDetailsScreen.tsx
+Lost / stolen,गुम / चोरी,ખોવાયું / ચોરાયું,ਗੁੰਮ / ਚੋਰੀ,lib/stock.ts
+Low at,कम होने की सीमा,ઓછાની મર્યાદા,ਘੱਟ ਹੋਣ ਦੀ ਹੱਦ,lib/reports.ts
+Low at {low} · order {order} {unit},कम सीमा {low} · ऑर्डर {order} {unit},ઓછાની મર્યાદા {low} · ઓર્ડર {order} {unit},ਘੱਟ ਹੱਦ {low} · ਆਰਡਰ {order} {unit},screens/items/LowStockScreen.tsx
+Low on stock,स्टॉक कम है,સ્ટોક ઓછો છે,ਸਟਾਕ ਘੱਟ ਹੈ,screens/main/Placeholders.tsx
+Low stock,कम स्टॉक,ઓછો સ્ટોક,ਘੱਟ ਸਟਾਕ,lib/reports.ts screens/items/LowStockScreen.tsx screens/purchases/PurchaseScreens.tsx
+"Low stock ""{value}"" is not a number","कम स्टॉक ""{value}"" नंबर नहीं है","ઓછો સ્ટોક ""{value}"" નંબર નથી","ਘੱਟ ਸਟਾਕ ""{value}"" ਨੰਬਰ ਨਹੀਂ ਹੈ",lib/importer.ts
+Low stock at,कम स्टॉक की सीमा,ઓછા સ્ટોકની મર્યાદા,ਘੱਟ ਸਟਾਕ ਦੀ ਹੱਦ,screens/items/ItemEditScreen.tsx screens/items/StockScreen.tsx
+Make a list of what to buy and send it to the supplier on WhatsApp.,क्या खरीदना है उसकी लिस्ट बनाएँ और WhatsApp पर सप्लायर को भेजें।,શું ખરીદવું છે તેની યાદી બનાવો અને WhatsApp પર સપ્લાયરને મોકલો.,ਕੀ ਖ਼ਰੀਦਣਾ ਹੈ ਉਸਦੀ ਲਿਸਟ ਬਣਾਓ ਅਤੇ WhatsApp 'ਤੇ ਸਪਲਾਇਰ ਨੂੰ ਭੇਜੋ।,screens/purchases/PurchaseScreens.tsx
+Make purchase order ({count}),खरीद ऑर्डर बनाएँ ({count}),ખરીદ ઓર્ડર બનાવો ({count}),ਖ਼ਰੀਦ ਆਰਡਰ ਬਣਾਓ ({count}),screens/items/LowStockScreen.tsx
 Margin before tax: {margin} per {unit},टैक्स से पहले मार्जिन: {margin} प्रति {unit},ટેક્સ પહેલાં નફો: {margin} પ્રતિ {unit},ਟੈਕਸ ਤੋਂ ਪਹਿਲਾਂ ਮੁਨਾਫ਼ਾ: {margin} ਪ੍ਰਤੀ {unit},screens/items/ItemEditScreen.tsx
 Mark accepted,मंज़ूर मार्क करें,સ્વીકાર્યું માર્ક કરો,ਮਨਜ਼ੂਰ ਮਾਰਕ ਕਰੋ,screens/docs/DocDetailScreen.tsx
 Mark declined,नामंज़ूर मार्क करें,નકાર્યું માર્ક કરો,ਨਾਮਨਜ਼ੂਰ ਮਾਰਕ ਕਰੋ,screens/docs/DocDetailScreen.tsx
 Mark delivered,डिलीवर हुआ मार्क करें,ડિલિવર થયું માર્ક કરો,ਡਿਲੀਵਰ ਮਾਰਕ ਕਰੋ,screens/docs/DocDetailScreen.tsx
+Matches,मिल गया,મેળ ખાય છે,ਮੇਲ ਖਾਂਦਾ ਹੈ,screens/cash/CashBookScreen.tsx
 Me ({name}),मैं ({name}),હું ({name}),ਮੈਂ ({name}),screens/docs/DocEditorScreen.tsx
 Measured in,किसमें नापें,માપ શેમાં,ਮਾਪ ਦੀ ਇਕਾਈ,screens/docs/LineEditor.tsx
 Medium,मीडियम,મધ્યમ,ਦਰਮਿਆਨਾ,screens/settings/DesignScreen.tsx
 Members,सदस्य,સભ્યો,ਮੈਂਬਰ,screens/main/TeamScreen.tsx
 Message,मैसेज,મેસેજ,ਸੁਨੇਹਾ,screens/settings/InvoiceSettingsScreen.tsx
 Minimal,सादा,સાદું,ਸਾਦਾ,lib/listedPhrases.ts
-Mobile,मोबाइल,મોબાઇલ,ਮੋਬਾਈਲ,screens/customers/CustomerEditScreen.tsx
+Mobile,मोबाइल,મોબાઇલ,ਮੋਬਾਈਲ,lib/reports.ts screens/customers/CustomerEditScreen.tsx screens/suppliers/SupplierScreens.tsx
 "Mobile ""{value}"" is not a 10-digit Indian number","मोबाइल ""{value}"" 10 अंकों का भारतीय नंबर नहीं है","મોબાઇલ ""{value}"" 10 અંકનો ભારતીય નંબર નથી","ਮੋਬਾਈਲ ""{value}"" 10-ਅੰਕਾਂ ਦਾ ਭਾਰਤੀ ਨੰਬਰ ਨਹੀਂ ਹੈ",lib/importer.ts
 Mobile number,मोबाइल नंबर,મોબાઇલ નંબર,ਮੋਬਾਈਲ ਨੰਬਰ,screens/auth/LoginScreen.tsx
-Mode,तरीका,રીત,ਤਰੀਕਾ,components/PaySheet.tsx
+Mode,तरीका,રીત,ਤਰੀਕਾ,components/MoneyEntrySheet.tsx components/PaySheet.tsx
 Modern,मॉडर्न,મોડર્ન,ਮਾਡਰਨ,lib/listedPhrases.ts
+Money,पैसा,પૈસા,ਪੈਸਾ,screens/reports/ReportsScreen.tsx
+Money and stock,पैसा और स्टॉक,પૈસા અને સ્ટોક,ਪੈਸਾ ਅਤੇ ਸਟਾਕ,screens/main/MoreScreen.tsx
 Money can only be recorded on a saved invoice,पैसे सिर्फ़ सेव किए बिल पर ही दर्ज हो सकते हैं,પૈસા ફક્ત સેવ થયેલા બિલ પર જ નોંધી શકાય,ਪੈਸੇ ਸਿਰਫ਼ ਸੇਵ ਕੀਤੇ ਬਿੱਲ 'ਤੇ ਦਰਜ ਹੋ ਸਕਦੇ ਹਨ,lib/repo.ts
+Money in,पैसे आए,પૈસા આવ્યા,ਪੈਸੇ ਆਏ,lib/reports.ts
+Money out,पैसे गए,પૈસા ગયા,ਪੈਸੇ ਗਏ,lib/reports.ts
+Money received,मिले पैसे,મળેલા પૈસા,ਮਿਲੇ ਪੈਸੇ,lib/reports.ts
+Money received by mode,तरीके के हिसाब से मिले पैसे,રીત મુજબ મળેલા પૈસા,ਤਰੀਕੇ ਅਨੁਸਾਰ ਮਿਲੇ ਪੈਸੇ,lib/reports.ts
 More,और,વધુ,ਹੋਰ,screens/main/MainTabs.tsx screens/main/MoreScreen.tsx
 More actions,और विकल्प,વધુ વિકલ્પો,ਹੋਰ ਕਾਰਵਾਈਆਂ,screens/docs/DocDetailScreen.tsx
 More than the {amount} left on invoice {number},बिल {number} पर बचे {amount} से ज़्यादा,બિલ {number} પર બાકી {amount} કરતાં વધુ,ਬਿੱਲ {number} 'ਤੇ ਬਾਕੀ {amount} ਤੋਂ ਵੱਧ,screens/docs/DocEditorScreen.tsx
+More than what is owed,बाकी रकम से ज़्यादा,બાકી રકમ કરતાં વધુ,ਬਕਾਇਆ ਰਕਮ ਤੋਂ ਵੱਧ,components/MoneyEntrySheet.tsx
+"More was sold than was entered. Add the opening stock or a purchase bill, or count the shelf.","जितना दर्ज था उससे ज़्यादा बिका। शुरुआती स्टॉक या खरीद बिल जोड़ें, या शेल्फ़ गिनें।","નોંધ્યું હતું તેના કરતાં વધુ વેચાયું. શરૂઆતનો સ્ટોક કે ખરીદ બિલ ઉમેરો, અથવા શેલ્ફ ગણો.","ਜਿੰਨਾ ਦਰਜ ਸੀ ਉਸ ਤੋਂ ਵੱਧ ਵਿਕਿਆ। ਸ਼ੁਰੂਆਤੀ ਸਟਾਕ ਜਾਂ ਖ਼ਰੀਦ ਬਿੱਲ ਜੋੜੋ, ਜਾਂ ਸ਼ੈਲਫ਼ ਗਿਣੋ।",screens/items/StockScreen.tsx
 "Most printers: pair them first in the phone’s Bluetooth settings, then tap “Paired printers”.","ज़्यादातर प्रिंटर: पहले फ़ोन की ब्लूटूथ सेटिंग्स में पेयर करें, फिर “पेयर किए प्रिंटर” पर टैप करें।","મોટા ભાગના પ્રિન્ટર: પહેલાં ફોનના બ્લૂટૂથ સેટિંગ્સમાં પેર કરો, પછી “પેર કરેલા પ્રિન્ટર” પર ટૅપ કરો.","ਜ਼ਿਆਦਾਤਰ ਪ੍ਰਿੰਟਰ: ਪਹਿਲਾਂ ਫ਼ੋਨ ਦੀਆਂ ਬਲੂਟੁੱਥ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਜੋੜੋ, ਫਿਰ “ਜੋੜੇ ਹੋਏ ਪ੍ਰਿੰਟਰ” 'ਤੇ ਟੈਪ ਕਰੋ।",screens/settings/PrinterScreen.tsx
+MRP,MRP,MRP,MRP,screens/purchases/PurchaseScreens.tsx
 MRP (incl. tax),MRP (टैक्स सहित),MRP (ટેક્સ સહિત),MRP (ਟੈਕਸ ਸਮੇਤ),screens/items/ItemEditScreen.tsx
 MRP column,MRP कॉलम,MRP કૉલમ,MRP ਕਾਲਮ,lib/listedPhrases.ts
 MRP is not a number,MRP नंबर नहीं है,MRP નંબર નથી,MRP ਨੰਬਰ ਨਹੀਂ ਹੈ,lib/importer.ts
-Name,नाम,નામ,ਨਾਂ,screens/customers/CustomerEditScreen.tsx screens/items/CategoriesScreen.tsx
+"Namaste {name},","नमस्ते {name},","નમસ્તે {name},","ਸਤ ਸ੍ਰੀ ਅਕਾਲ {name},",lib/khata.ts
+Name,नाम,નામ,ਨਾਂ,screens/customers/CustomerEditScreen.tsx screens/items/CategoriesScreen.tsx screens/suppliers/SupplierScreens.tsx
 Name is missing,नाम नहीं है,નામ નથી,ਨਾਂ ਨਹੀਂ ਹੈ,lib/importer.ts
-Name is required,नाम ज़रूरी है,નામ જરૂરી છે,ਨਾਂ ਜ਼ਰੂਰੀ ਹੈ,screens/customers/CustomerEditScreen.tsx
+Name is required,नाम ज़रूरी है,નામ જરૂરી છે,ਨਾਂ ਜ਼ਰੂਰੀ ਹੈ,screens/customers/CustomerEditScreen.tsx screens/suppliers/SupplierScreens.tsx
 Net 15 days,15 दिन में,15 દિવસમાં,15 ਦਿਨਾਂ ਵਿੱਚ,lib/listedPhrases.ts
 Net 30 days,30 दिन में,30 દિવસમાં,30 ਦਿਨਾਂ ਵਿੱਚ,lib/listedPhrases.ts
 Net 45 days,45 दिन में,45 દિવસમાં,45 ਦਿਨਾਂ ਵਿੱਚ,lib/listedPhrases.ts
 Net 60 days,60 दिन में,60 દિવસમાં,60 ਦਿਨਾਂ ਵਿੱਚ,lib/listedPhrases.ts
 Net 7 days,7 दिन में,7 દિવસમાં,7 ਦਿਨਾਂ ਵਿੱਚ,lib/listedPhrases.ts
+Net sales,कुल बिक्री (वापसी घटाकर),ચોખ્ખું વેચાણ,ਸ਼ੁੱਧ ਵਿਕਰੀ,lib/reports.ts
 New,नया,નવું,ਨਵਾਂ,screens/items/ImportScreen.tsx
 New category,नई कैटेगरी,નવી કેટેગરી,ਨਵੀਂ ਕੈਟੇਗਰੀ,screens/items/CategoriesScreen.tsx
 New code sent,नया कोड भेजा गया,નવો કોડ મોકલ્યો,ਨਵਾਂ ਕੋਡ ਭੇਜਿਆ,screens/auth/LoginScreen.tsx
@@ -430,11 +561,17 @@ New credit note,नया क्रेडिट नोट,નવી ક્રે
 New customer,नया ग्राहक,નવો ગ્રાહક,ਨਵਾਂ ਗਾਹਕ,screens/customers/CustomerEditScreen.tsx screens/docs/CustomerPicker.tsx
 New estimate,नया एस्टिमेट,નવો એસ્ટિમેટ,ਨਵਾਂ ਐਸਟੀਮੇਟ,screens/docs/DocEditorScreen.tsx screens/docs/DocListScreen.tsx screens/main/Placeholders.tsx
 New invoice,नया बिल,નવું બિલ,ਨਵਾਂ ਬਿੱਲ,screens/customers/CustomerDetailScreen.tsx screens/docs/DocEditorScreen.tsx screens/docs/DocListScreen.tsx screens/main/Placeholders.tsx
+new item,नया आइटम,નવી આઇટમ,ਨਵੀਂ ਆਈਟਮ,screens/purchases/PurchaseScreens.tsx
 New item,नया आइटम,નવી આઇટમ,ਨਵੀਂ ਆਈਟਮ,screens/items/ItemEditScreen.tsx
 New PIN,नया PIN,નવો PIN,ਨਵਾਂ PIN,components/LockGate.tsx screens/settings/LockSettingsScreen.tsx
+New purchase bill,नया खरीद बिल,નવું ખરીદ બિલ,ਨਵਾਂ ਖ਼ਰੀਦ ਬਿੱਲ,screens/purchases/PurchaseScreens.tsx
+New purchase order,नया खरीद ऑर्डर,નવો ખરીદ ઓર્ડર,ਨਵਾਂ ਖ਼ਰੀਦ ਆਰਡਰ,screens/purchases/PurchaseScreens.tsx
 New sale,नई बिक्री,નવું વેચાણ,ਨਵੀਂ ਵਿਕਰੀ,screens/main/Placeholders.tsx screens/sale/SaleScreen.tsx
+New selling price,नया बिक्री दाम,નવો વેચાણ ભાવ,ਨਵਾਂ ਵਿਕਰੀ ਭਾਅ,screens/purchases/PurchaseScreens.tsx
 New store,नई दुकान,નવી દુકાન,ਨਵੀਂ ਦੁਕਾਨ,screens/admin/AdminScreen.tsx screens/stores/AddStoreModal.tsx
+New supplier,नया सप्लायर,નવો સપ્લાયર,ਨਵਾਂ ਸਪਲਾਇਰ,screens/suppliers/SupplierScreens.tsx
 New under {category},{category} में नई,{category} માં નવી,{category} ਵਿੱਚ ਨਵੀਂ,screens/items/CategoriesScreen.tsx
+Next day,अगला दिन,આગલો દિવસ,ਅਗਲਾ ਦਿਨ,screens/cash/CashBookScreen.tsx
 Next numbers look like {examples},अगले नंबर ऐसे दिखेंगे: {examples},આગળના નંબર આવા દેખાશે: {examples},ਅਗਲੇ ਨੰਬਰ ਇਸ ਤਰ੍ਹਾਂ ਹੋਣਗੇ: {examples},screens/settings/InvoiceSettingsScreen.tsx
 Next numbers look like {examples} — staff B: {staffExamples},अगले नंबर ऐसे दिखेंगे: {examples} — स्टाफ B: {staffExamples},આગળના નંબર આવા દેખાશે: {examples} — સ્ટાફ B: {staffExamples},ਅਗਲੇ ਨੰਬਰ ਇਸ ਤਰ੍ਹਾਂ ਹੋਣਗੇ: {examples} — ਸਟਾਫ਼ B: {staffExamples},screens/settings/InvoiceSettingsScreen.tsx
 Next sale,अगली बिक्री,આગળનું વેચાણ,ਅਗਲੀ ਵਿਕਰੀ,screens/sale/SaleScreen.tsx
@@ -442,12 +579,14 @@ No bank account yet. It's printed on invoices so customers can pay you.,अभ�
 "No bill numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.","इस फ़ोन पर बिल नंबर खत्म हो गए। और नंबर पाने के लिए एक बार इंटरनेट से जुड़ें, या अभी इसे ड्राफ़्ट में सेव करें।","આ ફોનમાં બિલ નંબર ખૂટી ગયા. વધુ મેળવવા એકવાર ઇન્ટરનેટ ચાલુ કરો, અથવા હાલ ડ્રાફ્ટ તરીકે સેવ કરો.","ਇਸ ਫ਼ੋਨ 'ਤੇ ਬਿੱਲ ਨੰਬਰ ਖ਼ਤਮ ਹੋ ਗਏ। ਹੋਰ ਲੈਣ ਲਈ ਇੱਕ ਵਾਰ ਇੰਟਰਨੈੱਟ ਨਾਲ ਜੁੜੋ, ਜਾਂ ਹੁਣ ਲਈ ਡਰਾਫ਼ਟ ਵਜੋਂ ਸੇਵ ਕਰੋ।",lib/repo.ts
 No camera found on this device.,इस डिवाइस में कोई कैमरा नहीं मिला।,આ ડિવાઇસમાં કેમેરા મળ્યો નહીં.,ਇਸ ਡਿਵਾਈਸ 'ਤੇ ਕੋਈ ਕੈਮਰਾ ਨਹੀਂ ਮਿਲਿਆ।,components/BarcodeScanner.tsx
 No categories yet,अभी कोई कैटेगरी नहीं,હજુ કોઈ કેટેગરી નથી,ਅਜੇ ਕੋਈ ਕੈਟੇਗਰੀ ਨਹੀਂ,screens/items/CategoriesScreen.tsx
+No category,कोई कैटेगरी नहीं,કોઈ કેટેગરી નથી,ਕੋਈ ਕੈਟੇਗਰੀ ਨਹੀਂ,lib/reports.ts
 "No credit note numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.","इस फ़ोन पर क्रेडिट नोट नंबर खत्म हो गए। और नंबर पाने के लिए एक बार इंटरनेट से जुड़ें, या अभी इसे ड्राफ़्ट में सेव करें।","આ ફોનમાં ક્રેડિટ નોટ નંબર ખૂટી ગયા. વધુ મેળવવા એકવાર ઇન્ટરનેટ ચાલુ કરો, અથવા હાલ ડ્રાફ્ટ તરીકે સેવ કરો.","ਇਸ ਫ਼ੋਨ 'ਤੇ ਕ੍ਰੈਡਿਟ ਨੋਟ ਨੰਬਰ ਖ਼ਤਮ ਹੋ ਗਏ। ਹੋਰ ਲੈਣ ਲਈ ਇੱਕ ਵਾਰ ਇੰਟਰਨੈੱਟ ਨਾਲ ਜੁੜੋ, ਜਾਂ ਹੁਣ ਲਈ ਡਰਾਫ਼ਟ ਵਜੋਂ ਸੇਵ ਕਰੋ।",lib/repo.ts
 No credit notes yet,अभी कोई क्रेडिट नोट नहीं,હજુ કોઈ ક્રેડિટ નોટ નથી,ਅਜੇ ਕੋਈ ਕ੍ਰੈਡਿਟ ਨੋਟ ਨਹੀਂ,screens/docs/DocListScreen.tsx
 No customer,कोई ग्राहक नहीं,ગ્રાહક નથી,ਕੋਈ ਗਾਹਕ ਨਹੀਂ,screens/docs/DocDetailScreen.tsx screens/docs/DocListScreen.tsx screens/main/Placeholders.tsx
 No customers yet,अभी कोई ग्राहक नहीं,હજુ કોઈ ગ્રાહક નથી,ਅਜੇ ਕੋਈ ਗਾਹਕ ਨਹੀਂ,screens/customers/CustomersScreen.tsx
 "No estimate numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.","इस फ़ोन पर एस्टिमेट नंबर खत्म हो गए। और नंबर पाने के लिए एक बार इंटरनेट से जुड़ें, या अभी इसे ड्राफ़्ट में सेव करें।","આ ફોનમાં એસ્ટિમેટ નંબર ખૂટી ગયા. વધુ મેળવવા એકવાર ઇન્ટરનેટ ચાલુ કરો, અથવા હાલ ડ્રાફ્ટ તરીકે સેવ કરો.","ਇਸ ਫ਼ੋਨ 'ਤੇ ਐਸਟੀਮੇਟ ਨੰਬਰ ਖ਼ਤਮ ਹੋ ਗਏ। ਹੋਰ ਲੈਣ ਲਈ ਇੱਕ ਵਾਰ ਇੰਟਰਨੈੱਟ ਨਾਲ ਜੁੜੋ, ਜਾਂ ਹੁਣ ਲਈ ਡਰਾਫ਼ਟ ਵਜੋਂ ਸੇਵ ਕਰੋ।",lib/repo.ts
 No estimates yet,अभी कोई एस्टिमेट नहीं,હજુ કોઈ એસ્ટિમેટ નથી,ਅਜੇ ਕੋਈ ਐਸਟੀਮੇਟ ਨਹੀਂ,screens/docs/DocListScreen.tsx
+No expenses yet,अभी कोई खर्च नहीं,હજુ કોઈ ખર્ચ નથી,ਅਜੇ ਕੋਈ ਖ਼ਰਚਾ ਨਹੀਂ,screens/expenses/ExpensesScreen.tsx
 No GST,बिना GST,GST નહીં,ਬਿਨਾਂ GST,screens/sale/SaleScreen.tsx
 No internet: the GSTIN format was checked on the phone only.,इंटरनेट नहीं: GSTIN का फ़ॉर्मेट सिर्फ़ फ़ोन पर जाँचा गया।,ઇન્ટરનેટ નથી: GSTIN નું ફોર્મેટ ફક્ત ફોન પર તપાસાયું.,ਇੰਟਰਨੈੱਟ ਨਹੀਂ: GSTIN ਦਾ ਫ਼ਾਰਮੈਟ ਸਿਰਫ਼ ਫ਼ੋਨ 'ਤੇ ਚੈੱਕ ਹੋਇਆ।,components/GstinCheck.tsx
 "No invoice numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.","इस फ़ोन पर बिल नंबर खत्म हो गए। और नंबर पाने के लिए एक बार इंटरनेट से जुड़ें, या अभी इसे ड्राफ़्ट में सेव करें।","આ ફોનમાં બિલ નંબર ખૂટી ગયા. વધુ મેળવવા એકવાર ઇન્ટરનેટ ચાલુ કરો, અથવા હાલ ડ્રાફ્ટ તરીકે સેવ કરો.","ਇਸ ਫ਼ੋਨ 'ਤੇ ਬਿੱਲ ਨੰਬਰ ਖ਼ਤਮ ਹੋ ਗਏ। ਹੋਰ ਲੈਣ ਲਈ ਇੱਕ ਵਾਰ ਇੰਟਰਨੈੱਟ ਨਾਲ ਜੁੜੋ, ਜਾਂ ਹੁਣ ਲਈ ਡਰਾਫ਼ਟ ਵਜੋਂ ਸੇਵ ਕਰੋ।",lib/repo.ts
@@ -455,25 +594,38 @@ No invoices yet,अभी कोई बिल नहीं,હજુ કોઈ �
 No item has barcode {code}. Add it to your items?,बारकोड {code} वाला कोई आइटम नहीं। इसे अपने आइटम में जोड़ें?,બારકોડ {code} વાળી કોઈ આઇટમ નથી. તમારી આઇટમમાં ઉમેરવી છે?,ਬਾਰਕੋਡ {code} ਵਾਲੀ ਕੋਈ ਆਈਟਮ ਨਹੀਂ। ਇਸਨੂੰ ਆਪਣੀਆਂ ਆਈਟਮਾਂ ਵਿੱਚ ਜੋੜਨਾ ਹੈ?,screens/sale/SaleScreen.tsx
 No items yet,अभी कोई आइटम नहीं,હજુ કોઈ આઇટમ નથી,ਅਜੇ ਕੋਈ ਆਈਟਮ ਨਹੀਂ,screens/items/ItemsScreen.tsx
 No printer chosen yet.,अभी कोई प्रिंटर नहीं चुना।,હજુ કોઈ પ્રિન્ટર પસંદ કર્યું નથી.,ਅਜੇ ਕੋਈ ਪ੍ਰਿੰਟਰ ਨਹੀਂ ਚੁਣਿਆ।,screens/settings/PrinterScreen.tsx
+No purchase bills yet,अभी कोई खरीद बिल नहीं,હજુ કોઈ ખરીદ બિલ નથી,ਅਜੇ ਕੋਈ ਖ਼ਰੀਦ ਬਿੱਲ ਨਹੀਂ,screens/purchases/PurchaseScreens.tsx
+No purchase orders yet,अभी कोई खरीद ऑर्डर नहीं,હજુ કોઈ ખરીદ ઓર્ડર નથી,ਅਜੇ ਕੋਈ ਖ਼ਰੀਦ ਆਰਡਰ ਨਹੀਂ,screens/purchases/PurchaseScreens.tsx
+No supplier,कोई सप्लायर नहीं,કોઈ સપ્લાયર નથી,ਕੋਈ ਸਪਲਾਇਰ ਨਹੀਂ,screens/purchases/PurchaseScreens.tsx
+No suppliers yet,अभी कोई सप्लायर नहीं,હજુ કોઈ સપ્લાયર નથી,ਅਜੇ ਕੋਈ ਸਪਲਾਇਰ ਨਹੀਂ,screens/suppliers/SupplierScreens.tsx
 No.,नं.,નં.,ਨੰ.,lib/receipt/render.ts
-None,कोई नहीं,કોઈ નહીં,ਕੋਈ ਨਹੀਂ,screens/items/ItemEditScreen.tsx
+None,कोई नहीं,કોઈ નહીં,ਕੋਈ ਨਹੀਂ,screens/cash/CashBookScreen.tsx screens/items/ItemEditScreen.tsx screens/purchases/PurchaseScreens.tsx
 Not active: GST on bills to this GSTIN may not be accepted for input credit.,चालू नहीं: इस GSTIN को दिए बिलों के GST पर इनपुट क्रेडिट शायद न मिले।,સક્રિય નથી: આ GSTIN ના બિલ પરનો GST ઇનપુટ ક્રેડિટ માટે માન્ય ન પણ થાય.,ਚਾਲੂ ਨਹੀਂ: ਇਸ GSTIN ਦੇ ਬਿੱਲਾਂ 'ਤੇ GST ਦਾ ਇਨਪੁੱਟ ਕ੍ਰੈਡਿਟ ਸ਼ਾਇਦ ਨਾ ਮਿਲੇ।,components/GstinCheck.tsx
 Not allowed,अनुमति नहीं,મંજૂરી નથી,ਇਜਾਜ਼ਤ ਨਹੀਂ,lib/syncEngine.ts
 Not assigned,किसी को नहीं सौंपा,નક્કી નથી,ਕਿਸੇ ਨੂੰ ਨਹੀਂ ਸੌਂਪਿਆ,screens/docs/DocEditorScreen.tsx
+Not in the drawer,गल्ले में नहीं,ગલ્લામાં નહીં,ਗੱਲੇ ਵਿੱਚ ਨਹੀਂ,screens/cash/CashBookScreen.tsx
 Not in your items,आपके आइटम में नहीं,તમારી આઇટમમાં નથી,ਤੁਹਾਡੀਆਂ ਆਈਟਮਾਂ ਵਿੱਚ ਨਹੀਂ,screens/sale/SaleScreen.tsx
 Not now,अभी नहीं,હમણાં નહીં,ਹੁਣ ਨਹੀਂ,components/LockGate.tsx
 Not registered,रजिस्टर्ड नहीं,રજિસ્ટર્ડ નથી,ਰਜਿਸਟਰਡ ਨਹੀਂ,screens/settings/BusinessProfileScreen.tsx
 Not saved on the server ({table}): {reason},सर्वर पर सेव नहीं हुआ ({table}): {reason},સર્વર પર સેવ ન થયું ({table}): {reason},ਸਰਵਰ 'ਤੇ ਸੇਵ ਨਹੀਂ ਹੋਇਆ ({table}): {reason},components/SyncBadge.tsx
+Not sent yet,अभी भेजा नहीं,હજુ મોકલ્યું નથી,ਅਜੇ ਭੇਜਿਆ ਨਹੀਂ,screens/settings/BackupScreen.tsx
 Not set,सेट नहीं,નક્કી નથી,ਸੈੱਟ ਨਹੀਂ,screens/main/TeamScreen.tsx
-Notes,नोट्स,નોંધ,ਨੋਟ,screens/docs/DocEditorScreen.tsx
+Note (optional),नोट (ज़रूरी नहीं),નોંધ (વૈકલ્પિક),ਨੋਟ (ਜ਼ਰੂਰੀ ਨਹੀਂ),components/MoneyEntrySheet.tsx screens/cash/CashBookScreen.tsx screens/items/StockScreen.tsx
+Note for the supplier,सप्लायर के लिए नोट,સપ્લાયર માટે નોંધ,ਸਪਲਾਇਰ ਲਈ ਨੋਟ,screens/purchases/PurchaseScreens.tsx
+"Note rent, salary, electricity and small cash spends, so profit and the cash book are right.","किराया, तनख्वाह, बिजली और छोटे नकद खर्च लिखें, ताकि मुनाफ़ा और कैश बुक सही रहें।","ભાડું, પગાર, વીજળી અને નાના રોકડ ખર્ચ નોંધો, જેથી નફો અને કેશ બુક સાચા રહે.","ਕਿਰਾਇਆ, ਤਨਖ਼ਾਹ, ਬਿਜਲੀ ਅਤੇ ਛੋਟੇ ਨਕਦ ਖ਼ਰਚੇ ਲਿਖੋ, ਤਾਂ ਜੋ ਮੁਨਾਫ਼ਾ ਅਤੇ ਕੈਸ਼ ਬੁੱਕ ਸਹੀ ਰਹਿਣ।",screens/expenses/ExpensesScreen.tsx
+Notes,नोट्स,નોંધ,ਨੋਟ,screens/docs/DocEditorScreen.tsx screens/purchases/PurchaseScreens.tsx screens/suppliers/SupplierScreens.tsx
 Notes & terms,नोट्स और शर्तें,નોંધ અને શરતો,ਨੋਟ ਅਤੇ ਸ਼ਰਤਾਂ,screens/docs/DocEditorScreen.tsx
+Nothing in this period.,इस समय में कुछ नहीं।,આ સમયમાં કંઈ નથી.,ਇਸ ਸਮੇਂ ਵਿੱਚ ਕੁਝ ਨਹੀਂ।,screens/reports/ReportsScreen.tsx
+Nothing is low,कुछ भी कम नहीं है,કંઈ ઓછું નથી,ਕੁਝ ਵੀ ਘੱਟ ਨਹੀਂ,screens/items/LowStockScreen.tsx
 Nothing paired yet.,अभी कुछ पेयर नहीं किया।,હજુ કંઈ પેર કર્યું નથી.,ਅਜੇ ਕੁਝ ਨਹੀਂ ਜੋੜਿਆ।,screens/settings/PrinterScreen.tsx
-Nothing recorded yet.,अभी कुछ दर्ज नहीं।,હજી કંઈ નોંધાયું નથી.,ਹਾਲੇ ਕੁਝ ਦਰਜ ਨਹੀਂ।,screens/admin/AdminScreen.tsx
+Nothing recorded yet.,अभी कुछ दर्ज नहीं।,હજી કંઈ નોંધાયું નથી.,ਹਾਲੇ ਕੁਝ ਦਰਜ ਨਹੀਂ।,screens/admin/AdminScreen.tsx screens/customers/CustomerDetailScreen.tsx screens/items/StockScreen.tsx screens/suppliers/SupplierScreens.tsx
+Number,नंबर,નંબર,ਨੰਬਰ,lib/reports.ts
 Number style,नंबर का तरीका,નંબરની સ્ટાઇલ,ਨੰਬਰ ਦਾ ਸਟਾਈਲ,screens/settings/InvoiceSettingsScreen.tsx
 Numbering,नंबरिंग,નંબરિંગ,ਨੰਬਰਿੰਗ,screens/settings/InvoiceSettingsScreen.tsx
-Off: cost prices never reach staff phones.,बंद: खरीद के दाम स्टाफ के फ़ोन तक कभी नहीं पहुँचते।,બંધ: ખરીદ ભાવ ક્યારેય સ્ટાફના ફોન પર નહીં જાય.,ਬੰਦ: ਖ਼ਰੀਦ ਕੀਮਤਾਂ ਕਦੇ ਸਟਾਫ਼ ਦੇ ਫ਼ੋਨਾਂ ਤੱਕ ਨਹੀਂ ਪਹੁੰਚਦੀਆਂ।,screens/settings/InvoiceSettingsScreen.tsx
+"Off: cost prices, purchase bills and suppliers never reach staff phones.","बंद: लागत दाम, खरीद बिल और सप्लायर कभी स्टाफ के फ़ोन पर नहीं जाते।","બંધ: પડતર ભાવ, ખરીદ બિલ અને સપ્લાયર ક્યારેય સ્ટાફના ફોન પર નહીં જાય.","ਬੰਦ: ਲਾਗਤ ਭਾਅ, ਖ਼ਰੀਦ ਬਿੱਲ ਅਤੇ ਸਪਲਾਇਰ ਕਦੇ ਸਟਾਫ਼ ਦੇ ਫ਼ੋਨ 'ਤੇ ਨਹੀਂ ਜਾਂਦੇ।",screens/settings/InvoiceSettingsScreen.tsx
 Offline,ऑफ़लाइन,ઓફલાઇન,ਆਫ਼ਲਾਈਨ,components/SyncBadge.tsx
 OK,ठीक है,OK,ਠੀਕ ਹੈ,components/SyncBadge.tsx
+On account,खाते में,ખાતામાં,ਖਾਤੇ ਵਿੱਚ,lib/reports.ts
 One design is used for all invoices and estimates.,सभी बिलों और एस्टिमेट के लिए एक ही डिज़ाइन है।,બધા બિલ અને એસ્ટિમેટ માટે એક જ ડિઝાઇન વપરાય છે.,ਸਾਰੇ ਬਿੱਲਾਂ ਅਤੇ ਐਸਟੀਮੇਟਾਂ ਲਈ ਇੱਕੋ ਡਿਜ਼ਾਈਨ ਵਰਤਿਆ ਜਾਂਦਾ ਹੈ।,screens/settings/DesignScreen.tsx
 One less,एक कम,એક ઓછું,ਇੱਕ ਘੱਟ,screens/sale/SaleScreen.tsx
 One more,एक और,એક વધુ,ਇੱਕ ਹੋਰ,screens/sale/SaleScreen.tsx
@@ -484,8 +636,11 @@ Only {amount} is pending on this bill,इस बिल पर सिर्फ़
 Only drafts can be deleted,सिर्फ़ ड्राफ़्ट ही हटाए जा सकते हैं,ફક્ત ડ્રાફ્ટ જ કાઢી શકાય,ਸਿਰਫ਼ ਡਰਾਫ਼ਟ ਮਿਟਾਏ ਜਾ ਸਕਦੇ ਹਨ,lib/repo.ts
 Only the first {count} rows are imported at a time.,एक बार में सिर्फ़ पहली {count} लाइनें इम्पोर्ट होती हैं।,એક વખતે ફક્ત પહેલી {count} લાઇન જ ઇમ્પોર્ટ થાય છે.,ਇੱਕ ਵਾਰ ਵਿੱਚ ਸਿਰਫ਼ ਪਹਿਲੀਆਂ {count} ਲਾਈਨਾਂ ਇੰਪੋਰਟ ਹੁੰਦੀਆਂ ਹਨ।,screens/items/ImportScreen.tsx
 Only the owner can cancel a credit note,सिर्फ़ मालिक क्रेडिट नोट रद्द कर सकता है,ફક્ત માલિક જ ક્રેડિટ નોટ રદ કરી શકે,ਸਿਰਫ਼ ਮਾਲਕ ਕ੍ਰੈਡਿਟ ਨੋਟ ਰੱਦ ਕਰ ਸਕਦਾ ਹੈ,lib/repo.ts
+Only the owner can cancel a purchase,खरीद सिर्फ़ मालिक रद्द कर सकता है,ખરીદી ફક્ત માલિક જ રદ કરી શકે,ਖ਼ਰੀਦ ਸਿਰਫ਼ ਮਾਲਕ ਰੱਦ ਕਰ ਸਕਦਾ ਹੈ,lib/purchases.ts
 Only the owner can cancel an invoice,सिर्फ़ मालिक बिल रद्द कर सकता है,ફક્ત માલિક જ બિલ રદ કરી શકે,ਸਿਰਫ਼ ਮਾਲਕ ਬਿੱਲ ਰੱਦ ਕਰ ਸਕਦਾ ਹੈ,lib/repo.ts
 Only the owner can change a saved credit note,सिर्फ़ मालिक सेव किया क्रेडिट नोट बदल सकता है,ફક્ત માલિક જ સેવ થયેલી ક્રેડિટ નોટ બદલી શકે,ਸਿਰਫ਼ ਮਾਲਕ ਸੇਵ ਕੀਤਾ ਕ੍ਰੈਡਿਟ ਨੋਟ ਬਦਲ ਸਕਦਾ ਹੈ,lib/repo.ts
+Only the owner can change a saved purchase,सेव की गई खरीद सिर्फ़ मालिक बदल सकता है,સેવ થયેલી ખરીદી ફક્ત માલિક જ બદલી શકે,ਸੇਵ ਕੀਤੀ ਖ਼ਰੀਦ ਸਿਰਫ਼ ਮਾਲਕ ਬਦਲ ਸਕਦਾ ਹੈ,lib/purchases.ts screens/purchases/PurchaseScreens.tsx
+Only the owner can change an expense,खर्च सिर्फ़ मालिक बदल सकता है,ખર્ચ ફક્ત માલિક જ બદલી શકે,ਖ਼ਰਚਾ ਸਿਰਫ਼ ਮਾਲਕ ਬਦਲ ਸਕਦਾ ਹੈ,lib/purchases.ts
 Only the owner can change business details.,सिर्फ़ मालिक बिज़नेस की जानकारी बदल सकता है।,ફક્ત માલિક જ બિઝનેસની વિગતો બદલી શકે.,ਸਿਰਫ਼ ਮਾਲਕ ਕਾਰੋਬਾਰ ਦੇ ਵੇਰਵੇ ਬਦਲ ਸਕਦਾ ਹੈ।,screens/settings/BusinessProfileScreen.tsx
 Only the owner can change categories,सिर्फ़ मालिक कैटेगरी बदल सकता है,ફક્ત માલિક જ કેટેગરી બદલી શકે,ਸਿਰਫ਼ ਮਾਲਕ ਕੈਟੇਗਰੀਆਂ ਬਦਲ ਸਕਦਾ ਹੈ,lib/categories.ts
 Only the owner can change categories.,सिर्फ़ मालिक कैटेगरी बदल सकता है।,ફક્ત માલિક જ કેટેગરી બદલી શકે.,ਸਿਰਫ਼ ਮਾਲਕ ਕੈਟੇਗਰੀਆਂ ਬਦਲ ਸਕਦਾ ਹੈ।,screens/items/CategoriesScreen.tsx
@@ -493,6 +648,7 @@ Only the owner can change payment details.,सिर्फ़ मालिक �
 Only the owner can change prices.,सिर्फ़ मालिक दाम बदल सकता है।,ફક્ત માલિક જ ભાવ બદલી શકે.,ਸਿਰਫ਼ ਮਾਲਕ ਕੀਮਤਾਂ ਬਦਲ ਸਕਦਾ ਹੈ।,screens/items/ItemEditScreen.tsx
 Only the owner can change the invoice design.,सिर्फ़ मालिक बिल का डिज़ाइन बदल सकता है।,ફક્ત માલિક જ બિલ ડિઝાઇન બદલી શકે.,ਸਿਰਫ਼ ਮਾਲਕ ਬਿੱਲ ਡਿਜ਼ਾਈਨ ਬਦਲ ਸਕਦਾ ਹੈ।,screens/settings/DesignScreen.tsx
 Only the owner can change these settings.,सिर्फ़ मालिक ये सेटिंग्स बदल सकता है।,ફક્ત માલિક જ આ સેટિંગ્સ બદલી શકે.,ਸਿਰਫ਼ ਮਾਲਕ ਇਹ ਸੈਟਿੰਗਾਂ ਬਦਲ ਸਕਦਾ ਹੈ।,screens/settings/InvoiceSettingsScreen.tsx
+Only the owner can change this,इसे सिर्फ़ मालिक बदल सकता है,આ ફક્ત માલિક જ બદલી શકે,ਇਸਨੂੰ ਸਿਰਫ਼ ਮਾਲਕ ਬਦਲ ਸਕਦਾ ਹੈ,screens/settings/BackupScreen.tsx
 Only the owner can edit a saved credit note.,सिर्फ़ मालिक सेव किया क्रेडिट नोट एडिट कर सकता है।,ફક્ત માલિક જ સેવ થયેલી ક્રેડિટ નોટ સુધારી શકે.,ਸਿਰਫ਼ ਮਾਲਕ ਸੇਵ ਕੀਤਾ ਕ੍ਰੈਡਿਟ ਨੋਟ ਬਦਲ ਸਕਦਾ ਹੈ।,screens/docs/DocEditorScreen.tsx
 Only the owner can edit a saved estimate.,सिर्फ़ मालिक सेव किया एस्टिमेट एडिट कर सकता है।,ફક્ત માલિક જ સેવ થયેલો એસ્ટિમેટ સુધારી શકે.,ਸਿਰਫ਼ ਮਾਲਕ ਸੇਵ ਕੀਤਾ ਐਸਟੀਮੇਟ ਬਦਲ ਸਕਦਾ ਹੈ।,screens/docs/DocEditorScreen.tsx
 Only the owner can edit a saved invoice,सिर्फ़ मालिक सेव किया बिल एडिट कर सकता है,ફક્ત માલિક જ સેવ થયેલું બિલ સુધારી શકે,ਸਿਰਫ਼ ਮਾਲਕ ਸੇਵ ਕੀਤਾ ਬਿੱਲ ਬਦਲ ਸਕਦਾ ਹੈ,lib/repo.ts
@@ -502,29 +658,39 @@ Only the owner can edit this estimate,सिर्फ़ मालिक यह 
 Only the owner can import,सिर्फ़ मालिक इम्पोर्ट कर सकता है,ફક્ત માલિક જ ઇમ્પોર્ટ કરી શકે,ਸਿਰਫ਼ ਮਾਲਕ ਇੰਪੋਰਟ ਕਰ ਸਕਦਾ ਹੈ,lib/importer.ts
 Only the owner can import.,सिर्फ़ मालिक इम्पोर्ट कर सकता है।,ફક્ત માલિક જ ઇમ્પોર્ટ કરી શકે.,ਸਿਰਫ਼ ਮਾਲਕ ਇੰਪੋਰਟ ਕਰ ਸਕਦਾ ਹੈ।,screens/items/ImportScreen.tsx
 Only the owner can make this credit note,सिर्फ़ मालिक यह क्रेडिट नोट बना सकता है,ફક્ત માલિક જ આ ક્રેડિટ નોટ બનાવી શકે,ਸਿਰਫ਼ ਮਾਲਕ ਇਹ ਕ੍ਰੈਡਿਟ ਨੋਟ ਬਣਾ ਸਕਦਾ ਹੈ,lib/repo.ts
-Only the owner can void a payment,सिर्फ़ मालिक भुगतान काट सकता है,ફક્ત માલિક જ ચુકવણી રદ કરી શકે,ਸਿਰਫ਼ ਮਾਲਕ ਭੁਗਤਾਨ ਖ਼ਾਰਜ ਕਰ ਸਕਦਾ ਹੈ,lib/repo.ts
-Open,खुला,ખુલ્લું,ਖੋਲ੍ਹੋ,lib/listedPhrases.ts
+Only the owner can void a payment,सिर्फ़ मालिक भुगतान काट सकता है,ફક્ત માલિક જ ચુકવણી રદ કરી શકે,ਸਿਰਫ਼ ਮਾਲਕ ਭੁਗਤਾਨ ਖ਼ਾਰਜ ਕਰ ਸਕਦਾ ਹੈ,lib/purchases.ts lib/repo.ts
+Only the owner handles purchases in this store.,इस दुकान में खरीद सिर्फ़ मालिक संभालता है।,આ દુકાનમાં ખરીદી ફક્ત માલિક જ સંભાળે છે.,ਇਸ ਦੁਕਾਨ ਵਿੱਚ ਖ਼ਰੀਦ ਸਿਰਫ਼ ਮਾਲਕ ਸੰਭਾਲਦਾ ਹੈ।,screens/suppliers/SupplierScreens.tsx
+Open,खुला,ખુલ્લું,ਖੋਲ੍ਹੋ,lib/listedPhrases.ts screens/purchases/PurchaseScreens.tsx
 Open bill,बिल खोलें,બિલ ખોલો,ਬਿੱਲ ਖੋਲ੍ਹੋ,screens/sale/SaleScreen.tsx
 Open customers,ग्राहक खोलें,ગ્રાહકો ખોલો,ਗਾਹਕ ਖੋਲ੍ਹੋ,screens/items/ImportScreen.tsx
 Open invoice,बिल खोलें,બિલ ખોલો,ਬਿੱਲ ਖੋਲ੍ਹੋ,screens/docs/DocDetailScreen.tsx
 Open items,आइटम खोलें,આઇટમ ખોલો,ਆਈਟਮਾਂ ਖੋਲ੍ਹੋ,screens/items/ImportScreen.tsx
-Opening balance,पुराना बकाया,જૂની બાકી (ઓપનિંગ બેલેન્સ),ਪੁਰਾਣਾ ਬਕਾਇਆ,screens/customers/CustomerEditScreen.tsx
+Opening balance,पुराना बकाया,જૂની બાકી (ઓપનિંગ બેલેન્સ),ਪੁਰਾਣਾ ਬਕਾਇਆ,lib/khata.ts lib/purchases.ts screens/customers/CustomerEditScreen.tsx screens/suppliers/SupplierScreens.tsx
 Opening balance is not a number,पुराना बकाया नंबर नहीं है,ઓપનિંગ બેલેન્સ નંબર નથી,ਪੁਰਾਣਾ ਬਕਾਇਆ ਨੰਬਰ ਨਹੀਂ ਹੈ,lib/importer.ts
+Opening cash,शुरुआती नकद,શરૂઆતની રોકડ,ਸ਼ੁਰੂਆਤੀ ਨਕਦ,screens/cash/CashBookScreen.tsx
+Opening stock,शुरुआती स्टॉक,શરૂઆતનો સ્ટોક,ਸ਼ੁਰੂਆਤੀ ਸਟਾਕ,lib/stock.ts screens/items/ItemEditScreen.tsx
 "Optional. The day before, the person delivering gets a phone alert.",ज़रूरी नहीं। एक दिन पहले डिलीवरी करने वाले को फ़ोन पर अलर्ट मिलेगा।,વૈકલ્પિક. ડિલિવરી કરનારને આગલા દિવસે ફોન પર એલર્ટ મળે છે.,"ਮਰਜ਼ੀ ਨਾਲ। ਇੱਕ ਦਿਨ ਪਹਿਲਾਂ, ਡਿਲੀਵਰੀ ਕਰਨ ਵਾਲੇ ਨੂੰ ਫ਼ੋਨ 'ਤੇ ਅਲਰਟ ਮਿਲਦਾ ਹੈ।",screens/docs/DocEditorScreen.tsx
 Or create your own business,या अपना खुद का बिज़नेस बनाएँ,અથવા તમારો પોતાનો બિઝનેસ બનાવો,ਜਾਂ ਆਪਣਾ ਕਾਰੋਬਾਰ ਬਣਾਓ,screens/onboarding/OnboardingScreen.tsx
+Order,ऑर्डर,ઓર્ડર,ਆਰਡਰ,screens/suppliers/SupplierScreens.tsx
 Order {number},ऑर्डर {number},ઓર્ડર {number},ਆਰਡਰ {number},lib/deliveries.ts
-Other,अन्य,અન્ય,ਹੋਰ,components/PaySheet.tsx lib/ledger.ts
+Order saved,ऑर्डर सेव हुआ,ઓર્ડર સેવ થયો,ਆਰਡਰ ਸੇਵ ਹੋ ਗਿਆ,screens/purchases/PurchaseScreens.tsx
+Other,अन्य,અન્ય,ਹੋਰ,components/PaySheet.tsx lib/ledger.ts lib/purchases.ts lib/stock.ts
 Other correction,अन्य सुधार,અન્ય સુધારો,ਹੋਰ ਸੁਧਾਰ,lib/listedPhrases.ts
 Other payment instructions,भुगतान के अन्य निर्देश,ચુકવણીની અન્ય સૂચના,ਭੁਗਤਾਨ ਦੀਆਂ ਹੋਰ ਹਦਾਇਤਾਂ,screens/settings/PaymentDetailsScreen.tsx
 Other state: place of supply {place},दूसरा राज्य: सप्लाई की जगह {place},બીજું રાજ્ય: સપ્લાયનું સ્થળ {place},ਦੂਜਾ ਰਾਜ: ਸਪਲਾਈ ਦੀ ਥਾਂ {place},screens/docs/DocEditorScreen.tsx
 Other tax ID label,अन्य टैक्स ID का नाम,અન્ય ટેક્સ ID નું લેબલ,ਹੋਰ ਟੈਕਸ ID ਦਾ ਨਾਂ,screens/settings/BusinessProfileScreen.tsx
-Overdue,तारीख निकल गई,મુદત વીતી ગઈ,ਮਿਆਦ ਲੰਘੀ,lib/listedPhrases.ts
+Overdue,तारीख निकल गई,મુદત વીતી ગઈ,ਮਿਆਦ ਲੰਘੀ,lib/listedPhrases.ts lib/reports.ts
 Overdue · {date},तारीख निकल गई · {date},મુદત વીતી ગઈ · {date},ਮਿਆਦ ਲੰਘੀ · {date},screens/main/Placeholders.tsx
+Own use,अपने इस्तेमाल के लिए,પોતાના વપરાશ માટે,ਆਪਣੀ ਵਰਤੋਂ ਲਈ,lib/stock.ts
 Owner,मालिक,માલિક,ਮਾਲਕ,screens/admin/AdminScreen.tsx screens/main/MoreScreen.tsx screens/main/TeamScreen.tsx screens/stores/StoreList.tsx
 Owner mobile number,मालिक का मोबाइल नंबर,માલિકનો મોબાઇલ નંબર,ਮਾਲਕ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ,screens/admin/AdminScreen.tsx
-Paid,चुकाया,ચૂકવાયું,ਭੁਗਤਾਨ ਹੋਇਆ,lib/listedPhrases.ts lib/receipt/render.ts screens/customers/CustomerDetailScreen.tsx screens/docs/DocDetailScreen.tsx
+Paid,चुकाया,ચૂકવાયું,ਭੁਗਤਾਨ ਹੋਇਆ,lib/listedPhrases.ts lib/purchases.ts lib/receipt/render.ts screens/docs/DocDetailScreen.tsx screens/purchases/PurchaseScreens.tsx
+Paid · {number},चुकाया · {number},ચૂકવાયું · {number},ਭੁਗਤਾਨ ਹੋਇਆ · {number},lib/khata.ts
+Paid {name},{name} को चुकाया,{name} ને ચૂકવ્યા,{name} ਨੂੰ ਭੁਗਤਾਨ ਕੀਤਾ,lib/cashbook.ts
 "Paid {paid}, balance {balance}","चुकाया {paid}, बाकी {balance}","ચૂકવ્યા {paid}, બાકી {balance}","ਭੁਗਤਾਨ {paid}, ਬਕਾਇਆ {balance}",screens/sale/SaleScreen.tsx
 Paid in full,पूरा चुकाया,પૂરું ચૂકવાયું,ਪੂਰਾ ਭੁਗਤਾਨ ਹੋਇਆ,screens/sale/SaleScreen.tsx
+Paid on account,खाते में चुकाया,ખાતામાં ચૂકવ્યા,ਖਾਤੇ ਵਿੱਚ ਭੁਗਤਾਨ,lib/khata.ts
+Paid supplier · {mode},सप्लायर को चुकाया · {mode},સપ્લાયરને ચૂકવ્યા · {mode},ਸਪਲਾਇਰ ਨੂੰ ਭੁਗਤਾਨ · {mode},lib/reports.ts
 Paired Bluetooth devices,पेयर किए ब्लूटूथ डिवाइस,પેર કરેલા બ્લૂટૂથ ડિવાઇસ,ਜੋੜੇ ਹੋਏ ਬਲੂਟੁੱਥ ਡਿਵਾਈਸ,screens/settings/PrinterScreen.tsx
 Paired printers,पेयर किए प्रिंटर,પેર કરેલા પ્રિન્ટર,ਜੋੜੇ ਹੋਏ ਪ੍ਰਿੰਟਰ,screens/settings/PrinterScreen.tsx
 Paper width,कागज़ की चौड़ाई,કાગળની પહોળાઈ,ਕਾਗਜ਼ ਦੀ ਚੌੜਾਈ,screens/settings/PrinterScreen.tsx
@@ -532,17 +698,24 @@ Partly paid,कुछ चुकाया,થોડું ચૂકવાયુ�
 Pause,रोकें,અટકાવો,ਰੋਕੋ,screens/main/TeamScreen.tsx
 Pause {name}?,{name} को रोकें?,{name} ને અટકાવવા છે?,{name} ਨੂੰ ਰੋਕਣਾ ਹੈ?,screens/main/TeamScreen.tsx
 Paused,रुका हुआ,અટકાવેલ,ਰੋਕਿਆ ਹੋਇਆ,screens/main/TeamScreen.tsx screens/stores/StoreList.tsx
-Pay,भुगतान लें,ચૂકવો,ਭੁਗਤਾਨ ਕਰੋ,screens/sale/SaleScreen.tsx
+Pay,भुगतान लें,ચૂકવો,ਭੁਗਤਾਨ ਕਰੋ,screens/purchases/PurchaseScreens.tsx screens/sale/SaleScreen.tsx screens/suppliers/SupplierScreens.tsx
+Pay {name},{name} को चुकाएँ,{name} ને ચૂકવો,{name} ਨੂੰ ਭੁਗਤਾਨ ਕਰੋ,screens/purchases/PurchaseScreens.tsx screens/suppliers/SupplierScreens.tsx
+Pay by (optional),कब तक चुकाना है (ज़रूरी नहीं),ક્યાં સુધી ચૂકવવાનું (વૈકલ્પિક),ਕਦੋਂ ਤੱਕ ਭੁਗਤਾਨ (ਜ਼ਰੂਰੀ ਨਹੀਂ),screens/purchases/PurchaseScreens.tsx
+Pay by {date},{date} तक चुकाना है,{date} સુધીમાં ચૂકવવાનું,{date} ਤੱਕ ਭੁਗਤਾਨ ਕਰਨਾ ਹੈ,screens/purchases/PurchaseScreens.tsx
+Pay by UPI: {link},UPI से भुगतान करें: {link},UPI થી ચૂકવો: {link},UPI ਨਾਲ ਭੁਗਤਾਨ ਕਰੋ: {link},lib/khata.ts
 Payee name,पाने वाले का नाम,લેનારનું નામ,ਪ੍ਰਾਪਤਕਰਤਾ ਦਾ ਨਾਂ,screens/settings/PaymentDetailsScreen.tsx
 Payment details,भुगतान जानकारी,ચુકવણી વિગતો,ਭੁਗਤਾਨ ਵੇਰਵੇ,screens/main/Placeholders.tsx screens/settings/PaymentDetailsScreen.tsx
 "Payment details (bank, UPI)","भुगतान जानकारी (बैंक, UPI)","ચુકવણી વિગતો (બેંક, UPI)","ਭੁਗਤਾਨ ਵੇਰਵੇ (ਬੈਂਕ, UPI)",screens/main/MoreScreen.tsx
 Payment details on the PDF,PDF पर भुगतान जानकारी,PDF પર ચુકવણી વિગતો,PDF 'ਤੇ ਭੁਗਤਾਨ ਵੇਰਵੇ,screens/docs/DocEditorScreen.tsx
 Payment recorded,भुगतान दर्ज हुआ,ચુકવણી નોંધાઈ,ਭੁਗਤਾਨ ਦਰਜ ਹੋ ਗਿਆ,screens/docs/DocDetailScreen.tsx
+Payment saved,भुगतान सेव हुआ,ચુકવણી સેવ થઈ,ਭੁਗਤਾਨ ਸੇਵ ਹੋ ਗਿਆ,screens/purchases/PurchaseScreens.tsx screens/suppliers/SupplierScreens.tsx
+Payment saved: oldest bills settled first,भुगतान सेव हुआ: सबसे पुराने बिल पहले चुकाए गए,ચુકવણી સેવ થઈ: સૌથી જૂના બિલ પહેલાં ચૂકવાયા,ਭੁਗਤਾਨ ਸੇਵ ਹੋ ਗਿਆ: ਸਭ ਤੋਂ ਪੁਰਾਣੇ ਬਿੱਲ ਪਹਿਲਾਂ ਚੁਕਾਏ,screens/customers/CustomerDetailScreen.tsx
 Payment terms,भुगतान की शर्तें,ચુકવણીની શરતો,ਭੁਗਤਾਨ ਦੀਆਂ ਸ਼ਰਤਾਂ,screens/docs/DocEditorScreen.tsx screens/settings/InvoiceSettingsScreen.tsx
 Payments,भुगतान,ચુકવણીઓ,ਭੁਗਤਾਨ,screens/docs/DocDetailScreen.tsx
 PDF downloaded,PDF डाउनलोड हुआ,PDF ડાઉનલોડ થઈ,PDF ਡਾਊਨਲੋਡ ਹੋ ਗਈ,screens/docs/DocDetailScreen.tsx
 pending,बाकी,બાકી,ਬਕਾਇਆ,screens/customers/CustomersScreen.tsx
-Pending,बाकी,બાકી,ਬਕਾਇਆ,screens/customers/CustomerDetailScreen.tsx screens/docs/DocDetailScreen.tsx
+Pending,बाकी,બાકી,ਬਕਾਇਆ,screens/docs/DocDetailScreen.tsx
+Pending {amount},बाकी {amount},બાકી {amount},ਬਕਾਇਆ {amount},screens/purchases/PurchaseScreens.tsx
 Pending invites,बाकी इनवाइट,બાકી આમંત્રણ,ਬਕਾਇਆ ਸੱਦੇ,screens/main/TeamScreen.tsx
 per {unit},प्रति {unit},પ્રતિ {unit},ਪ੍ਰਤੀ {unit},screens/sale/SaleScreen.tsx
 per {unit} · tax {pct}%,प्रति {unit} · टैक्स {pct}%,પ્રતિ {unit} · ટેક્સ {pct}%,ਪ੍ਰਤੀ {unit} · ਟੈਕਸ {pct}%,screens/docs/LineEditor.tsx
@@ -552,22 +725,27 @@ per {unit} · tax {taxPct}% incl.,प्रति {unit} · टैक्स {tax
 Per running foot (length),प्रति रनिंग फ़ुट (लंबाई),રનિંગ ફૂટ પ્રમાણે (લંબાઈ),ਪ੍ਰਤੀ ਰਨਿੰਗ ਫੁੱਟ (ਲੰਬਾਈ),screens/items/ItemEditScreen.tsx
 Per sq ft (length × width),प्रति sq ft (लंबाई × चौड़ाई),sq ft પ્રમાણે (લંબાઈ × પહોળાઈ),ਪ੍ਰਤੀ ਵਰਗ ਫੁੱਟ (ਲੰਬਾਈ × ਚੌੜਾਈ),screens/items/ItemEditScreen.tsx
 "Per unit (piece, kg, box…)","प्रति यूनिट (पीस, किलो, डिब्बा…)","યુનિટ પ્રમાણે (નંગ, કિલો, બોક્સ…)","ਪ੍ਰਤੀ ਯੂਨਿਟ (ਨਗ, ਕਿਲੋ, ਡੱਬਾ…)",screens/items/ItemEditScreen.tsx
+Person,व्यक्ति,વ્યક્તિ,ਵਿਅਕਤੀ,lib/reports.ts screens/reports/ReportsScreen.tsx
 Phone,फ़ोन,ફોન,ਫ਼ੋਨ,screens/main/DevicesScreen.tsx screens/settings/BusinessProfileScreen.tsx
+Phone / internet,फ़ोन / इंटरनेट,ફોન / ઇન્ટરનેટ,ਫ਼ੋਨ / ਇੰਟਰਨੈੱਟ,lib/purchases.ts
 "Phone alert the day before a delivery date, to the owner and the person delivering.","डिलीवरी की तारीख से एक दिन पहले, मालिक और डिलीवरी करने वाले को फ़ोन पर अलर्ट।",ડિલિવરીની તારીખના આગલા દિવસે માલિક અને ડિલિવરી કરનારને ફોન પર એલર્ટ.,ਡਿਲੀਵਰੀ ਦੀ ਤਾਰੀਖ਼ ਤੋਂ ਇੱਕ ਦਿਨ ਪਹਿਲਾਂ ਮਾਲਕ ਅਤੇ ਡਿਲੀਵਰੀ ਕਰਨ ਵਾਲੇ ਨੂੰ ਫ਼ੋਨ ਅਲਰਟ।,screens/settings/InvoiceSettingsScreen.tsx
 Phone app,फ़ोन ऐप,ફોન એપ,ਫ਼ੋਨ ਐਪ,screens/main/DevicesScreen.tsx
+Photo of the bill,बिल की फ़ोटो,બિલનો ફોટો,ਬਿੱਲ ਦੀ ਫ਼ੋਟੋ,screens/purchases/PurchaseScreens.tsx
+Pick item,आइटम चुनें,આઇટમ પસંદ કરો,ਆਈਟਮ ਚੁਣੋ,components/ItemPicker.tsx
 Pieces,पीस,નંગ,ਨਗ,screens/docs/LineEditor.tsx
 PIN,PIN,PIN,PIN,components/LockGate.tsx
 PIN (4–6 digits),PIN (4–6 अंक),PIN (4–6 અંક),PIN (4–6 ਅੰਕ),screens/settings/LockSettingsScreen.tsx
 PIN again,PIN दोबारा,PIN ફરીથી,PIN ਦੁਬਾਰਾ,components/LockGate.tsx
 PIN code,PIN कोड,PIN કોડ,PIN ਕੋਡ,components/Fields.tsx
 PIN saved,PIN सेव हो गया,PIN સેવ થયો,PIN ਸੇਵ ਹੋ ਗਿਆ,screens/settings/LockSettingsScreen.tsx
-Place of supply,सप्लाई की जगह,સપ્લાયનું સ્થળ,ਸਪਲਾਈ ਦੀ ਥਾਂ,lib/receipt/render.ts screens/docs/DocEditorScreen.tsx
+Place of supply,सप्लाई की जगह,સપ્લાયનું સ્થળ,ਸਪਲਾਈ ਦੀ ਥਾਂ,lib/receipt/render.ts lib/reports.ts screens/docs/DocEditorScreen.tsx
 Place of supply {place},सप्लाई की जगह {place},સપ્લાયનું સ્થળ {place},ਸਪਲਾਈ ਦੀ ਥਾਂ {place},screens/docs/DocDetailScreen.tsx
 Placeholders: {name} {pending} {number} {date} {business},प्लेसहोल्डर: {name} {pending} {number} {date} {business},પ્લેસહોલ્ડર: {name} {pending} {number} {date} {business},ਪਲੇਸਹੋਲਡਰ: {name} {pending} {number} {date} {business},screens/settings/InvoiceSettingsScreen.tsx
 Please log in again,कृपया फिर से लॉग इन करें,ફરી લૉગ ઇન કરો,ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਲੌਗ ਇਨ ਕਰੋ,lib/api.ts
 Point the camera at the barcode.,कैमरा बारकोड की तरफ़ करें।,કેમેરા બારકોડ તરફ રાખો.,ਕੈਮਰਾ ਬਾਰਕੋਡ ਵੱਲ ਕਰੋ।,components/BarcodeScanner.tsx
 Preview,प्रीव्यू,પ્રિવ્યૂ,ਪ੍ਰੀਵਿਊ,screens/docs/DocDetailScreen.tsx
 Preview (sample invoice),प्रीव्यू (नमूना बिल),પ્રિવ્યૂ (નમૂનાનું બિલ),ਪ੍ਰੀਵਿਊ (ਨਮੂਨਾ ਬਿੱਲ),screens/settings/DesignScreen.tsx
+Previous day,पिछला दिन,પાછલો દિવસ,ਪਿਛਲਾ ਦਿਨ,screens/cash/CashBookScreen.tsx
 Price (before tax),दाम (टैक्स से पहले),કિંમત (ટેક્સ પહેલાં),ਕੀਮਤ (ਟੈਕਸ ਤੋਂ ਪਹਿਲਾਂ),screens/items/ItemEditScreen.tsx
 Price (incl. tax),दाम (टैक्स सहित),કિંમત (ટેક્સ સહિત),ਕੀਮਤ (ਟੈਕਸ ਸਮੇਤ),screens/items/ItemEditScreen.tsx
 Price & tax,दाम और टैक्स,કિંમત અને ટેક્સ,ਕੀਮਤ ਅਤੇ ਟੈਕਸ,screens/items/ItemEditScreen.tsx
@@ -585,63 +763,108 @@ Printer,प्रिंटर,પ્રિન્ટર,ਪ੍ਰਿੰਟਰ,scr
 Printing works in the ApnaGalla phone app.,प्रिंटिंग ApnaGalla फ़ोन ऐप में होती है।,પ્રિન્ટિંગ ApnaGalla ફોન એપમાં ચાલે છે.,ਪ੍ਰਿੰਟਿੰਗ ApnaGalla ਫ਼ੋਨ ਐਪ ਵਿੱਚ ਚੱਲਦੀ ਹੈ।,lib/printer.ts
 Problem,गड़बड़ी,ભૂલ,ਗੜਬੜ,screens/items/ImportScreen.tsx
 Problem: {error},गड़बड़ी: {error},ભૂલ: {error},ਗੜਬੜ: {error},components/SyncBadge.tsx
+Profit,मुनाफ़ा,નફો,ਮੁਨਾਫ਼ਾ,lib/reports.ts
+Profit report,मुनाफ़ा रिपोर्ट,નફો રિપોર્ટ,ਮੁਨਾਫ਼ਾ ਰਿਪੋਰਟ,lib/reports.ts
+Purchase,खरीद,ખરીદી,ਖ਼ਰੀਦ,lib/reports.ts lib/stock.ts
+Purchase bill,खरीद बिल,ખરીદ બિલ,ਖ਼ਰੀਦ ਬਿੱਲ,screens/purchases/PurchaseScreens.tsx screens/suppliers/SupplierScreens.tsx
+Purchase bill {ref},खरीद बिल {ref},ખરીદ બિલ {ref},ਖ਼ਰੀਦ ਬਿੱਲ {ref},screens/purchases/PurchaseScreens.tsx
+Purchase bills,खरीद बिल,ખરીદ બિલ,ਖ਼ਰੀਦ ਬਿੱਲ,screens/purchases/PurchaseScreens.tsx
+Purchase order {number},खरीद ऑर्डर {number},ખરીદ ઓર્ડર {number},ਖ਼ਰੀਦ ਆਰਡਰ {number},lib/purchases.ts screens/purchases/PurchaseScreens.tsx
+Purchase orders,खरीद ऑर्डर,ખરીદ ઓર્ડર,ਖ਼ਰੀਦ ਆਰਡਰ,screens/purchases/PurchaseScreens.tsx
 Purchase price (cost),खरीद का दाम (लागत),ખરીદ ભાવ (કોસ્ટ),ਖ਼ਰੀਦ ਕੀਮਤ (ਲਾਗਤ),screens/items/ItemEditScreen.tsx
 Purchase price is not a number,खरीद का दाम नंबर नहीं है,ખરીદ ભાવ નંબર નથી,ਖ਼ਰੀਦ ਕੀਮਤ ਨੰਬਰ ਨਹੀਂ ਹੈ,lib/importer.ts
-Quantity,मात्रा,જથ્થો,ਮਾਤਰਾ,screens/docs/LineEditor.tsx
-Rate,रेट,ભાવ,ਰੇਟ,screens/docs/LineEditor.tsx
+Purchase register,खरीद रजिस्टर,ખરીદ રજિસ્ટર,ਖ਼ਰੀਦ ਰਜਿਸਟਰ,lib/reports.ts
+Purchase return,खरीद वापसी,ખરીદ વાપસી,ਖ਼ਰੀਦ ਵਾਪਸੀ,lib/reports.ts lib/stock.ts
+Purchase saved,खरीद सेव हुई,ખરીદી સેવ થઈ,ਖ਼ਰੀਦ ਸੇਵ ਹੋ ਗਈ,screens/purchases/PurchaseScreens.tsx
+Purchases,खरीद,ખરીદી,ਖ਼ਰੀਦ,screens/main/MoreScreen.tsx screens/purchases/PurchaseScreens.tsx screens/suppliers/SupplierScreens.tsx
+Purchases (input tax credit),खरीद (इनपुट टैक्स क्रेडिट),ખરીદી (ઇનપુટ ટેક્સ ક્રેડિટ),ਖ਼ਰੀਦ (ਇਨਪੁੱਟ ਟੈਕਸ ਕ੍ਰੈਡਿਟ),lib/reports.ts
+Quantity,मात्रा,જથ્થો,ਮਾਤਰਾ,lib/purchases.ts lib/reports.ts screens/docs/LineEditor.tsx screens/items/StockScreen.tsx screens/purchases/PurchaseScreens.tsx
+Rate,रेट,ભાવ,ਰੇਟ,screens/docs/LineEditor.tsx screens/purchases/PurchaseScreens.tsx
 Rate (incl. tax),रेट (टैक्स सहित),ભાવ (ટેક્સ સહિત),ਰੇਟ (ਟੈਕਸ ਸਮੇਤ),screens/docs/LineEditor.tsx
 Rate includes tax,रेट में टैक्स शामिल है,ભાવમાં ટેક્સ સામેલ છે,ਰੇਟ ਵਿੱਚ ਟੈਕਸ ਸ਼ਾਮਲ ਹੈ,screens/docs/LineEditor.tsx
 Rate per {unit},प्रति {unit} रेट,ભાવ પ્રતિ {unit},ਰੇਟ ਪ੍ਰਤੀ {unit},screens/docs/LineEditor.tsx
 Rate per {unit} (incl. tax),प्रति {unit} रेट (टैक्स सहित),ભાવ પ્રતિ {unit} (ટેક્સ સહિત),ਰੇਟ ਪ੍ਰਤੀ {unit} (ਟੈਕਸ ਸਮੇਤ),screens/docs/LineEditor.tsx
 Reactivate,फिर से चालू करें,ફરી ચાલુ કરો,ਦੁਬਾਰਾ ਚਾਲੂ ਕਰੋ,screens/admin/AdminScreen.tsx
 Read {code},{code} पढ़ा,{code} વાંચ્યો,{code} ਪੜ੍ਹਿਆ,components/BarcodeScanner.tsx
-Reason,कारण,કારણ,ਕਾਰਨ,screens/docs/DocDetailScreen.tsx screens/docs/DocEditorScreen.tsx
+Reading the bill…,बिल पढ़ रहे हैं…,બિલ વાંચી રહ્યા છીએ…,ਬਿੱਲ ਪੜ੍ਹ ਰਹੇ ਹਾਂ…,screens/purchases/PurchaseScreens.tsx
+Reason,कारण,કારણ,ਕਾਰਨ,screens/docs/DocDetailScreen.tsx screens/docs/DocEditorScreen.tsx screens/items/StockScreen.tsx screens/purchases/PurchaseScreens.tsx screens/suppliers/SupplierScreens.tsx
 Reason (optional),कारण (ज़रूरी नहीं),કારણ (વૈકલ્પિક),ਕਾਰਨ (ਮਰਜ਼ੀ ਨਾਲ),screens/docs/DocDetailScreen.tsx
 Reason (shown in the audit log),कारण (ऑडिट लॉग में दिखेगा),કારણ (ઑડિટ લૉગમાં દેખાશે),ਕਾਰਨ (ਆਡਿਟ ਲੌਗ ਵਿੱਚ ਦਿਖੇਗਾ),screens/admin/AdminScreen.tsx
 Receipt,रसीद,રસીદ,ਰਸੀਦ,screens/docs/DocDetailScreen.tsx screens/settings/PrinterScreen.tsx
 Receipt language,रसीद की भाषा,રસીદની ભાષા,ਰਸੀਦ ਦੀ ਭਾਸ਼ਾ,screens/settings/InvoiceSettingsScreen.tsx
 Receive {amount},{amount} लें,{amount} મેળવો,{amount} ਲਓ,components/PaySheet.tsx
-Received,पैसे मिले,મળ્યા,ਮਿਲ ਗਏ,screens/docs/DocDetailScreen.tsx
+Receive from {name},{name} से लें,{name} પાસેથી લો,{name} ਤੋਂ ਲਓ,screens/customers/CustomerDetailScreen.tsx
+Receive payment,भुगतान लें,ચુકવણી લો,ਭੁਗਤਾਨ ਲਓ,screens/customers/CustomerDetailScreen.tsx
+Received,पैसे मिले,મળ્યા,ਮਿਲ ਗਏ,lib/khata.ts screens/docs/DocDetailScreen.tsx screens/purchases/PurchaseScreens.tsx
+Received · {mode},मिला · {mode},મળ્યા · {mode},ਮਿਲੇ · {mode},lib/reports.ts
+Received · {ref},मिला · {ref},મળ્યા · {ref},ਮਿਲੇ · {ref},lib/cashbook.ts
 Received {amount},{amount} मिले,{amount} મળ્યા,{amount} ਮਿਲੇ,components/PaySheet.tsx
+Received today: cash / UPI,आज मिले: नकद / UPI,આજે મળ્યા: રોકડ / UPI,ਅੱਜ ਮਿਲੇ: ਨਕਦ / UPI,screens/main/Placeholders.tsx
 Recent invoices,हाल के बिल,તાજેતરનાં બિલ,ਹਾਲੀਆ ਬਿੱਲ,screens/main/Placeholders.tsx
 Record payment,भुगतान दर्ज करें,ચુકવણી નોંધો,ਭੁਗਤਾਨ ਦਰਜ ਕਰੋ,screens/docs/DocDetailScreen.tsx
+Ref,रेफ़,રેફ,ਰੈਫ਼,lib/reports.ts
 Reference (optional),रेफ़रेंस (ज़रूरी नहीं),રેફરન્સ (વૈકલ્પિક),ਹਵਾਲਾ (ਮਰਜ਼ੀ ਨਾਲ),components/PaySheet.tsx
+"Reference (UPI ref, cheque no.)","रेफ़रेंस (UPI रेफ़, चेक नं.)","રેફરન્સ (UPI રેફ, ચેક નં.)","ਰੈਫ਼ਰੈਂਸ (UPI ਰੈਫ਼, ਚੈੱਕ ਨੰ.)",components/MoneyEntrySheet.tsx
 Reference / PO no.,रेफ़रेंस / PO नं.,રેફરન્સ / PO નં.,ਹਵਾਲਾ / PO ਨੰ.,screens/docs/DocEditorScreen.tsx
-Refund,रिफ़ंड,રિફંડ,ਰਿਫ਼ੰਡ,screens/docs/DocDetailScreen.tsx
+Refund,रिफ़ंड,રિફંડ,ਰਿਫ਼ੰਡ,lib/khata.ts screens/docs/DocDetailScreen.tsx
+Refund · {mode},रिफ़ंड · {mode},રિફંડ · {mode},ਰਿਫ਼ੰਡ · {mode},lib/reports.ts
 Refund {amount},{amount} रिफ़ंड करें,{amount} રિફંડ કરો,{amount} ਰਿਫ਼ੰਡ ਕਰੋ,components/PaySheet.tsx screens/docs/DocDetailScreen.tsx
+Refund {ref},रिफ़ंड {ref},રિફંડ {ref},ਰਿਫ਼ੰਡ {ref},lib/cashbook.ts
 Refund due,रिफ़ंड बाकी,રિફંડ બાકી,ਰਿਫ਼ੰਡ ਬਕਾਇਆ,lib/listedPhrases.ts
+Refund from {name},{name} से रिफ़ंड,{name} પાસેથી રિફંડ,{name} ਤੋਂ ਰਿਫ਼ੰਡ,lib/cashbook.ts
+Refund received,रिफ़ंड मिला,રિફંડ મળ્યું,ਰਿਫ਼ੰਡ ਮਿਲਿਆ,lib/purchases.ts
 Refund recorded,रिफ़ंड दर्ज हुआ,રિફંડ નોંધાયું,ਰਿਫ਼ੰਡ ਦਰਜ ਹੋ ਗਿਆ,screens/docs/DocDetailScreen.tsx
 Refunded {amount},{amount} रिफ़ंड किए,{amount} રિફંડ કર્યા,{amount} ਰਿਫ਼ੰਡ ਕੀਤੇ,components/PaySheet.tsx
+Refunds are taken off.,रिफ़ंड घटा दिए गए हैं।,રિફંડ બાદ કર્યા છે.,ਰਿਫ਼ੰਡ ਘਟਾ ਦਿੱਤੇ ਗਏ ਹਨ।,lib/reports.ts
 Registered (composition scheme),रजिस्टर्ड (कंपोज़िशन स्कीम),રજિસ્ટર્ડ (કમ્પોઝિશન સ્કીમ),ਰਜਿਸਟਰਡ (ਕੰਪੋਜ਼ੀਸ਼ਨ ਸਕੀਮ),screens/settings/BusinessProfileScreen.tsx
 Registered (regular),रजिस्टर्ड (रेगुलर),રજિસ્ટર્ડ (રેગ્યુલર),ਰਜਿਸਟਰਡ (ਰੈਗੂਲਰ),screens/settings/BusinessProfileScreen.tsx
-Remind,याद दिलाएँ,યાદ કરાવો,ਯਾਦ ਕਰਾਓ,screens/docs/DocDetailScreen.tsx
-Remove,हटाएँ,કાઢો,ਹਟਾਓ,components/ImagePicker.tsx screens/main/TeamScreen.tsx
+Remind,याद दिलाएँ,યાદ કરાવો,ਯਾਦ ਕਰਾਓ,screens/customers/CustomerDetailScreen.tsx screens/docs/DocDetailScreen.tsx
+Remove,हटाएँ,કાઢો,ਹਟਾਓ,components/ImagePicker.tsx screens/items/StockScreen.tsx screens/main/TeamScreen.tsx screens/purchases/PurchaseScreens.tsx
 Remove {mode},{mode} हटाएँ,{mode} કાઢો,{mode} ਹਟਾਓ,components/PaySheet.tsx
 Remove {name} from the team?,{name} को टीम से हटाएँ?,{name} ને ટીમમાંથી કાઢવા છે?,{name} ਨੂੰ ਟੀਮ ਵਿੱਚੋਂ ਹਟਾਉਣਾ ਹੈ?,screens/main/TeamScreen.tsx
 Remove final amount,फ़ाइनल रकम हटाएँ,આખરી રકમ કાઢો,ਅੰਤਿਮ ਰਕਮ ਹਟਾਓ,screens/docs/DocEditorScreen.tsx
 Remove item from invoice,बिल से आइटम हटाएँ,બિલમાંથી આઇટમ કાઢો,ਬਿੱਲ ਵਿੱਚੋਂ ਆਈਟਮ ਹਟਾਓ,screens/docs/LineEditor.tsx
 Rename,नाम बदलें,નામ બદલો,ਨਾਂ ਬਦਲੋ,screens/items/CategoriesScreen.tsx
+Rent,किराया,ભાડું,ਕਿਰਾਇਆ,lib/purchases.ts
+Repairs,मरम्मत,રિપેરિંગ,ਮੁਰੰਮਤ,lib/purchases.ts
+Reports,रिपोर्ट,રિપોર્ટ,ਰਿਪੋਰਟਾਂ,screens/main/MoreScreen.tsx screens/reports/ReportsScreen.tsx
 Request failed ({status}),रिक्वेस्ट नहीं हो सकी ({status}),વિનંતી નિષ્ફળ ({status}),ਬੇਨਤੀ ਫ਼ੇਲ੍ਹ ਹੋਈ ({status}),lib/api.ts
 required by your store,आपकी दुकान ने ज़रूरी किया है,તમારી દુકાને ફરજિયાત કર્યું છે,ਤੁਹਾਡੀ ਦੁਕਾਨ ਨੇ ਜ਼ਰੂਰੀ ਕੀਤਾ ਹੈ,screens/settings/LockSettingsScreen.tsx
 Required for a GST-registered store,GST रजिस्टर्ड दुकान के लिए ज़रूरी,GST-રજિસ્ટર્ડ દુકાન માટે જરૂરી,GST-ਰਜਿਸਟਰਡ ਦੁਕਾਨ ਲਈ ਜ਼ਰੂਰੀ,screens/settings/BusinessProfileScreen.tsx
 Resend code,कोड फिर से भेजें,કોડ ફરી મોકલો,ਕੋਡ ਦੁਬਾਰਾ ਭੇਜੋ,screens/auth/LoginScreen.tsx
 Resend in {seconds}s,{seconds}s में फिर से भेजें,{seconds}s માં ફરી મોકલો,{seconds}s ਵਿੱਚ ਦੁਬਾਰਾ ਭੇਜੋ,screens/auth/LoginScreen.tsx
 Restart numbering every financial year (1 April),हर वित्त वर्ष (1 अप्रैल) में नंबर फिर से शुरू करें,દર નાણાકીય વર્ષે (1 એપ્રિલ) નંબરિંગ ફરી શરૂ કરો,ਹਰ ਵਿੱਤੀ ਸਾਲ (1 ਅਪ੍ਰੈਲ) ਨੰਬਰਿੰਗ ਦੁਬਾਰਾ ਸ਼ੁਰੂ ਕਰੋ,screens/settings/InvoiceSettingsScreen.tsx
+Return,वापसी,વાપસી,ਵਾਪਸੀ,screens/purchases/PurchaseScreens.tsx
+Return {number},वापसी {number},વાપસી {number},ਵਾਪਸੀ {number},lib/khata.ts lib/stock.ts
+Return goods,माल वापस करें,માલ પાછો આપો,ਮਾਲ ਵਾਪਸ ਕਰੋ,screens/purchases/PurchaseScreens.tsx
 Return items,सामान वापसी,માલ પાછો લો,ਆਈਟਮਾਂ ਵਾਪਸ ਕਰੋ,screens/docs/DocDetailScreen.tsx
 Return items / credit note,सामान वापसी / क्रेडिट नोट,માલ પાછો / ક્રેડિટ નોટ,ਆਈਟਮਾਂ ਵਾਪਸ / ਕ੍ਰੈਡਿਟ ਨੋਟ,screens/docs/DocDetailScreen.tsx
+Return to supplier,सप्लायर को वापस करें,સપ્લાયરને પાછું આપો,ਸਪਲਾਇਰ ਨੂੰ ਵਾਪਸ ਕਰੋ,screens/purchases/PurchaseScreens.tsx
+Returned goods {ref},लौटाया माल {ref},પાછો આપેલો માલ {ref},ਵਾਪਸ ਕੀਤਾ ਮਾਲ {ref},lib/purchases.ts
+Returned to {name},{name} को लौटाया,{name} ને પાછું આપ્યું,{name} ਨੂੰ ਵਾਪਸ ਕੀਤਾ,lib/stock.ts
+Returns,वापसी,વાપસી,ਵਾਪਸੀ,lib/reports.ts
+Returns to suppliers are shown with a minus sign.,सप्लायर को वापसी माइनस निशान के साथ दिखती है।,સપ્લાયરને વાપસી માઇનસ નિશાની સાથે દેખાય છે.,ਸਪਲਾਇਰ ਨੂੰ ਵਾਪਸੀ ਮਾਇਨਸ ਨਿਸ਼ਾਨ ਨਾਲ ਦਿਖਦੀ ਹੈ।,lib/reports.ts
 Round off,राउंड ऑफ़,રાઉન્ડ ઓફ,ਰਾਊਂਡ ਆਫ਼,lib/receipt/render.ts screens/docs/DocEditorScreen.tsx
 Round off to nearest ₹1,नज़दीकी ₹1 तक राउंड ऑफ़,નજીકના ₹1 સુધી રાઉન્ડ ઓફ,ਨੇੜਲੇ ₹1 ਤੱਕ ਰਾਊਂਡ ਆਫ਼,screens/docs/DocEditorScreen.tsx
 Round off total to nearest ₹1,कुल को नज़दीकी ₹1 तक राउंड ऑफ़ करें,કુલને નજીકના ₹1 સુધી રાઉન્ડ ઓફ કરો,ਕੁੱਲ ਨੂੰ ਨੇੜਲੇ ₹1 ਤੱਕ ਰਾਊਂਡ ਆਫ਼ ਕਰੋ,screens/settings/InvoiceSettingsScreen.tsx
 Rows,लाइनें,લાઇન,ਲਾਈਨਾਂ,screens/items/ImportScreen.tsx
 Rows (first {shown} of {total}),लाइनें ({total} में से पहली {shown}),લાઇન ({total} માંથી પહેલી {shown}),ਲਾਈਨਾਂ ({total} ਵਿੱਚੋਂ ਪਹਿਲੀਆਂ {shown}),screens/items/ImportScreen.tsx
-Sale,बिक्री,વેચાણ,ਵਿਕਰੀ,screens/sale/SaleScreen.tsx
+Salary,तनख्वाह,પગાર,ਤਨਖ਼ਾਹ,lib/purchases.ts
+Sale,बिक्री,વેચાણ,ਵਿਕਰੀ,lib/reports.ts screens/sale/SaleScreen.tsx
+Sale {number},बिक्री {number},વેચાણ {number},ਵਿਕਰੀ {number},lib/stock.ts
 Sale saved,बिक्री सेव हुई,વેચાણ સેવ થયું,ਵਿਕਰੀ ਸੇਵ ਹੋ ਗਈ,screens/sale/SaleScreen.tsx
+Sales,बिक्री,વેચાણ,ਵਿਕਰੀ,lib/reports.ts screens/reports/ReportsScreen.tsx
+"Sales (before tax, less returns)","बिक्री (टैक्स से पहले, वापसी घटाकर)","વેચાણ (ટેક્સ પહેલાં, વાપસી બાદ કરીને)","ਵਿਕਰੀ (ਟੈਕਸ ਤੋਂ ਪਹਿਲਾਂ, ਵਾਪਸੀ ਘਟਾ ਕੇ)",lib/reports.ts
+Sales (output tax),बिक्री (आउटपुट टैक्स),વેચાણ (આઉટપુટ ટેક્સ),ਵਿਕਰੀ (ਆਊਟਪੁੱਟ ਟੈਕਸ),lib/reports.ts
+Sales register,बिक्री रजिस्टर,વેચાણ રજિસ્ટર,ਵਿਕਰੀ ਰਜਿਸਟਰ,lib/reports.ts
+Sales report,बिक्री रिपोर्ट,વેચાણ રિપોર્ટ,ਵਿਕਰੀ ਰਿਪੋਰਟ,lib/reports.ts
 Same as billing address,बिलिंग पते जैसा ही,બિલિંગ સરનામા જેવું જ,ਬਿਲਿੰਗ ਪਤੇ ਵਾਂਗ,screens/customers/CustomerEditScreen.tsx
 Same customer appears earlier in the file,यही ग्राहक फ़ाइल में पहले भी है,આ જ ગ્રાહક ફાઇલમાં પહેલાં આવી ગયો છે,ਇਹੀ ਗਾਹਕ ਫ਼ਾਈਲ ਵਿੱਚ ਪਹਿਲਾਂ ਆ ਚੁੱਕਾ ਹੈ,lib/importer.ts
 Same item appears earlier in the file,यही आइटम फ़ाइल में पहले भी है,આ જ આઇટમ ફાઇલમાં પહેલાં આવી ગઈ છે,ਇਹੀ ਆਈਟਮ ਫ਼ਾਈਲ ਵਿੱਚ ਪਹਿਲਾਂ ਆ ਚੁੱਕੀ ਹੈ,lib/importer.ts
 Same state: place of supply {place},वही राज्य: सप्लाई की जगह {place},એ જ રાજ્ય: સપ્લાયનું સ્થળ {place},ਉਹੀ ਰਾਜ: ਸਪਲਾਈ ਦੀ ਥਾਂ {place},screens/docs/DocEditorScreen.tsx
-Save,सेव करें,સેવ કરો,ਸੇਵ ਕਰੋ,components/FormPage.tsx screens/docs/CustomerPicker.tsx screens/items/CategoriesScreen.tsx screens/main/TeamScreen.tsx screens/settings/PaymentDetailsScreen.tsx
-Save changes,बदलाव सेव करें,ફેરફારો સેવ કરો,ਤਬਦੀਲੀਆਂ ਸੇਵ ਕਰੋ,screens/docs/DocEditorScreen.tsx
+Save,सेव करें,સેવ કરો,ਸੇਵ ਕਰੋ,components/FormPage.tsx components/MoneyEntrySheet.tsx screens/docs/CustomerPicker.tsx screens/items/CategoriesScreen.tsx screens/items/StockScreen.tsx screens/main/TeamScreen.tsx screens/settings/BackupScreen.tsx screens/settings/PaymentDetailsScreen.tsx
+Save bill,बिल सेव करें,બિલ સેવ કરો,ਬਿੱਲ ਸੇਵ ਕਰੋ,screens/purchases/PurchaseScreens.tsx
+Save changes,बदलाव सेव करें,ફેરફારો સેવ કરો,ਤਬਦੀਲੀਆਂ ਸੇਵ ਕਰੋ,screens/docs/DocEditorScreen.tsx screens/purchases/PurchaseScreens.tsx
 Save credit note,क्रेडिट नोट सेव करें,ક્રેડિટ નોટ સેવ કરો,ਕ੍ਰੈਡਿਟ ਨੋਟ ਸੇਵ ਕਰੋ,screens/docs/DocEditorScreen.tsx
 Save design,डिज़ाइन सेव करें,ડિઝાઇન સેવ કરો,ਡਿਜ਼ਾਈਨ ਸੇਵ ਕਰੋ,screens/settings/DesignScreen.tsx
 Save draft,ड्राफ़्ट सेव करें,ડ્રાફ્ટ સેવ કરો,ਡਰਾਫ਼ਟ ਸੇਵ ਕਰੋ,screens/docs/DocEditorScreen.tsx
@@ -651,26 +874,35 @@ Save invoice,बिल सेव करें,બિલ સેવ કરો,ਬ�
 Save this item to my catalogue,यह आइटम मेरे कैटलॉग में सेव करें,આ આઇટમ મારા કેટલોગમાં સેવ કરો,ਇਹ ਆਈਟਮ ਮੇਰੇ ਕੈਟਾਲਾਗ ਵਿੱਚ ਸੇਵ ਕਰੋ,screens/docs/LineEditor.tsx
 Save unpaid (pay later),उधार में सेव करें (भुगतान बाद में),ઉધાર સેવ કરો (પછી ચૂકવશે),ਉਧਾਰ ਸੇਵ ਕਰੋ (ਬਾਅਦ ਵਿੱਚ ਭੁਗਤਾਨ),components/PaySheet.tsx
 "Save your products and services with their price and tax, then pick them while billing.","अपने सामान और सर्विस को उनके दाम और टैक्स के साथ सेव करें, फिर बिल बनाते समय चुनें।","તમારાં પ્રોડક્ટ અને સેવાઓ ભાવ અને ટેક્સ સાથે સેવ કરો, પછી બિલ બનાવતી વખતે પસંદ કરો.","ਆਪਣੇ ਸਮਾਨ ਅਤੇ ਸੇਵਾਵਾਂ ਕੀਮਤ ਤੇ ਟੈਕਸ ਸਮੇਤ ਸੇਵ ਕਰੋ, ਫਿਰ ਬਿੱਲ ਬਣਾਉਂਦੇ ਸਮੇਂ ਚੁਣੋ।",screens/items/ItemsScreen.tsx
-Saved,सेव हुआ,સેવ થયું,ਸੇਵ ਹੋ ਗਿਆ,lib/listedPhrases.ts screens/settings/BusinessProfileScreen.tsx screens/settings/DesignScreen.tsx screens/settings/InvoiceSettingsScreen.tsx screens/settings/PaymentDetailsScreen.tsx
+Saved,सेव हुआ,સેવ થયું,ਸੇਵ ਹੋ ਗਿਆ,lib/listedPhrases.ts screens/settings/BackupScreen.tsx screens/settings/BusinessProfileScreen.tsx screens/settings/DesignScreen.tsx screens/settings/InvoiceSettingsScreen.tsx screens/settings/PaymentDetailsScreen.tsx
 Saved unpaid,उधार में सेव हुआ,ઉધાર સેવ થયું,ਉਧਾਰ ਸੇਵ ਹੋ ਗਿਆ,screens/sale/SaleScreen.tsx
 Savings,सेविंग्स,સેવિંગ્સ,ਬੱਚਤ,screens/settings/PaymentDetailsScreen.tsx
 Scan barcode,बारकोड स्कैन करें,બારકોડ સ્કેન કરો,ਬਾਰਕੋਡ ਸਕੈਨ ਕਰੋ,components/BarcodeScanner.tsx screens/items/ItemEditScreen.tsx screens/sale/SaleScreen.tsx
 Scan items,आइटम स्कैन करें,આઇટમ સ્કેન કરો,ਆਈਟਮਾਂ ਸਕੈਨ ਕਰੋ,screens/sale/SaleScreen.tsx
+Scan supplier bill,सप्लायर का बिल स्कैन करें,સપ્લાયરનું બિલ સ્કેન કરો,ਸਪਲਾਇਰ ਦਾ ਬਿੱਲ ਸਕੈਨ ਕਰੋ,screens/purchases/PurchaseScreens.tsx
 Scan to pay {amount},{amount} देने के लिए स्कैन करें,{amount} ચૂકવવા સ્કેન કરો,{amount} ਦੇਣ ਲਈ ਸਕੈਨ ਕਰੋ,components/PaySheet.tsx lib/receipt/render.ts
+Scanning needs the internet.,स्कैन के लिए इंटरनेट चाहिए।,સ્કેન માટે ઇન્ટરનેટ જોઈએ.,ਸਕੈਨ ਲਈ ਇੰਟਰਨੈੱਟ ਚਾਹੀਦਾ ਹੈ।,screens/purchases/PurchaseScreens.tsx
 Search an item above to start the bill.,बिल शुरू करने के लिए ऊपर आइटम खोजें।,બિલ શરૂ કરવા ઉપર આઇટમ શોધો.,ਬਿੱਲ ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਉੱਪਰ ਆਈਟਮ ਲੱਭੋ।,screens/sale/SaleScreen.tsx
 Search catalogue or type a new item,कैटलॉग में खोजें या नया आइटम लिखें,કેટલોગમાં શોધો અથવા નવી આઇટમ લખો,ਕੈਟਾਲਾਗ ਵਿੱਚ ਲੱਭੋ ਜਾਂ ਨਵੀਂ ਆਈਟਮ ਲਿਖੋ,screens/docs/LineEditor.tsx
 Search item or type barcode,आइटम खोजें या बारकोड लिखें,આઇટમ શોધો અથવા બારકોડ લખો,ਆਈਟਮ ਲੱਭੋ ਜਾਂ ਬਾਰਕੋਡ ਲਿਖੋ,screens/sale/SaleScreen.tsx
+Search name or mobile,नाम या मोबाइल खोजें,નામ કે મોબાઇલ શોધો,ਨਾਂ ਜਾਂ ਮੋਬਾਈਲ ਲੱਭੋ,screens/suppliers/SupplierScreens.tsx
 Search name or phone,नाम या फ़ोन से खोजें,નામ અથવા ફોન શોધો,ਨਾਂ ਜਾਂ ਫ਼ੋਨ ਲੱਭੋ,screens/customers/CustomersScreen.tsx screens/docs/CustomerPicker.tsx
-"Search name, code or barcode","नाम, कोड या बारकोड से खोजें","નામ, કોડ અથવા બારકોડ શોધો","ਨਾਂ, ਕੋਡ ਜਾਂ ਬਾਰਕੋਡ ਲੱਭੋ",screens/items/ItemsScreen.tsx
+"Search name, code or barcode","नाम, कोड या बारकोड से खोजें","નામ, કોડ અથવા બારકોડ શોધો","ਨਾਂ, ਕੋਡ ਜਾਂ ਬਾਰਕੋਡ ਲੱਭੋ",components/ItemPicker.tsx screens/items/ItemsScreen.tsx
 Search number or customer,नंबर या ग्राहक से खोजें,નંબર અથવા ગ્રાહક શોધો,ਨੰਬਰ ਜਾਂ ਗਾਹਕ ਲੱਭੋ,screens/docs/DocListScreen.tsx
 "Search store, phone or city","दुकान, फ़ोन या शहर खोजें","દુકાન, ફોન કે શહેર શોધો","ਦੁਕਾਨ, ਫ਼ੋਨ ਜਾਂ ਸ਼ਹਿਰ ਖੋਜੋ",screens/admin/AdminScreen.tsx
 See all,सभी देखें,બધું જુઓ,ਸਾਰੇ ਦੇਖੋ,screens/main/Placeholders.tsx
+See purchase bill,खरीद बिल देखें,ખરીદ બિલ જુઓ,ਖ਼ਰੀਦ ਬਿੱਲ ਦੇਖੋ,screens/purchases/PurchaseScreens.tsx
 Select a customer,ग्राहक चुनें,ગ્રાહક પસંદ કરો,ਗਾਹਕ ਚੁਣੋ,screens/docs/DocEditorScreen.tsx
 Select customer,ग्राहक चुनें,ગ્રાહક પસંદ કરો,ਗਾਹਕ ਚੁਣੋ,screens/docs/CustomerPicker.tsx screens/docs/DocEditorScreen.tsx
 Selling price {price} is above the MRP {mrp}. Selling above MRP is not allowed.,बेचने का दाम {price} MRP {mrp} से ज़्यादा है। MRP से ज़्यादा में बेचना मना है।,વેચાણ કિંમત {price} MRP {mrp} કરતાં વધુ છે. MRP થી વધુ ભાવે વેચી શકાય નહીં.,ਵਿਕਰੀ ਕੀਮਤ {price} MRP {mrp} ਤੋਂ ਵੱਧ ਹੈ। MRP ਤੋਂ ਵੱਧ ਵੇਚਣ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ।,screens/items/ItemEditScreen.tsx
 "Send a quotation, then convert it to an invoice in one tap.","कोटेशन भेजें, फिर एक टैप में उसे बिल में बदलें।","ક્વોટેશન મોકલો, પછી એક ટૅપમાં તેનું બિલ બનાવો.","ਕੋਟੇਸ਼ਨ ਭੇਜੋ, ਫਿਰ ਇੱਕ ਟੈਪ ਵਿੱਚ ਬਿੱਲ ਵਿੱਚ ਬਦਲੋ।",screens/docs/DocListScreen.tsx
 Send code,कोड भेजें,કોડ મોકલો,ਕੋਡ ਭੇਜੋ,components/LockGate.tsx
+Send every night,हर रात भेजें,દર રાત્રે મોકલો,ਹਰ ਰਾਤ ਭੇਜੋ,screens/settings/BackupScreen.tsx
+Send PDF,PDF भेजें,PDF મોકલો,PDF ਭੇਜੋ,screens/purchases/PurchaseScreens.tsx
+Send today’s file now,आज की फ़ाइल अभी भेजें,આજની ફાઇલ હમણાં મોકલો,ਅੱਜ ਦੀ ਫ਼ਾਈਲ ਹੁਣੇ ਭੇਜੋ,screens/settings/BackupScreen.tsx
+Sent,भेजा गया,મોકલ્યું,ਭੇਜਿਆ ਗਿਆ,screens/settings/BackupScreen.tsx
 Series letter for {name},{name} के लिए सीरीज़ अक्षर,{name} માટે સિરીઝ અક્ષર,{name} ਲਈ ਸੀਰੀਜ਼ ਅੱਖਰ,screens/main/TeamScreen.tsx
+Set “Low stock at” on items to see them here when they run low.,"आइटम पर “कम स्टॉक की सीमा” सेट करें, ताकि कम होने पर वे यहाँ दिखें।","આઇટમ પર “ઓછા સ્ટોકની મર્યાદા” સેટ કરો, જેથી ઓછી થાય ત્યારે અહીં દેખાય.","ਆਈਟਮਾਂ 'ਤੇ “ਘੱਟ ਸਟਾਕ ਦੀ ਹੱਦ” ਸੈੱਟ ਕਰੋ, ਤਾਂ ਜੋ ਘੱਟ ਹੋਣ 'ਤੇ ਉਹ ਇੱਥੇ ਦਿਖਣ।",screens/items/LowStockScreen.tsx
 Set a 4–6 digit PIN so nobody else can open your bills on this phone.,"4–6 अंकों का PIN बनाएँ, ताकि इस फ़ोन पर कोई और आपके बिल न खोल सके।","4–6 અંકનો PIN બનાવો, જેથી આ ફોન પર બીજું કોઈ તમારા બિલ ન ખોલી શકે.","4–6 ਅੰਕਾਂ ਦਾ PIN ਬਣਾਓ, ਤਾਂ ਜੋ ਇਸ ਫ਼ੋਨ 'ਤੇ ਕੋਈ ਹੋਰ ਤੁਹਾਡੇ ਬਿੱਲ ਨਾ ਖੋਲ੍ਹ ਸਕੇ।",components/LockGate.tsx
 Set final amount,फ़ाइनल रकम तय करें,આખરી રકમ નક્કી કરો,ਅੰਤਿਮ ਰਕਮ ਰੱਖੋ,screens/docs/DocEditorScreen.tsx
 Set final amount…,फ़ाइनल रकम तय करें…,આખરી રકમ નક્કી કરો…,ਅੰਤਿਮ ਰਕਮ ਰੱਖੋ…,screens/docs/DocEditorScreen.tsx
@@ -678,12 +910,15 @@ Set PIN,PIN बनाएँ,PIN બનાવો,PIN ਬਣਾਓ,components/Lock
 Set up,सेट अप करें,સેટઅપ કરો,ਸੈੱਟ ਕਰੋ,lib/usePrint.ts
 Set up in 3 steps,3 स्टेप में सेट अप करें,3 સ્ટેપમાં સેટઅપ કરો,3 ਕਦਮਾਂ ਵਿੱਚ ਸੈੱਟ ਕਰੋ,screens/main/Placeholders.tsx
 Set up your business,अपना बिज़नेस सेट अप करें,તમારો બિઝનેસ સેટઅપ કરો,ਆਪਣਾ ਕਾਰੋਬਾਰ ਸੈੱਟ ਕਰੋ,screens/onboarding/OnboardingScreen.tsx
-Share PDF,PDF शेयर करें,PDF શેર કરો,PDF ਸ਼ੇਅਰ ਕਰੋ,screens/docs/DocDetailScreen.tsx screens/sale/SaleScreen.tsx
+Share,शेयर करें,શેર કરો,ਸ਼ੇਅਰ ਕਰੋ,screens/purchases/PurchaseScreens.tsx
+Share Excel,Excel शेयर करें,Excel શેર કરો,Excel ਸ਼ੇਅਰ ਕਰੋ,screens/customers/CustomerDetailScreen.tsx
+Share PDF,PDF शेयर करें,PDF શેર કરો,PDF ਸ਼ੇਅਰ ਕਰੋ,screens/customers/CustomerDetailScreen.tsx screens/docs/DocDetailScreen.tsx screens/sale/SaleScreen.tsx
 Ship to,भेजने का पता,માલ ક્યાં મોકલવો,ਮਾਲ ਭੇਜੋ,screens/docs/DocEditorScreen.tsx
 Ship to a different address,दूसरे पते पर भेजें,બીજા સરનામે મોકલો,ਵੱਖਰੇ ਪਤੇ 'ਤੇ ਭੇਜੋ,screens/docs/DocEditorScreen.tsx
 Ship-to address,भेजने का पता,માલ મોકલવાનું સરનામું,ਮਾਲ ਭੇਜਣ ਦਾ ਪਤਾ,lib/listedPhrases.ts
 Shipping address,भेजने का पता,ડિલિવરી સરનામું,ਸ਼ਿਪਿੰਗ ਪਤਾ,screens/customers/CustomerEditScreen.tsx
 Shop features,दुकान की सुविधाएँ,દુકાનની સુવિધાઓ,ਦੁਕਾਨ ਦੀਆਂ ਸਹੂਲਤਾਂ,screens/settings/InvoiceSettingsScreen.tsx
+Short {amount},{amount} कम,{amount} ઓછા,{amount} ਘੱਟ,screens/cash/CashBookScreen.tsx
 Show on invoice,बिल पर दिखाएँ,બિલ પર બતાવો,ਬਿੱਲ 'ਤੇ ਦਿਖਾਓ,screens/settings/DesignScreen.tsx
 Sign out,साइन आउट,લૉગ આઉટ,ਸਾਈਨ ਆਊਟ ਕਰੋ,screens/main/DevicesScreen.tsx
 Sign out {device}?,{device} को साइन आउट करें?,{device} પરથી લૉગ આઉટ કરવું છે?,{device} ਤੋਂ ਸਾਈਨ ਆਊਟ ਕਰਨਾ ਹੈ?,screens/main/DevicesScreen.tsx
@@ -693,24 +928,47 @@ since {date},{date} से,{date} થી,{date} ਤੋਂ,components/GstinCheck.
 Size,साइज़,સાઇઝ,ਸਾਈਜ਼,screens/sale/SaleScreen.tsx
 Skip,छोड़ें,છોડો,ਛੱਡੋ,screens/items/ImportScreen.tsx
 Skip it,इसे छोड़ें,તેને છોડો,ਇਸਨੂੰ ਛੱਡੋ,screens/items/ImportScreen.tsx
+Slow movers,धीमे बिकने वाले,ધીમે વેચાતી આઇટમ,ਹੌਲੀ ਵਿਕਣ ਵਾਲੀਆਂ,lib/reports.ts
 Small,छोटा,નાનું,ਛੋਟਾ,screens/settings/DesignScreen.tsx
 Someone,कोई,કોઈએ,ਕੋਈ,screens/docs/DocDetailScreen.tsx
-Something went wrong,कुछ गड़बड़ हो गई,કંઈક ખોટું થયું,ਕੁਝ ਗਲਤ ਹੋ ਗਿਆ,screens/docs/DocDetailScreen.tsx screens/sale/SaleScreen.tsx
+Something went wrong,कुछ गड़बड़ हो गई,કંઈક ખોટું થયું,ਕੁਝ ਗਲਤ ਹੋ ਗਿਆ,screens/docs/DocDetailScreen.tsx screens/sale/SaleScreen.tsx screens/settings/BackupScreen.tsx
 Something went wrong. Please try again.,कुछ गड़बड़ हो गई। फिर से कोशिश करें।,કંઈક ખોટું થયું. ફરી પ્રયાસ કરો.,ਕੁਝ ਗਲਤ ਹੋ ਗਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।,lib/api.ts
 Split: add another mode,बाँटें: दूसरा तरीका जोड़ें,ભાગ પાડો: બીજી રીત ઉમેરો,ਵੰਡੋ: ਹੋਰ ਤਰੀਕਾ ਜੋੜੋ,components/PaySheet.tsx
 Staff,स्टाफ,સ્ટાફ,ਸਟਾਫ਼,screens/main/MoreScreen.tsx screens/main/TeamScreen.tsx screens/settings/InvoiceSettingsScreen.tsx screens/stores/StoreList.tsx
-Staff can see purchase prices,स्टाफ खरीद के दाम देख सकता है,સ્ટાફ ખરીદ ભાવ જોઈ શકે,ਸਟਾਫ਼ ਖ਼ਰੀਦ ਕੀਮਤਾਂ ਦੇਖ ਸਕਦਾ ਹੈ,screens/settings/InvoiceSettingsScreen.tsx
+Staff and stores,स्टाफ और दुकानें,સ્ટાફ અને દુકાનો,ਸਟਾਫ਼ ਅਤੇ ਦੁਕਾਨਾਂ,screens/reports/ReportsScreen.tsx
+Staff can see purchases and cost prices,स्टाफ खरीद और लागत दाम देख सकता है,સ્ટાફ ખરીદી અને પડતર ભાવ જોઈ શકે,ਸਟਾਫ਼ ਖ਼ਰੀਦ ਅਤੇ ਲਾਗਤ ਭਾਅ ਦੇਖ ਸਕਦਾ ਹੈ,screens/settings/InvoiceSettingsScreen.tsx
 Staff mobile number,स्टाफ का मोबाइल नंबर,સ્ટાફનો મોબાઇલ નંબર,ਸਟਾਫ਼ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ,screens/main/TeamScreen.tsx
 Staff must lock the app,स्टाफ को ऐप लॉक करना ज़रूरी,સ્ટાફ માટે એપ લૉક ફરજિયાત,ਸਟਾਫ਼ ਲਈ ਐਪ ਲੌਕ ਜ਼ਰੂਰੀ,screens/settings/InvoiceSettingsScreen.tsx
 Staff set a PIN (or fingerprint) on their phones; the app asks for it on opening and after 5 minutes away.,स्टाफ अपने फ़ोन पर PIN (या फिंगरप्रिंट) रखेंगे; ऐप खोलने पर और 5 मिनट बाद लौटने पर पूछेगा।,સ્ટાફ પોતાના ફોન પર PIN (કે ફિંગરપ્રિન્ટ) રાખશે; એપ ખોલતી વખતે અને 5 મિનિટ પછી પાછા આવતા પૂછશે.,ਸਟਾਫ਼ ਆਪਣੇ ਫ਼ੋਨ 'ਤੇ PIN (ਜਾਂ ਫਿੰਗਰਪ੍ਰਿੰਟ) ਰੱਖੇਗਾ; ਐਪ ਖੋਲ੍ਹਣ 'ਤੇ ਅਤੇ 5 ਮਿੰਟ ਬਾਅਦ ਵਾਪਸ ਆਉਣ 'ਤੇ ਪੁੱਛੇਗੀ।,screens/settings/InvoiceSettingsScreen.tsx
+Staff-wise sales,स्टाफ के हिसाब से बिक्री,સ્ટાફ મુજબ વેચાણ,ਸਟਾਫ਼ ਅਨੁਸਾਰ ਵਿਕਰੀ,lib/reports.ts
 State,राज्य,રાજ્ય,ਰਾਜ,components/Fields.tsx screens/onboarding/OnboardingScreen.tsx screens/stores/AddStoreModal.tsx
 "State ""{value}"" is not an Indian state name","राज्य ""{value}"" भारतीय राज्य का नाम नहीं है","રાજ્ય ""{value}"" ભારતીય રાજ્યનું નામ નથી","ਰਾਜ ""{value}"" ਭਾਰਤੀ ਰਾਜ ਦਾ ਨਾਂ ਨਹੀਂ ਹੈ",lib/importer.ts
+Statement,हिसाब,હિસાબ,ਹਿਸਾਬ,screens/customers/CustomerDetailScreen.tsx
+Statement of account,खाते का हिसाब,ખાતાનો હિસાબ,ਖਾਤੇ ਦਾ ਹਿਸਾਬ,lib/khata.ts screens/customers/CustomerDetailScreen.tsx
+Status,स्थिति,સ્થિતિ,ਸਥਿਤੀ,lib/reports.ts
+Still to collect,अभी वसूलना बाकी,હજુ વસૂલવાના બાકી,ਅਜੇ ਵਸੂਲਣਾ ਬਾਕੀ,lib/reports.ts
+Stock,स्टॉक,સ્ટોક,ਸਟਾਕ,lib/reports.ts screens/items/ItemEditScreen.tsx screens/reports/ReportsScreen.tsx
+"Stock ""{value}"" is not a number","स्टॉक ""{value}"" नंबर नहीं है","સ્ટોક ""{value}"" નંબર નથી","ਸਟਾਕ ""{value}"" ਨੰਬਰ ਨਹੀਂ ਹੈ",lib/importer.ts
+Stock {qty},स्टॉक {qty},સ્ટોક {qty},ਸਟਾਕ {qty},components/ItemPicker.tsx screens/items/ItemsScreen.tsx
+Stock already matches,स्टॉक पहले से मेल खाता है,સ્ટોક પહેલેથી મેળ ખાય છે,ਸਟਾਕ ਪਹਿਲਾਂ ਹੀ ਮੇਲ ਖਾਂਦਾ ਹੈ,screens/items/StockScreen.tsx
+Stock change,स्टॉक बदलाव,સ્ટોક ફેરફાર,ਸਟਾਕ ਬਦਲਾਅ,lib/reports.ts
+Stock count,स्टॉक गिनती,સ્ટોક ગણતરી,ਸਟਾਕ ਗਿਣਤੀ,lib/stock.ts
+Stock report,स्टॉक रिपोर्ट,સ્ટોક રિપોર્ટ,ਸਟਾਕ ਰਿਪੋਰਟ,lib/reports.ts
+Stock updated,स्टॉक अपडेट हुआ,સ્ટોક અપડેટ થયો,ਸਟਾਕ ਅੱਪਡੇਟ ਹੋ ਗਿਆ,screens/items/StockScreen.tsx
+Store,दुकान,દુકાન,ਦੁਕਾਨ,lib/reports.ts
 Store created. The owner logs in with this number.,दुकान बन गई। मालिक इसी नंबर से लॉग इन करेंगे।,દુકાન બની ગઈ. માલિક આ નંબરથી લૉગ ઇન કરશે.,ਦੁਕਾਨ ਬਣ ਗਈ। ਮਾਲਕ ਇਸੇ ਨੰਬਰ ਨਾਲ ਲੌਗ ਇਨ ਕਰਨਗੇ।,screens/admin/AdminScreen.tsx
 Store name,दुकान का नाम,દુકાનનું નામ,ਦੁਕਾਨ ਦਾ ਨਾਂ,screens/admin/AdminScreen.tsx screens/stores/AddStoreModal.tsx
 Store suspended,दुकान निलंबित,દુકાન સસ્પેન્ડ,ਦੁਕਾਨ ਮੁਅੱਤਲ,screens/stores/PausedScreen.tsx
+Store-wise sales,दुकान के हिसाब से बिक्री,દુકાન મુજબ વેચાણ,ਦੁਕਾਨ ਅਨੁਸਾਰ ਵਿਕਰੀ,lib/reports.ts
 Stores,दुकानें,દુકાનો,ਦੁਕਾਨਾਂ,screens/stores/StoresScreen.tsx
 Stores · add another store,दुकानें · दूसरी दुकान जोड़ें,દુકાનો · બીજી દુકાન ઉમેરો,ਦੁਕਾਨਾਂ · ਹੋਰ ਦੁਕਾਨ ਜੋੜੋ,screens/main/MoreScreen.tsx
+Stores whose data is on this device.,जिन दुकानों का डेटा इस फ़ोन पर है।,જે દુકાનોનો ડેટા આ ફોન પર છે.,ਜਿਨ੍ਹਾਂ ਦੁਕਾਨਾਂ ਦਾ ਡਾਟਾ ਇਸ ਫ਼ੋਨ 'ਤੇ ਹੈ।,lib/reports.ts
 Subtotal,सबटोटल,પેટા કુલ,ਸਬ-ਟੋਟਲ,lib/receipt/render.ts screens/docs/DocEditorScreen.tsx
+Supplier,सप्लायर,સપ્લાયર,ਸਪਲਾਇਰ,lib/reports.ts screens/purchases/PurchaseScreens.tsx
+Supplier bill no.,सप्लायर बिल नं.,સપ્લાયર બિલ નં.,ਸਪਲਾਇਰ ਬਿੱਲ ਨੰ.,screens/purchases/PurchaseScreens.tsx
+Supplier in another state (IGST),सप्लायर दूसरे राज्य में (IGST),સપ્લાયર બીજા રાજ્યમાં (IGST),ਸਪਲਾਇਰ ਦੂਜੇ ਰਾਜ ਵਿੱਚ (IGST),screens/purchases/PurchaseScreens.tsx
+Supplier saved,सप्लायर सेव हुआ,સપ્લાયર સેવ થયો,ਸਪਲਾਇਰ ਸੇਵ ਹੋ ਗਿਆ,screens/suppliers/SupplierScreens.tsx
+Suppliers,सप्लायर,સપ્લાયર,ਸਪਲਾਇਰ,screens/main/MoreScreen.tsx screens/purchases/PurchaseScreens.tsx screens/suppliers/SupplierScreens.tsx
 Suspend,निलंबित करें,સસ્પેન્ડ કરો,ਮੁਅੱਤਲ ਕਰੋ,screens/admin/AdminScreen.tsx
 Suspend {store}?,{store} को निलंबित करें?,{store} સસ્પેન્ડ કરવી?,{store} ਨੂੰ ਮੁਅੱਤਲ ਕਰਨਾ ਹੈ?,screens/admin/AdminScreen.tsx
 Suspended,निलंबित,સસ્પેન્ડ,ਮੁਅੱਤਲ,screens/admin/AdminScreen.tsx
@@ -722,7 +980,7 @@ Sync problem,सिंक में गड़बड़ी,સિંકમાં 
 Syncing,सिंक हो रहा है,સિંક થાય છે,ਸਿੰਕ ਹੋ ਰਿਹਾ ਹੈ,components/SyncBadge.tsx
 Tap “Received” only after the money shows in your UPI app.,“पैसे मिले” पर तभी टैप करें जब पैसे आपके UPI ऐप में दिख जाएँ।,પૈસા તમારી UPI એપમાં દેખાય પછી જ “મળ્યા” પર ટૅપ કરો.,“ਮਿਲ ਗਏ” 'ਤੇ ਤਦ ਹੀ ਟੈਪ ਕਰੋ ਜਦੋਂ ਪੈਸੇ ਤੁਹਾਡੀ UPI ਐਪ ਵਿੱਚ ਦਿਖ ਜਾਣ।,components/PaySheet.tsx
 Tap + to create your first invoice. It works offline too.,अपना पहला बिल बनाने के लिए + पर टैप करें। यह बिना इंटरनेट के भी चलता है।,પહેલું બિલ બનાવવા + પર ટૅપ કરો. ઓફલાઇન પણ ચાલે છે.,ਪਹਿਲਾ ਬਿੱਲ ਬਣਾਉਣ ਲਈ + 'ਤੇ ਟੈਪ ਕਰੋ। ਇਹ ਆਫ਼ਲਾਈਨ ਵੀ ਚੱਲਦਾ ਹੈ।,screens/docs/DocListScreen.tsx
-Tax,टैक्स,ટેક્સ,ਟੈਕਸ,screens/docs/LineEditor.tsx
+Tax,टैक्स,ટેક્સ,ਟੈਕਸ,lib/reports.ts screens/docs/LineEditor.tsx
 tax {pct}%,टैक्स {pct}%,ટેક્સ {pct}%,ਟੈਕਸ {pct}%,screens/docs/DocDetailScreen.tsx screens/docs/DocEditorScreen.tsx
 Tax %,टैक्स %,ટેક્સ %,ਟੈਕਸ %,screens/docs/DocEditorScreen.tsx screens/docs/LineEditor.tsx screens/items/ItemEditScreen.tsx
 Tax column,टैक्स कॉलम,ટેક્સ કૉલમ,ਟੈਕਸ ਕਾਲਮ,lib/listedPhrases.ts
@@ -732,7 +990,10 @@ Tax invoice (GST),टैक्स इनवॉइस (GST),ટેક્સ ઇ�
 Tax invoice prefix,टैक्स इनवॉइस प्रीफ़िक्स,ટેક્સ ઇન્વોઇસ પ્રીફિક્સ,ਟੈਕਸ ਇਨਵੌਇਸ ਪ੍ਰੀਫ਼ਿਕਸ,screens/settings/InvoiceSettingsScreen.tsx
 Tax invoices charge CGST + SGST within your state and IGST outside it. You can also make bills without GST; they get their own number series.,टैक्स इनवॉइस में आपके राज्य के अंदर CGST + SGST और बाहर IGST लगता है। आप बिना GST के बिल भी बना सकते हैं; उनकी नंबर सीरीज़ अलग होती है।,ટેક્સ ઇન્વોઇસમાં તમારા રાજ્યની અંદર CGST + SGST અને બહાર IGST લાગે છે. તમે GST વગરના બિલ પણ બનાવી શકો; તેની નંબર સિરીઝ અલગ હોય છે.,ਟੈਕਸ ਇਨਵੌਇਸ ਵਿੱਚ ਤੁਹਾਡੇ ਰਾਜ ਦੇ ਅੰਦਰ CGST + SGST ਅਤੇ ਬਾਹਰ IGST ਲੱਗਦਾ ਹੈ। ਤੁਸੀਂ ਬਿਨਾਂ GST ਵਾਲੇ ਬਿੱਲ ਵੀ ਬਣਾ ਸਕਦੇ ਹੋ; ਉਹਨਾਂ ਦੀ ਆਪਣੀ ਨੰਬਰ ਸੀਰੀਜ਼ ਹੁੰਦੀ ਹੈ।,screens/settings/BusinessProfileScreen.tsx
 Tax rates (%),टैक्स रेट (%),ટેક્સ દર (%),ਟੈਕਸ ਦਰਾਂ (%),screens/settings/InvoiceSettingsScreen.tsx
+Tax to pay (output − input),भरना है टैक्स (आउटपुट − इनपुट),ભરવાનો ટેક્સ (આઉટપુટ − ઇનપુટ),ਭਰਨ ਵਾਲਾ ਟੈਕਸ (ਆਊਟਪੁੱਟ − ਇਨਪੁੱਟ),lib/reports.ts
+Taxable,टैक्स योग्य,કરપાત્ર,ਟੈਕਸਯੋਗ,lib/reports.ts
 Taxable amount,टैक्स योग्य रकम,કરપાત્ર રકમ,ਟੈਕਸਯੋਗ ਰਕਮ,lib/receipt/render.ts screens/docs/DocEditorScreen.tsx
+Tea / snacks,चाय / नाश्ता,ચા / નાસ્તો,ਚਾਹ / ਨਾਸ਼ਤਾ,lib/purchases.ts
 Team,टीम,ટીમ,ਟੀਮ,screens/main/MoreScreen.tsx screens/main/TeamScreen.tsx
 Template,टेम्पलेट,ટેમ્પલેટ,ਟੈਂਪਲੇਟ,screens/items/ImportScreen.tsx
 Terms & conditions,नियम व शर्तें,નિયમો અને શરતો,ਨਿਯਮ ਅਤੇ ਸ਼ਰਤਾਂ,lib/listedPhrases.ts screens/docs/DocEditorScreen.tsx
@@ -740,10 +1001,12 @@ Test page sent,टेस्ट पेज भेजा गया,ટેસ્ટ 
 Test print,टेस्ट प्रिंट,ટેસ્ટ પ્રિન્ટ,ਟੈਸਟ ਪ੍ਰਿੰਟ,screens/settings/PrinterScreen.tsx
 Text size & paper,टेक्स्ट साइज़ और कागज़,અક્ષરની સાઇઝ અને કાગળ,ਅੱਖਰਾਂ ਦਾ ਸਾਈਜ਼ ਅਤੇ ਕਾਗਜ਼,screens/settings/DesignScreen.tsx
 Thank you! Visit again.,धन्यवाद! फिर आइए।,આભાર! ફરી પધારજો.,ਧੰਨਵਾਦ! ਫਿਰ ਆਇਓ।,lib/receipt/render.ts
+Thank you.,धन्यवाद।,આભાર.,ਧੰਨਵਾਦ।,lib/khata.ts
 That is more than {amount}.,यह {amount} से ज़्यादा है।,તે {amount} કરતાં વધુ છે.,ਇਹ {amount} ਤੋਂ ਵੱਧ ਹੈ।,components/PaySheet.tsx
 The app asks for your PIN or fingerprint when it opens and after 5 minutes away. Forgot it? Verify with OTP; your bills stay on the phone.,ऐप खुलने पर और 5 मिनट बाद लौटने पर PIN या फिंगरप्रिंट पूछता है। भूल गए? OTP से वेरिफ़ाई करें; आपके बिल फ़ोन पर रहेंगे।,એપ ખોલતી વખતે અને 5 મિનિટ પછી પાછા આવતા PIN કે ફિંગરપ્રિન્ટ પૂછે છે. ભૂલી ગયા? OTP થી ચકાસો; તમારા બિલ ફોન પર રહેશે.,ਐਪ ਖੁੱਲ੍ਹਣ 'ਤੇ ਅਤੇ 5 ਮਿੰਟ ਬਾਅਦ ਵਾਪਸ ਆਉਣ 'ਤੇ PIN ਜਾਂ ਫਿੰਗਰਪ੍ਰਿੰਟ ਪੁੱਛਦੀ ਹੈ। ਭੁੱਲ ਗਏ? OTP ਨਾਲ ਪੁਸ਼ਟੀ ਕਰੋ; ਤੁਹਾਡੇ ਬਿੱਲ ਫ਼ੋਨ 'ਤੇ ਰਹਿਣਗੇ।,screens/settings/LockSettingsScreen.tsx
 The app lock works in the ApnaGalla Android app.,ऐप लॉक ApnaGalla Android ऐप में काम करता है।,એપ લૉક ApnaGalla Android એપમાં કામ કરે છે.,ਐਪ ਲੌਕ ApnaGalla Android ਐਪ ਵਿੱਚ ਕੰਮ ਕਰਦਾ ਹੈ।,screens/settings/LockSettingsScreen.tsx
 The credit note can be at most {amount} (the invoice total less earlier credit notes),"क्रेडिट नोट ज़्यादा से ज़्यादा {amount} का हो सकता है (बिल का कुल, पहले के क्रेडिट नोट घटाकर)",ક્રેડિટ નોટ વધુમાં વધુ {amount} ની થઈ શકે (બિલનું કુલ ઓછા અગાઉની ક્રેડિટ નોટ),"ਕ੍ਰੈਡਿਟ ਨੋਟ ਵੱਧ ਤੋਂ ਵੱਧ {amount} ਦਾ ਹੋ ਸਕਦਾ ਹੈ (ਬਿੱਲ ਦਾ ਕੁੱਲ, ਪਿਛਲੇ ਕ੍ਰੈਡਿਟ ਨੋਟ ਘਟਾ ਕੇ)",lib/repo.ts
+The file goes into an “ApnaGalla” folder in your own account.,फ़ाइल आपके अपने अकाउंट में “ApnaGalla” फ़ोल्डर में जाती है।,ફાઇલ તમારા પોતાના એકાઉન્ટમાં “ApnaGalla” ફોલ્ડરમાં જાય છે.,ਫ਼ਾਈਲ ਤੁਹਾਡੇ ਆਪਣੇ ਅਕਾਊਂਟ ਵਿੱਚ “ApnaGalla” ਫ਼ੋਲਡਰ ਵਿੱਚ ਜਾਂਦੀ ਹੈ।,screens/settings/BackupScreen.tsx
 The file has no rows under the headings.,फ़ाइल में हेडिंग के नीचे कोई लाइन नहीं है।,ફાઇલમાં હેડિંગ નીચે કોઈ લાઇન નથી.,ਫ਼ਾਈਲ ਵਿੱਚ ਹੈਡਿੰਗ ਦੇ ਹੇਠਾਂ ਕੋਈ ਲਾਈਨ ਨਹੀਂ।,screens/items/ImportScreen.tsx
 The number is kept and the amount goes back onto invoice {number}. This cannot be undone.,नंबर बना रहेगा और रकम वापस बिल {number} पर चली जाएगी। इसे वापस नहीं बदला जा सकता।,નંબર રહેશે અને રકમ બિલ {number} પર પાછી જશે. આ પાછું ફેરવી શકાશે નહીં.,ਨੰਬਰ ਰਹੇਗਾ ਅਤੇ ਰਕਮ ਬਿੱਲ {number} 'ਤੇ ਵਾਪਸ ਚਲੀ ਜਾਵੇਗੀ। ਇਹ ਵਾਪਸ ਨਹੀਂ ਹੋ ਸਕਦਾ।,screens/docs/DocDetailScreen.tsx
 The number is kept and the invoice is marked CANCELLED. This cannot be undone.,नंबर बना रहेगा और बिल पर CANCELLED (रद्द) का निशान लग जाएगा। इसे वापस नहीं बदला जा सकता।,નંબર રહેશે અને બિલ રદ (CANCELLED) માર્ક થશે. આ પાછું ફેરવી શકાશે નહીં.,ਨੰਬਰ ਰਹੇਗਾ ਅਤੇ ਬਿੱਲ 'ਤੇ ਰੱਦ (CANCELLED) ਲੱਗ ਜਾਵੇਗਾ। ਇਹ ਵਾਪਸ ਨਹੀਂ ਹੋ ਸਕਦਾ।,screens/docs/DocDetailScreen.tsx
@@ -763,19 +1026,35 @@ This GSTIN has a typo (the last character does not match),इस GSTIN में
 "This GSTIN is registered in {gstinState}, but the address below is in {addressState}.","यह GSTIN {gstinState} में रजिस्टर्ड है, लेकिन नीचे का पता {addressState} में है।","આ GSTIN {gstinState} માં રજિસ્ટર્ડ છે, પણ નીચેનું સરનામું {addressState} નું છે.","ਇਹ GSTIN {gstinState} ਵਿੱਚ ਰਜਿਸਟਰਡ ਹੈ, ਪਰ ਹੇਠਾਂ ਵਾਲਾ ਪਤਾ {addressState} ਦਾ ਹੈ।",screens/settings/BusinessProfileScreen.tsx
 This GSTIN was not found in the GST records.,यह GSTIN GST रिकॉर्ड में नहीं मिला।,આ GSTIN GST રેકોર્ડમાં મળ્યો નહીં.,ਇਹ GSTIN GST ਰਿਕਾਰਡ ਵਿੱਚ ਨਹੀਂ ਮਿਲਿਆ।,components/GstinCheck.tsx
 This invoice is already fully credited,इस बिल का पूरा क्रेडिट पहले ही हो चुका है,આ બિલની પૂરી ક્રેડિટ થઈ ગઈ છે,ਇਸ ਬਿੱਲ ਦਾ ਪਹਿਲਾਂ ਹੀ ਪੂਰਾ ਕ੍ਰੈਡਿਟ ਹੋ ਚੁੱਕਾ ਹੈ,lib/repo.ts
+This is not switched on yet. Please ask ApnaGalla support.,यह अभी चालू नहीं है। कृपया ApnaGalla सपोर्ट से पूछें।,આ હજુ ચાલુ નથી. કૃપા કરીને ApnaGalla સપોર્ટને પૂછો.,ਇਹ ਅਜੇ ਚਾਲੂ ਨਹੀਂ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ApnaGalla ਸਪੋਰਟ ਤੋਂ ਪੁੱਛੋ।,screens/settings/BackupScreen.tsx
+This month,इस महीने,આ મહિને,ਇਸ ਮਹੀਨੇ,screens/reports/ReportsScreen.tsx
+This needs the internet.,इसके लिए इंटरनेट चाहिए।,આ માટે ઇન્ટરનેટ જોઈએ.,ਇਸ ਲਈ ਇੰਟਰਨੈੱਟ ਚਾਹੀਦਾ ਹੈ।,screens/settings/BackupScreen.tsx
 This phone’s printer,इस फ़ोन का प्रिंटर,આ ફોનનું પ્રિન્ટર,ਇਸ ਫ਼ੋਨ ਦਾ ਪ੍ਰਿੰਟਰ,screens/settings/PrinterScreen.tsx
+This week,इस हफ़्ते,આ અઠવાડિયે,ਇਸ ਹਫ਼ਤੇ,screens/reports/ReportsScreen.tsx
+This year,इस साल,આ વર્ષે,ਇਸ ਸਾਲ,screens/reports/ReportsScreen.tsx
+Time,समय,સમય,ਸਮਾਂ,screens/settings/BackupScreen.tsx
 Tip: Import items from Excel creates categories from a column like “Paints > Emulsion”.,टिप: Excel से आइटम इम्पोर्ट करने पर “पेंट > इमल्शन” जैसे कॉलम से कैटेगरी अपने आप बन जाती हैं।,ટિપ: Excel માંથી આઇટમ ઇમ્પોર્ટ કરતાં “પેઇન્ટ > ઇમલ્શન” જેવી કૉલમથી કેટેગરી બને છે.,ਸੁਝਾਅ: Excel ਤੋਂ ਆਈਟਮਾਂ ਇੰਪੋਰਟ ਕਰਨ ਨਾਲ “Paints > Emulsion” ਵਰਗੇ ਕਾਲਮ ਤੋਂ ਕੈਟੇਗਰੀਆਂ ਬਣ ਜਾਂਦੀਆਂ ਹਨ।,screens/items/CategoriesScreen.tsx
-Today,आज,આજે,ਅੱਜ,screens/main/Placeholders.tsx
+To,किसको,કોને,ਕਿਸਨੂੰ,lib/purchases.ts screens/customers/CustomerDetailScreen.tsx screens/purchases/PurchaseScreens.tsx screens/reports/ReportsScreen.tsx
+To collect,लेना है,લેવાના,ਲੈਣੇ ਹਨ,lib/reports.ts screens/customers/CustomerDetailScreen.tsx
+To collect (all customers),लेना है (सभी ग्राहक),લેવાના (બધા ગ્રાહકો),ਲੈਣੇ ਹਨ (ਸਾਰੇ ਗਾਹਕ),screens/main/Placeholders.tsx
+To collect from customers,ग्राहकों से लेना है,ગ્રાહકો પાસેથી લેવાના,ਗਾਹਕਾਂ ਤੋਂ ਲੈਣੇ ਹਨ,lib/reports.ts
+to pay,देना है,આપવાના,ਦੇਣੇ ਹਨ,screens/suppliers/SupplierScreens.tsx
+To pay suppliers,सप्लायरों को देना है,સપ્લાયરોને આપવાના,ਸਪਲਾਇਰਾਂ ਨੂੰ ਦੇਣੇ ਹਨ,lib/reports.ts screens/main/Placeholders.tsx
+Today,आज,આજે,ਅੱਜ,screens/cash/CashBookScreen.tsx screens/main/Placeholders.tsx screens/reports/ReportsScreen.tsx
+Today’s sales ({count} bills),आज की बिक्री ({count} बिल),આજનું વેચાણ ({count} બિલ),ਅੱਜ ਦੀ ਵਿਕਰੀ ({count} ਬਿੱਲ),screens/main/Placeholders.tsx
 Tomorrow,कल,કાલે,ਕੱਲ੍ਹ,screens/main/Placeholders.tsx
+Tomorrow starts with the counted cash.,कल गिने हुए नकद से शुरू होगा।,આવતીકાલ ગણેલી રોકડથી શરૂ થશે.,ਕੱਲ੍ਹ ਗਿਣੇ ਹੋਏ ਨਕਦ ਨਾਲ ਸ਼ੁਰੂ ਹੋਵੇਗਾ।,screens/cash/CashBookScreen.tsx
 Too many wrong PINs. Close and reopen the app to verify with OTP.,बहुत बार गलत PIN। ऐप बंद करके फिर खोलें और OTP से वेरिफ़ाई करें।,ઘણી વાર ખોટો PIN. એપ બંધ કરી ફરી ખોલો અને OTP થી ચકાસો.,ਬਹੁਤ ਵਾਰ ਗਲਤ PIN। ਐਪ ਬੰਦ ਕਰਕੇ ਦੁਬਾਰਾ ਖੋਲ੍ਹੋ ਅਤੇ OTP ਨਾਲ ਪੁਸ਼ਟੀ ਕਰੋ।,screens/settings/LockSettingsScreen.tsx
-Total,कुल,કુલ,ਕੁੱਲ,lib/receipt/render.ts screens/docs/DocDetailScreen.tsx screens/docs/DocEditorScreen.tsx
+Total,कुल,કુલ,ਕੁੱਲ,lib/receipt/render.ts lib/reports.ts screens/docs/DocDetailScreen.tsx screens/docs/DocEditorScreen.tsx screens/purchases/PurchaseScreens.tsx
 Trade name: {name},ट्रेड नाम: {name},વેપારી નામ: {name},ਵਪਾਰਕ ਨਾਂ: {name},components/GstinCheck.tsx
+Transport,ट्रांसपोर्ट,ટ્રાન્સપોર્ટ,ਟਰਾਂਸਪੋਰਟ,lib/purchases.ts
 Turn off app lock,ऐप लॉक बंद करें,એપ લૉક બંધ કરો,ਐਪ ਲੌਕ ਬੰਦ ਕਰੋ,screens/settings/LockSettingsScreen.tsx
+Turn off for services and things you don’t count.,"सेवाओं और जिन चीज़ों की गिनती नहीं करते, उनके लिए बंद करें।",સેવાઓ અને જે વસ્તુઓ તમે ગણતા નથી તેના માટે બંધ કરો.,"ਸੇਵਾਵਾਂ ਅਤੇ ਜਿਨ੍ਹਾਂ ਚੀਜ਼ਾਂ ਦੀ ਗਿਣਤੀ ਨਹੀਂ ਕਰਦੇ, ਉਹਨਾਂ ਲਈ ਬੰਦ ਕਰੋ।",screens/items/ItemEditScreen.tsx
 Turn on,चालू करें,ચાલુ કરો,ਚਾਲੂ ਕਰੋ,screens/main/TeamScreen.tsx
 Turn on app lock,ऐप लॉक चालू करें,એપ લૉક ચાલુ કરો,ਐਪ ਲੌਕ ਚਾਲੂ ਕਰੋ,screens/settings/LockSettingsScreen.tsx
 Turn on for MRP-style prices where the price already contains tax.,"MRP वाले दामों के लिए चालू करें, जिनमें टैक्स पहले से शामिल होता है।","MRP જેવા ભાવ માટે ચાલુ કરો, જેમાં ભાવમાં ટેક્સ પહેલેથી સામેલ હોય.","MRP ਵਾਲੀਆਂ ਕੀਮਤਾਂ ਲਈ ਚਾਲੂ ਕਰੋ, ਜਿੱਥੇ ਕੀਮਤ ਵਿੱਚ ਟੈਕਸ ਪਹਿਲਾਂ ਹੀ ਸ਼ਾਮਲ ਹੈ।",screens/items/ItemEditScreen.tsx
 Type an item not in the catalogue,"जो आइटम कैटलॉग में नहीं है, उसे लिखें",કેટલોગમાં ન હોય તેવી આઇટમ લખો,ਕੈਟਾਲਾਗ ਤੋਂ ਬਾਹਰ ਦੀ ਆਈਟਮ ਲਿਖੋ,screens/docs/LineEditor.tsx
-Unit,यूनिट,યુનિટ,ਯੂਨਿਟ,screens/docs/LineEditor.tsx screens/items/ItemEditScreen.tsx
+Unit,यूनिट,યુનિટ,ਯੂਨਿਟ,lib/purchases.ts lib/reports.ts screens/docs/LineEditor.tsx screens/items/ItemEditScreen.tsx
 Unit column,यूनिट कॉलम,યુનિટ કૉલમ,ਯੂਨਿਟ ਕਾਲਮ,lib/listedPhrases.ts
 Units,यूनिट,યુનિટ,ਯੂਨਿਟ,screens/settings/InvoiceSettingsScreen.tsx
 Unlock,खोलें,ખોલો,ਖੋਲ੍ਹੋ,components/LockGate.tsx
@@ -785,6 +1064,7 @@ Unpaid,नहीं चुकाया,ચૂકવાયું નથી,ਭੁ
 Unsynced changes,बिना सिंक के बदलाव,સિંક બાકી ફેરફારો,ਸਿੰਕ ਨਾ ਹੋਈਆਂ ਤਬਦੀਲੀਆਂ,screens/main/MoreScreen.tsx screens/stores/PausedScreen.tsx
 Update,अपडेट करें,અપડેટ કરો,ਅੱਪਡੇਟ ਕਰੋ,screens/items/ImportScreen.tsx
 Update it from the file,फ़ाइल से अपडेट करें,ફાઇલ પ્રમાણે અપડેટ કરો,ਫ਼ਾਈਲ ਤੋਂ ਅੱਪਡੇਟ ਕਰੋ,screens/items/ImportScreen.tsx
+Update item cost and prices from this bill,इस बिल से आइटम की लागत और दाम अपडेट करें,આ બિલથી આઇટમની પડતર અને ભાવ અપડેટ કરો,ਇਸ ਬਿੱਲ ਤੋਂ ਆਈਟਮ ਦੀ ਲਾਗਤ ਅਤੇ ਭਾਅ ਅੱਪਡੇਟ ਕਰੋ,screens/purchases/PurchaseScreens.tsx
 UPI,UPI,UPI,UPI,lib/ledger.ts
 UPI ID,UPI ID,UPI ID,UPI ID,screens/settings/PaymentDetailsScreen.tsx
 UPI IDs,UPI ID,UPI ID,UPI ID,screens/settings/PaymentDetailsScreen.tsx
@@ -792,28 +1072,40 @@ UPI QR code,UPI QR कोड,UPI QR કોડ,UPI QR ਕੋਡ,lib/listedPhrases
 UPI QR for {amount},{amount} का UPI QR,{amount} માટે UPI QR,{amount} ਲਈ UPI QR,components/PaySheet.tsx
 "Use ""{name}"" (new item)","""{name}"" इस्तेमाल करें (नया आइटम)","""{name}"" વાપરો (નવી આઇટમ)","""{name}"" ਵਰਤੋ (ਨਵੀਂ ਆਈਟਮ)",screens/docs/LineEditor.tsx
 "Use {PREFIX}, {CODE} (staff letter), {FY} (26-27), {FY4} (2026-27), {YYYY} and {SEQ}","{PREFIX}, {CODE} (स्टाफ अक्षर), {FY} (26-27), {FY4} (2026-27), {YYYY} और {SEQ} इस्तेमाल करें","{PREFIX}, {CODE} (સ્ટાફ અક્ષર), {FY} (26-27), {FY4} (2026-27), {YYYY} અને {SEQ} વાપરો","{PREFIX}, {CODE} (ਸਟਾਫ਼ ਅੱਖਰ), {FY} (26-27), {FY4} (2026-27), {YYYY} ਅਤੇ {SEQ} ਵਰਤੋ",screens/settings/InvoiceSettingsScreen.tsx
+Use advance {amount},एडवांस {amount} इस्तेमाल करें,એડવાન્સ {amount} વાપરો,ਐਡਵਾਂਸ {amount} ਵਰਤੋ,screens/docs/DocDetailScreen.tsx
 Use an Excel (.xlsx) or CSV file with a heading row. Columns can be in any order: {columns}.,हेडिंग लाइन वाली Excel (.xlsx) या CSV फ़ाइल इस्तेमाल करें। कॉलम किसी भी क्रम में हो सकते हैं: {columns}।,હેડિંગ લાઇનવાળી Excel (.xlsx) અથવા CSV ફાઇલ વાપરો. કૉલમ કોઈ પણ ક્રમમાં હોઈ શકે: {columns}.,ਹੈਡਿੰਗ ਲਾਈਨ ਵਾਲੀ Excel (.xlsx) ਜਾਂ CSV ਫ਼ਾਈਲ ਵਰਤੋ। ਕਾਲਮ ਕਿਸੇ ਵੀ ਕ੍ਰਮ ਵਿੱਚ ਹੋ ਸਕਦੇ ਹਨ: {columns}।,screens/items/ImportScreen.tsx
 Use fingerprint,फिंगरप्रिंट से खोलें,ફિંગરપ્રિન્ટથી ખોલો,ਫਿੰਗਰਪ੍ਰਿੰਟ ਨਾਲ ਖੋਲ੍ਹੋ,components/LockGate.tsx
 Use one or two letters,एक या दो अक्षर इस्तेमाल करें,એક કે બે અક્ષર વાપરો,ਇੱਕ ਜਾਂ ਦੋ ਅੱਖਰ ਵਰਤੋ,screens/main/TeamScreen.tsx
 Use PIN,PIN डालें,PIN નાખો,PIN ਪਾਓ,lib/appLock.ts
 Use these details,यह जानकारी इस्तेमाल करें,આ વિગતો વાપરો,ਇਹ ਵੇਰਵੇ ਵਰਤੋ,components/GstinCheck.tsx
 "Use this for a mistake. The entry stays in the history, crossed out.",गलती होने पर इसका इस्तेमाल करें। एंट्री इतिहास में कटी हुई दिखती रहेगी।,ભૂલ થઈ હોય ત્યારે આ વાપરો. એન્ટ્રી ઇતિહાસમાં છેકેલી દેખાશે.,ਗਲਤੀ ਹੋਣ 'ਤੇ ਇਹ ਵਰਤੋ। ਐਂਟਰੀ ਇਤਿਹਾਸ ਵਿੱਚ ਕੱਟੀ ਹੋਈ ਦਿਖੇਗੀ।,screens/docs/DocDetailScreen.tsx
+Used on bill {number},बिल {number} में इस्तेमाल हुआ,બિલ {number} માં વપરાયું,ਬਿੱਲ {number} ਵਿੱਚ ਵਰਤਿਆ,lib/khata.ts
+Usual order quantity,आम तौर पर मँगाई जाने वाली मात्रा,સામાન્ય ઓર્ડર જથ્થો,ਆਮ ਆਰਡਰ ਮਾਤਰਾ,screens/items/ItemEditScreen.tsx
+Value,कीमत,મૂલ્ય,ਮੁੱਲ,lib/reports.ts
+Value at cost,लागत पर कीमत,પડતર કિંમતે મૂલ્ય,ਲਾਗਤ 'ਤੇ ਮੁੱਲ,lib/reports.ts
+Value at purchase price.,खरीद के दाम पर कीमत।,ખરીદ ભાવે મૂલ્ય.,ਖ਼ਰੀਦ ਦੇ ਭਾਅ 'ਤੇ ਮੁੱਲ।,lib/reports.ts
 Verify,वेरिफ़ाई करें,ચકાસો,ਪੁਸ਼ਟੀ ਕਰੋ,components/LockGate.tsx screens/auth/LoginScreen.tsx
 Verify it’s you,पुष्टि करें कि यह आप हैं,ખાતરી કરો કે આ તમે છો,ਪੁਸ਼ਟੀ ਕਰੋ ਕਿ ਇਹ ਤੁਸੀਂ ਹੋ,components/LockGate.tsx
-Void,काटें,રદ કરો,ਖ਼ਾਰਜ ਕਰੋ,screens/docs/DocDetailScreen.tsx
+Void,काटें,રદ કરો,ਖ਼ਾਰਜ ਕਰੋ,screens/docs/DocDetailScreen.tsx screens/items/StockScreen.tsx screens/suppliers/SupplierScreens.tsx
 Void {amount} {mode}?,{amount} {mode} काटें?,{amount} {mode} રદ કરવું છે?,{amount} {mode} ਖ਼ਾਰਜ ਕਰਨਾ ਹੈ?,screens/docs/DocDetailScreen.tsx
 Void or refund its payments first,पहले इसके भुगतान काटें या रिफ़ंड करें,પહેલાં તેની ચુકવણી રદ કરો અથવા રિફંડ કરો,ਪਹਿਲਾਂ ਇਸਦੇ ਭੁਗਤਾਨ ਖ਼ਾਰਜ ਜਾਂ ਰਿਫ਼ੰਡ ਕਰੋ,lib/repo.ts
+Void this change?,यह बदलाव काटें?,આ ફેરફાર રદ કરવો છે?,ਇਹ ਬਦਲਾਅ ਖ਼ਾਰਜ ਕਰਨਾ ਹੈ?,screens/items/StockScreen.tsx
+Void this payment?,यह भुगतान काटें?,આ ચુકવણી રદ કરવી છે?,ਇਹ ਭੁਗਤਾਨ ਖ਼ਾਰਜ ਕਰਨਾ ਹੈ?,screens/suppliers/SupplierScreens.tsx
 Voided by {name}: {reason},{name} ने काटा: {reason},{name} એ રદ કર્યું: {reason},{name} ਨੇ ਖ਼ਾਰਜ ਕੀਤਾ: {reason},screens/docs/DocDetailScreen.tsx
 Voided: {reason},काटा गया: {reason},રદ કર્યું: {reason},ਖ਼ਾਰਜ: {reason},screens/docs/DocDetailScreen.tsx
 Walk-in,नकद ग्राहक,વૉક-ઇન,ਆਮ ਗਾਹਕ,screens/sale/SaleScreen.tsx
 Walk-in / cash customer,नकद / बिना नाम का ग्राहक,વૉક-ઇન / રોકડ ગ્રાહક,ਆਮ / ਨਕਦ ਗਾਹਕ,screens/docs/CustomerPicker.tsx
 Walk-in customer,नकद ग्राहक,વૉક-ઇન ગ્રાહક,ਆਮ ਗਾਹਕ,screens/sale/SaleScreen.tsx
+Warns before billing on credit beyond this amount. Leave empty for no limit.,इस रकम से ज़्यादा उधार पर बिल बनाने से पहले चेतावनी देता है। कोई सीमा न रखनी हो तो खाली छोड़ें।,આ રકમથી વધુ ઉધાર બિલ બનાવતાં પહેલાં ચેતવે છે. મર્યાદા ન રાખવી હોય તો ખાલી છોડો.,ਇਸ ਰਕਮ ਤੋਂ ਵੱਧ ਉਧਾਰ 'ਤੇ ਬਿੱਲ ਬਣਾਉਣ ਤੋਂ ਪਹਿਲਾਂ ਚੇਤਾਵਨੀ ਦਿੰਦਾ ਹੈ। ਕੋਈ ਸੀਮਾ ਨਹੀਂ ਚਾਹੀਦੀ ਤਾਂ ਖਾਲੀ ਛੱਡੋ।,screens/customers/CustomerEditScreen.tsx
+We owe them,हमें उन्हें देना है,આપણે તેમને આપવાના છે,ਅਸੀਂ ਉਹਨਾਂ ਨੂੰ ਦੇਣੇ ਹਨ,screens/customers/CustomerDetailScreen.tsx
 We'll send a {digits}-digit code by SMS.,हम SMS से {digits} अंकों का कोड भेजेंगे।,અમે SMS થી {digits} અંકનો કોડ મોકલીશું.,ਅਸੀਂ SMS ਰਾਹੀਂ {digits}-ਅੰਕਾਂ ਦਾ ਕੋਡ ਭੇਜਾਂਗੇ।,screens/auth/LoginScreen.tsx
 We’ll send a code to {phone}. Your bills on this phone stay as they are.,हम {phone} पर कोड भेजेंगे। इस फ़ोन पर आपके बिल वैसे ही रहेंगे।,અમે {phone} પર કોડ મોકલીશું. આ ફોન પરના તમારા બિલ એમ જ રહેશે.,ਅਸੀਂ {phone} 'ਤੇ ਕੋਡ ਭੇਜਾਂਗੇ। ਇਸ ਫ਼ੋਨ 'ਤੇ ਤੁਹਾਡੇ ਬਿੱਲ ਉਵੇਂ ਹੀ ਰਹਿਣਗੇ।,components/LockGate.tsx
 Web,वेब,વેબ,ਵੈੱਬ,screens/main/DevicesScreen.tsx
 Web browser,वेब ब्राउज़र,વેબ બ્રાઉઝર,ਵੈੱਬ ਬ੍ਰਾਊਜ਼ਰ,screens/main/DevicesScreen.tsx
 Website,वेबसाइट,વેબસાઇટ,ਵੈੱਬਸਾਈਟ,screens/settings/BusinessProfileScreen.tsx
 Welcome,स्वागत है,સ્વાગત છે,ਜੀ ਆਇਆਂ ਨੂੰ,screens/onboarding/OnboardingScreen.tsx
+What,क्या,શું,ਕੀ,lib/reports.ts
+What you already owed this supplier before using ApnaGalla.,ApnaGalla इस्तेमाल करने से पहले इस सप्लायर का जो आप पर बकाया था।,ApnaGalla વાપરતાં પહેલાં આ સપ્લાયરને તમારે જે આપવાના હતા.,ApnaGalla ਵਰਤਣ ਤੋਂ ਪਹਿਲਾਂ ਇਸ ਸਪਲਾਇਰ ਦਾ ਜੋ ਤੁਹਾਡੇ ਵੱਲ ਬਕਾਇਆ ਸੀ।,screens/suppliers/SupplierScreens.tsx
 What's your name?,आपका नाम क्या है?,તમારું નામ શું છે?,ਤੁਹਾਡਾ ਨਾਂ ਕੀ ਹੈ?,screens/onboarding/OnboardingScreen.tsx
 WhatsApp bill,WhatsApp बिल,WhatsApp બિલ,WhatsApp ਬਿੱਲ,screens/sale/SaleScreen.tsx
 WhatsApp payment reminder,WhatsApp भुगतान रिमाइंडर,WhatsApp ચુકવણી રિમાઇન્ડર,WhatsApp ਭੁਗਤਾਨ ਯਾਦ-ਪੱਤਰ,screens/settings/InvoiceSettingsScreen.tsx
@@ -825,12 +1117,16 @@ With GST,GST के साथ,GST સાથે,GST ਸਮੇਤ,screens/docs/Doc
 Without GST,बिना GST,GST વગર,ਬਿਨਾਂ GST,screens/docs/DocEditorScreen.tsx
 Wrong PIN. {count} tries left.,गलत PIN। {count} कोशिशें बाकी।,ખોટો PIN. {count} પ્રયાસ બાકી.,ਗਲਤ PIN। {count} ਕੋਸ਼ਿਸ਼ਾਂ ਬਾਕੀ।,components/LockGate.tsx
 Wrong PIN. 1 try left before you must verify with OTP.,"गलत PIN। 1 कोशिश बाकी, फिर OTP से वेरिफ़ाई करना होगा।","ખોટો PIN. 1 પ્રયાસ બાકી, પછી OTP થી ચકાસવું પડશે.","ਗਲਤ PIN। 1 ਕੋਸ਼ਿਸ਼ ਬਾਕੀ, ਫਿਰ OTP ਨਾਲ ਪੁਸ਼ਟੀ ਕਰਨੀ ਪਵੇਗੀ।",components/LockGate.tsx
+Yesterday,कल,ગઈકાલે,ਕੱਲ੍ਹ,screens/reports/ReportsScreen.tsx
 "You already have {count} stores, the most allowed.","आपकी पहले से {count} दुकानें हैं, इससे ज़्यादा नहीं हो सकतीं।","તમારી પાસે પહેલેથી {count} દુકાનો છે, જે મહત્તમ મર્યાદા છે.","ਤੁਹਾਡੀਆਂ ਪਹਿਲਾਂ ਹੀ {count} ਦੁਕਾਨਾਂ ਹਨ, ਇਸ ਤੋਂ ਵੱਧ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ।",screens/stores/AddStoreModal.tsx
 You are offline. Changes are saved on this phone and sync when you are back online.,आप ऑफ़लाइन हैं। बदलाव इस फ़ोन पर सेव हैं और ऑनलाइन आने पर सिंक हो जाएँगे।,તમે ઓફલાઇન છો. ફેરફારો આ ફોનમાં સેવ થાય છે અને ઓનલાઇન થતાં સિંક થશે.,ਤੁਸੀਂ ਆਫ਼ਲਾਈਨ ਹੋ। ਤਬਦੀਲੀਆਂ ਇਸ ਫ਼ੋਨ 'ਤੇ ਸੇਵ ਹਨ ਅਤੇ ਔਨਲਾਈਨ ਹੋਣ 'ਤੇ ਸਿੰਕ ਹੋ ਜਾਣਗੀਆਂ।,components/SyncBadge.tsx
 "You can add your logo, address, bank and UPI details later in Settings.","लोगो, पता, बैंक और UPI जानकारी आप बाद में सेटिंग्स में जोड़ सकते हैं।","લોગો, સરનામું, બેંક અને UPI વિગતો પછીથી સેટિંગ્સમાં ઉમેરી શકો.","ਲੋਗੋ, ਪਤਾ, ਬੈਂਕ ਅਤੇ UPI ਵੇਰਵੇ ਤੁਸੀਂ ਬਾਅਦ ਵਿੱਚ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਜੋੜ ਸਕਦੇ ਹੋ।",screens/onboarding/OnboardingScreen.tsx
+You owe,आपको देना है,તમારે આપવાના,ਤੁਸੀਂ ਦੇਣੇ ਹਨ,screens/suppliers/SupplierScreens.tsx
+You owe suppliers {amount} in all,आपको सप्लायरों को कुल {amount} देना है,તમારે સપ્લાયરોને કુલ {amount} આપવાના છે,ਤੁਸੀਂ ਸਪਲਾਇਰਾਂ ਨੂੰ ਕੁੱਲ {amount} ਦੇਣੇ ਹਨ,screens/suppliers/SupplierScreens.tsx
 You're offline. Business setup needs internet the first time.,आप ऑफ़लाइन हैं। पहली बार बिज़नेस सेट अप करने के लिए इंटरनेट चाहिए।,તમે ઓફલાઇન છો. પહેલી વાર બિઝનેસ સેટઅપ માટે ઇન્ટરનેટ જોઈએ.,ਤੁਸੀਂ ਆਫ਼ਲਾਈਨ ਹੋ। ਪਹਿਲੀ ਵਾਰ ਕਾਰੋਬਾਰ ਸੈੱਟ ਕਰਨ ਲਈ ਇੰਟਰਨੈੱਟ ਚਾਹੀਦਾ ਹੈ।,screens/onboarding/OnboardingScreen.tsx
 You're offline. Creating a store needs internet.,आप ऑफ़लाइन हैं। दुकान बनाने के लिए इंटरनेट चाहिए।,તમે ઓફલાઇન છો. દુકાન બનાવવા ઇન્ટરનેટ જોઈએ.,ਤੁਸੀਂ ਆਫ਼ਲਾਈਨ ਹੋ। ਦੁਕਾਨ ਬਣਾਉਣ ਲਈ ਇੰਟਰਨੈੱਟ ਚਾਹੀਦਾ ਹੈ।,screens/stores/AddStoreModal.tsx
 You've been invited,आपको इनवाइट किया गया है,તમને આમંત્રણ મળ્યું છે,ਤੁਹਾਨੂੰ ਸੱਦਾ ਮਿਲਿਆ ਹੈ,screens/onboarding/OnboardingScreen.tsx
+Your balance with {store} is ₹{amount}.,{store} में आपका बाकी ₹{amount} है।,{store} માં તમારી બાકી ₹{amount} છે.,{store} ਵਿੱਚ ਤੁਹਾਡਾ ਬਕਾਇਆ ₹{amount} ਹੈ।,lib/khata.ts
 Your full name,आपका पूरा नाम,તમારું પૂરું નામ,ਤੁਹਾਡਾ ਪੂਰਾ ਨਾਂ,screens/onboarding/OnboardingScreen.tsx
 Your login works on one phone at a time; logging in on a new phone signs the old one out. You can also be signed in on the web.,आपका लॉगिन एक समय में एक ही फ़ोन पर चलता है; नए फ़ोन पर लॉग इन करने से पुराना फ़ोन साइन आउट हो जाता है। आप वेब पर भी साइन इन रह सकते हैं।,તમારું લૉગિન એક વખતે એક જ ફોન પર ચાલે; નવા ફોન પર લૉગ ઇન કરતાં જૂનો લૉગ આઉટ થઈ જશે. વેબ પર પણ લૉગ ઇન રહી શકો.,ਤੁਹਾਡਾ ਲੌਗ ਇਨ ਇੱਕ ਵਾਰ ਵਿੱਚ ਇੱਕ ਫ਼ੋਨ 'ਤੇ ਚੱਲਦਾ ਹੈ; ਨਵੇਂ ਫ਼ੋਨ 'ਤੇ ਲੌਗ ਇਨ ਕਰਨ ਨਾਲ ਪੁਰਾਣੇ ਤੋਂ ਸਾਈਨ ਆਊਟ ਹੋ ਜਾਂਦਾ ਹੈ। ਤੁਸੀਂ ਵੈੱਬ 'ਤੇ ਵੀ ਸਾਈਨ ਇਨ ਰਹਿ ਸਕਦੇ ਹੋ।,screens/main/DevicesScreen.tsx
 Your name,आपका नाम,તમારું નામ,ਤੁਹਾਡਾ ਨਾਂ,screens/onboarding/OnboardingScreen.tsx

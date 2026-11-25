@@ -1,4 +1,4 @@
-import { NUMBER_SERIES, SYNC_PUSH_MAX, financialYearLabel, todayISO, type MeResponse, type NumberSeries, type SyncPushResult, type SyncTable } from '@invoice/shared';
+import { NUMBER_SERIES, SYNC_PUSH_MAX, SYNC_SCHEMA, financialYearLabel, todayISO, type MeResponse, type NumberSeries, type SyncPushResult, type SyncTable } from '@invoice/shared';
 import type { Table } from 'dexie';
 import { ApiError, NetworkError, api } from './api';
 import { db, getMeta, setMeta, type SyncedRecord } from './db';
@@ -45,6 +45,7 @@ export function subscribeSyncState(fn: (s: SyncState) => void): () => void {
 
 const table = (name: SyncTable) => db.table(name) as Table<SyncedRecord, string>;
 const cursorKey = (businessId: string) => `sync.cursor:${businessId}`;
+const schemaKey = (businessId: string) => `sync.schema:${businessId}`;
 
 /** Numbers come from the server when online (see repo numbering). */
 setNumberAllocator(async (businessId, series, period) => {
@@ -136,15 +137,23 @@ async function hasPending(t: SyncTable, id: string) {
 }
 
 async function pullStore(businessId: string) {
+  // The server left out tables an older app didn't know; after an update, fetch everything once.
+  if (((await getMeta<number>(schemaKey(businessId))) ?? 1) < SYNC_SCHEMA) {
+    await setMeta(cursorKey(businessId), 0);
+    await setMeta(schemaKey(businessId), SYNC_SCHEMA);
+  }
   let cursor = (await getMeta<number>(cursorKey(businessId))) ?? 0;
   for (;;) {
     let page;
     try {
-      page = await api.syncPull(businessId, cursor);
+      page = await api.syncPull(businessId, cursor, SYNC_SCHEMA);
     } catch (e) {
       if (e instanceof ApiError && e.status === 403) return;
       throw e;
     }
+    // A table this app version doesn't have yet (a newer app made it) is skipped.
+    const known = new Set(db.tables.map((t) => t.name));
+    page.changes = page.changes.filter((c) => known.has(c.table));
     const tables = [...new Set(page.changes.map((c) => c.table))].map(table);
     await db.transaction('rw', [db.outbox, db.meta, ...tables], async () => {
       for (const ch of page.changes) {

@@ -49,6 +49,7 @@ import {
 } from '../../lib/repo';
 import { PAYMENT_TERMS } from '../settings/InvoiceSettingsScreen';
 import CustomerPicker, { snapshotOf } from './CustomerPicker';
+import CreditLimitNote from '../../components/CreditLimitNote';
 import LineEditor from './LineEditor';
 import { sync } from '../../lib/sync';
 import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
@@ -305,6 +306,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
             </div>
           )}
         </div>
+        {kind === 'invoice' && doc.status === 'draft' && <CreditLimitNote businessId={actor.businessId} customerId={doc.billTo?.customerId} billAmount={totals?.grandTotal ?? 0} />}
         {doc.billTo?.customerId && !credit && (
           <ToggleRow
             label={t('Ship to a different address')}

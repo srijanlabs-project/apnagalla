@@ -207,3 +207,27 @@ export const invites = pgTable(
       .where(sql`${t.acceptedAt} is null and ${t.closedAt} is null`),
   ],
 );
+
+/**
+ * Nightly Excel of the day's business, per store: emailed and/or uploaded to the owner's cloud
+ * folder. The cloud sign-in (refresh token) is encrypted and never leaves the server.
+ */
+export const storeExports = pgTable('store_exports', {
+  businessId: uuid('business_id')
+    .primaryKey()
+    .references(() => businesses.id, { onDelete: 'cascade' }),
+  enabled: boolean('enabled').notNull().default(true),
+  email: text('email'),
+  /** Hour of the day in India time (0-23) when it is sent. */
+  hour: integer('hour').notNull().default(21),
+  provider: text('provider'),
+  /** Encrypted refresh token for the provider. */
+  tokenEnc: text('token_enc'),
+  accountLabel: text('account_label'),
+  /** Google Drive folder made by us (drive.file can only see its own files). */
+  folderId: text('folder_id'),
+  /** India-time date (YYYY-MM-DD) of the last file sent. */
+  lastSentDate: text('last_sent_date'),
+  lastError: text('last_error'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});

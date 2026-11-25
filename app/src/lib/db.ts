@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { ChargeInput, DiscountInput, Dims, GstType, InvoiceTotals, Lang, NumberingMode, PaymentMode, TaxMode } from '@invoice/shared';
+import type { ChargeInput, DiscountInput, Dims, GstType, InvoiceTotals, Lang, NumberingMode, PaymentMode, SyncTable, TaxMode } from '@invoice/shared';
 
 /**
  * Local offline database (IndexedDB via Dexie). The app reads and writes here first;
@@ -124,6 +124,8 @@ export interface BusinessSettings extends SyncedRecord {
 
 export interface Customer extends SyncedRecord {
   name: string;
+  /** Warn when what the customer owes would go above this (paise). */
+  creditLimit?: number | null;
   phone?: string;
   email?: string;
   billingAddress: Address;
@@ -148,6 +150,14 @@ export interface Item extends SyncedRecord {
   code?: string;
   /** Maximum retail price per unit, incl. tax (paise). */
   mrp?: number;
+  /** Keep count of stock (default on; off for services). Area-priced items never do. */
+  trackStock?: boolean;
+  /** Warn and put on the reorder list at or below this stock. */
+  lowStock?: number | null;
+  /** Usual quantity to order from the supplier. */
+  reorderQty?: number | null;
+  /** Supplier this item is usually bought from. */
+  supplierId?: string | null;
   /** Cost per unit (paise). Hidden from staff unless the store allows it. */
   purchasePrice?: number;
   categoryId?: string | null;
@@ -266,7 +276,12 @@ export interface Invoice extends DocBase {
  * by the owner and stays in the history. Status (paid / partly paid) is worked out from these.
  */
 export interface PaymentEntry extends SyncedRecord {
+  /** The bill paid; empty for money taken on account (khata payment beyond the bills, advance). */
   invoiceId: string;
+  /** The customer: always set on khata payments, also on bill payments made from the khata screen. */
+  customerId?: string | null;
+  /** Entries split from one khata payment share this. */
+  receiptId?: string | null;
   /** Set for a refund made because of a return. */
   creditNoteId?: string | null;
   kind: 'payment' | 'refund';
@@ -301,9 +316,146 @@ export interface Estimate extends DocBase {
   businessSnapshot?: Omit<BusinessProfile, keyof SyncedRecord> | null;
 }
 
+/* ---------- R2: stock, purchases, money ---------- */
+
+export type StockReason = 'opening' | 'damage' | 'theft' | 'expired' | 'count' | 'gift' | 'own_use' | 'other';
+
+/**
+ * Opening stock or a manual change (damage, theft, physical count…). Added, never edited: the
+ * owner voids a wrong one. Sales, purchases and returns change stock through their documents.
+ */
+export interface StockMove extends SyncedRecord {
+  itemId: string;
+  itemName: string;
+  /** + adds stock, − removes it (item's unit). */
+  qty: number;
+  kind: 'opening' | 'adjust' | 'count';
+  reason: StockReason;
+  note?: string;
+  date: string;
+  byName?: string;
+  voidedAt?: string | null;
+  voidedBy?: string;
+  voidedByName?: string;
+  voidReason?: string;
+}
+
+export interface Supplier extends SyncedRecord {
+  name: string;
+  phone?: string;
+  email?: string;
+  address: Address;
+  /** GSTIN of a registered supplier. */
+  taxId?: string;
+  /** What the store already owed this supplier before using the app (paise). */
+  openingBalance: number;
+  notes?: string;
+}
+
+export interface SupplierSnapshot {
+  supplierId: string;
+  name: string;
+  phone?: string;
+  address?: Address;
+  taxId?: string;
+}
+
+/** A purchase line: cost per unit (`rate`), as on the supplier's bill. */
+export interface PurchaseLine extends Omit<DocLine, 'pricing' | 'dims'> {
+  /** Selling price to set on the item when the bill is saved (optional). */
+  salePrice?: number | null;
+}
+
+/** List of items to order from a supplier, sent as a PDF. Becomes a purchase bill when goods arrive. */
+export interface PurchaseOrder extends SyncedRecord {
+  number: string;
+  date: string;
+  supplier: SupplierSnapshot | null;
+  lines: { id: string; itemId?: string | null; name: string; qty: number; unit: string; rate?: number | null }[];
+  notes: string;
+  status: 'open' | 'received' | 'cancelled';
+  purchaseId?: string | null;
+  createdBy: string;
+  byName?: string;
+}
+
+/**
+ * A supplier's bill (goods in: stock goes up, we owe the supplier) or a purchase return / debit
+ * note (goods sent back: stock goes down, we owe less).
+ */
+export interface Purchase extends SyncedRecord {
+  kind: 'bill' | 'return';
+  status: 'draft' | 'saved' | 'cancelled';
+  supplier: SupplierSnapshot | null;
+  /** The supplier's own bill number (for a return: our debit note reference). */
+  supplierBillNo: string;
+  date: string;
+  dueDate?: string | null;
+  /** gst = bill with GST (input tax credit); none = without GST. */
+  taxMode: TaxMode;
+  /** Supplier's state is another state → IGST. */
+  interState: boolean;
+  lines: PurchaseLine[];
+  overallDiscount?: DiscountInput | null;
+  charges: ChargeInput[];
+  roundOff: boolean;
+  totals: InvoiceTotals;
+  notes: string;
+  /** Change the items' cost / MRP / selling price to this bill's when it is saved. */
+  updatePrices: boolean;
+  fromOrderId?: string | null;
+  /** For a return: the bill the goods came on. */
+  returnOfId?: string | null;
+  /** Photo of the supplier's bill (data URL, resized). */
+  photo?: string | null;
+  createdBy: string;
+  history: HistoryEntry[];
+}
+
+/** Money paid to a supplier (or refunded by one). Added, never edited; the owner voids a wrong one. */
+export interface SupplierPayment extends SyncedRecord {
+  supplierId: string;
+  purchaseId?: string | null;
+  kind: 'payment' | 'refund';
+  amount: number;
+  mode: Exclude<PaymentMode, 'advance'>;
+  date: string;
+  reference?: string;
+  note?: string;
+  paidByName?: string;
+  voidedAt?: string | null;
+  voidedBy?: string;
+  voidedByName?: string;
+  voidReason?: string;
+}
+
+export const EXPENSE_CATEGORIES = ['rent', 'salary', 'electricity', 'transport', 'tea', 'repairs', 'phone', 'other'] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+
+export interface Expense extends SyncedRecord {
+  category: ExpenseCategory;
+  amount: number;
+  mode: Exclude<PaymentMode, 'advance'>;
+  date: string;
+  note?: string;
+  paidByName?: string;
+}
+
+/** Day-end cash count. id = `${businessId}:${date}`. */
+export interface DayClose extends SyncedRecord {
+  date: string;
+  /** Cash the app expected in the drawer (paise). */
+  expected: number;
+  counted: number;
+  /** counted − expected: + excess, − shortage. */
+  difference: number;
+  note?: string;
+  closedByName?: string;
+}
+
 /* ---------- sync bookkeeping ---------- */
 
-export type SyncedTable = 'profiles' | 'settings' | 'bankAccounts' | 'upiIds' | 'customers' | 'items' | 'invoices' | 'estimates' | 'creditNotes' | 'payments' | 'categories';
+export type SyncedTable = SyncTable;
 
 export interface OutboxEntry {
   seq?: number;
@@ -331,6 +483,13 @@ export const db = new Dexie('apnagalla') as Dexie & {
   creditNotes: EntityTable<CreditNote, 'id'>;
   payments: EntityTable<PaymentEntry, 'id'>;
   categories: EntityTable<Category, 'id'>;
+  stockMoves: EntityTable<StockMove, 'id'>;
+  suppliers: EntityTable<Supplier, 'id'>;
+  purchaseOrders: EntityTable<PurchaseOrder, 'id'>;
+  purchases: EntityTable<Purchase, 'id'>;
+  supplierPayments: EntityTable<SupplierPayment, 'id'>;
+  expenses: EntityTable<Expense, 'id'>;
+  dayCloses: EntityTable<DayClose, 'id'>;
   outbox: EntityTable<OutboxEntry, 'seq'>;
   meta: EntityTable<MetaEntry, 'key'>;
 };
@@ -361,7 +520,39 @@ db.version(4).stores({
   categories: 'id, businessId, parentId',
 });
 
-export const ALL_TABLES = [db.profiles, db.settings, db.bankAccounts, db.upiIds, db.customers, db.items, db.invoices, db.estimates, db.creditNotes, db.payments, db.categories, db.outbox, db.meta];
+db.version(5).stores({
+  payments: 'id, businessId, invoiceId, customerId, [businessId+date], updatedAt',
+  stockMoves: 'id, businessId, itemId, [businessId+date]',
+  suppliers: 'id, businessId, [businessId+name]',
+  purchaseOrders: 'id, businessId, [businessId+date], supplier.supplierId',
+  purchases: 'id, businessId, [businessId+date], supplier.supplierId, status',
+  supplierPayments: 'id, businessId, supplierId, [businessId+date]',
+  expenses: 'id, businessId, [businessId+date]',
+  dayCloses: 'id, businessId, [businessId+date]',
+});
+
+export const ALL_TABLES = [
+  db.profiles,
+  db.settings,
+  db.bankAccounts,
+  db.upiIds,
+  db.customers,
+  db.items,
+  db.invoices,
+  db.estimates,
+  db.creditNotes,
+  db.payments,
+  db.categories,
+  db.stockMoves,
+  db.suppliers,
+  db.purchaseOrders,
+  db.purchases,
+  db.supplierPayments,
+  db.expenses,
+  db.dayCloses,
+  db.outbox,
+  db.meta,
+];
 
 export async function getMeta<T>(key: string): Promise<T | undefined> {
   return (await db.meta.get(key))?.value as T | undefined;
