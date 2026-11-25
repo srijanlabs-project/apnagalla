@@ -297,6 +297,8 @@ export interface DocBase extends SyncedRecord {
   totals: InvoiceTotals;
   /** Photos attached (a paper bill, a delivery proof); small JPEGs. */
   photos?: string[];
+  /** Coupon code typed at billing. */
+  coupon?: string | null;
   /** Notes for the shop only: shown in the app, never printed or shared. */
   privateNotes?: string;
   /** Photo taken by the warehouse when the goods were delivered. */
@@ -537,8 +539,16 @@ export interface Offer extends SyncedRecord {
   /** Dates it runs (inclusive); empty = always. */
   from?: string | null;
   to?: string | null;
-  /** percent: % off items of a category (or all); buyget: buy N get M free; combo: set price. */
-  kind: 'percent' | 'buyget' | 'combo';
+  /** percent: % off items of a category (or all); amount: ₹ off the bill; buyget: buy N get M free; combo: set price. */
+  kind: 'percent' | 'amount' | 'buyget' | 'combo';
+  /** ₹ off (paise), for kind amount. */
+  amount?: number;
+  /** Only on bills of at least this much (paise, before discounts). */
+  minBill?: number | null;
+  /** A coupon: applies only when this code is typed on the bill. */
+  code?: string | null;
+  /** Coupon: how many bills may use it in all. */
+  maxUses?: number | null;
   pct?: number;
   categoryId?: string | null;
   itemId?: string | null;

@@ -4,7 +4,15 @@ import { db, type DocLine } from './db';
 import { applyOffers, offerRuns, sameOffers } from './offers';
 
 /** Keeps a bill's offer discounts up to date as lines change. `enabled` = a bill still being made. */
-export function useOffers(businessId: string, lines: DocLine[] | undefined, date: string | undefined, enabled: boolean, onChange: (lines: DocLine[]) => void) {
+export function useOffers(
+  businessId: string,
+  lines: DocLine[] | undefined,
+  date: string | undefined,
+  enabled: boolean,
+  onChange: (lines: DocLine[]) => void,
+  coupon?: string | null,
+  noTax = false,
+) {
   const data = useLiveQuery(async () => {
     const offers = (await db.offers.where('businessId').equals(businessId).toArray()).filter((o) => offerRuns(o, date));
     if (!offers.length) return { offers, items: new Map(), cats: [] };
@@ -14,8 +22,8 @@ export function useOffers(businessId: string, lines: DocLine[] | undefined, date
   useEffect(() => {
     if (!enabled || !lines || !data) return;
     // No offers running: still clear discounts left by an offer that has ended.
-    const next = applyOffers(lines, data.offers, data.items, data.cats, date);
+    const next = applyOffers(lines, data.offers, data.items, data.cats, date, coupon, noTax);
     if (!sameOffers(lines, next)) onChange(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, lines, data, date]);
+  }, [enabled, lines, data, date, coupon, noTax]);
 }

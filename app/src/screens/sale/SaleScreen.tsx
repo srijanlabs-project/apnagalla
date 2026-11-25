@@ -41,6 +41,7 @@ import { computeTotals, deleteDraft, effectiveGstType, newId, newInvoiceDraft, r
 import { sync } from '../../lib/sync';
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
+import CouponField from '../../components/CouponField';
 import { applyExchange, creditOverLimit } from '../../lib/khata';
 import { moneyOf } from '../../lib/ledger';
 import { repriceLines, sellable } from '../../lib/pricing';
@@ -127,7 +128,7 @@ export default function SaleScreen() {
   }, [items, q]);
 
   const totals = useMemo(() => (bill ? computeTotals(bill) : null), [bill]);
-  useOffers(actor.businessId, bill?.lines, bill?.date, !!bill, (lines) => setBill((cur) => (cur ? { ...cur, lines } : cur)));
+  useOffers(actor.businessId, bill?.lines, bill?.date, !!bill, (lines) => setBill((cur) => (cur ? { ...cur, lines } : cur)), bill?.coupon, bill?.taxMode === 'none');
 
   if (!CAN_CREATE_INVOICES) {
     return (
@@ -362,6 +363,7 @@ export default function SaleScreen() {
               <p className="section-note text-success">{t('Exchange: {amount} from bill {number} is taken off', { amount: rupees(exchange.credit), number: exchange.old.number })}</p>
             )}
             {!walkIn && <CreditLimitNote businessId={actor.businessId} customerId={bill.billTo?.customerId} billAmount={totals?.grandTotal ?? 0} />}
+            {bill.lines.length > 0 && <CouponField businessId={actor.businessId} value={bill.coupon} date={bill.date} invoiceId={bill.id} onChange={(coupon) => patch({ coupon })} />}
             {regular && (
               <IonSegment value={bill.taxMode ?? 'gst'} onIonChange={sync((e) => patch({ taxMode: e.detail.value as 'gst' | 'none' }))} className="sale-tax">
                 <IonSegmentButton value="gst">

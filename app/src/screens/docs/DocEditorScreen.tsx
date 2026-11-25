@@ -51,6 +51,7 @@ import {
 import { PAYMENT_TERMS } from '../settings/InvoiceSettingsScreen';
 import CustomerPicker, { snapshotOf } from './CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
+import CouponField from '../../components/CouponField';
 import { settleJobAdvance } from '../../lib/jobs';
 import { creditOverLimit } from '../../lib/khata';
 import { repriceLines } from '../../lib/pricing';
@@ -165,7 +166,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
       });
     },
   });
-  useOffers(actor.businessId, doc?.lines, doc?.date, kind !== 'credit' && doc?.status === 'draft', (lines) => setDoc((cur) => (cur ? { ...cur, lines } : cur)));
+  useOffers(actor.businessId, doc?.lines, doc?.date, kind !== 'credit' && doc?.status === 'draft', (lines) => setDoc((cur) => (cur ? { ...cur, lines } : cur)), doc?.coupon, doc?.taxMode === 'none');
   const level = useLiveQuery(async () => (docCustomerId ? ((await db.customers.get(docCustomerId))?.priceLevel ?? 'retail') : 'retail'), [docCustomerId]) ?? 'retail';
 
   if (kind !== 'estimate' && !CAN_CREATE_INVOICES) {
@@ -484,6 +485,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         {!credit && (
         <>
         <FormSection title={noTax ? t('Discount on total') : t('Discount on total (before tax)')}>
+          {kind !== 'credit' && !locked && <CouponField businessId={actor.businessId} value={doc.coupon} date={doc.date} invoiceId={doc.id} onChange={(coupon) => patch({ coupon })} />}
           {doc.targetTotal != null ? (
             <div className="target-chip">
               <span>

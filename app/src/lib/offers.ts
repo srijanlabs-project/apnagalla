@@ -19,14 +19,24 @@ const baseRate = (l: DocLine) => (l.rateIncludesTax && l.taxPct ? l.rate / (1 + 
 const gross = (l: DocLine) => Math.round(l.qty * baseRate(l));
 
 export function describeOffer(o: Offer, itemName: (id: string) => string, catName: (id: string) => string): string {
+  const min = o.minBill ? ` · ${t('bills of {amount}+', { amount: (o.minBill / 100).toFixed(0) })}` : '';
+  const code = o.code ? ` · ${t('code {code}', { code: o.code })}` : '';
+  return describeKind(o, itemName, catName) + min + code;
+}
+
+function describeKind(o: Offer, itemName: (id: string) => string, catName: (id: string) => string): string {
+  if (o.kind === 'amount') return t('₹{amount} off {what}', { amount: ((o.amount ?? 0) / 100).toFixed(0), what: o.categoryId ? catName(o.categoryId) : t('the bill') });
   if (o.kind === 'percent') return t('{pct}% off {what}', { pct: o.pct ?? 0, what: o.categoryId ? catName(o.categoryId) : o.itemId ? itemName(o.itemId) : t('everything') });
   if (o.kind === 'buyget') return t('Buy {buy} get {get} free: {item}', { buy: o.buyQty ?? 0, get: o.getQty ?? 0, item: itemName(o.itemId ?? '') });
   return t('{items} for {price}', { items: (o.combo ?? []).map((c) => `${c.qty} × ${itemName(c.itemId)}`).join(' + '), price: ((o.comboPrice ?? 0) / 100).toFixed(2) });
 }
 
 /** Returns the lines with offer discounts set (or cleared where an offer no longer applies). */
-export function applyOffers(lines: DocLine[], offers: Offer[], items: Map<string, Item>, cats: Category[], date = todayISO()): DocLine[] {
-  const running = offers.filter((o) => offerRuns(o, date));
+export function applyOffers(lines: DocLine[], offers: Offer[], items: Map<string, Item>, cats: Category[], date = todayISO(), coupon?: string | null, noTax = false): DocLine[] {
+  const code = coupon?.trim().toUpperCase() || null;
+  // Coupons apply only with their code; the bill's value (before discounts) decides "minimum bill".
+  const billValue = lines.reduce((a, l) => a + gross(l), 0);
+  const running = offers.filter((o) => offerRuns(o, date) && (!o.code || o.code.toUpperCase() === code) && (!o.minBill || billValue >= o.minBill));
   // Start from the lines without any earlier offer discount; hand discounts and "off" stay.
   const out = lines.map((l) => (l.offer && l.offer !== OFF ? { ...l, offer: null, discount: null } : l));
   const free = (l: DocLine) => !l.offer && !(l.discount && l.discount.value > 0) && !!l.itemId && !l.dims;
@@ -41,6 +51,30 @@ export function applyOffers(lines: DocLine[], offers: Offer[], items: Map<string
         const match = o.itemId ? l.itemId === o.itemId || it?.variantOf === o.itemId : inCat ? !!(it?.categoryId && inCat.has(it.categoryId)) || !!(parentCat && inCat.has(parentCat)) : true;
         if (match) out[i] = { ...l, discount: { type: 'pct', value: Math.min(o.pct!, 100) }, offer: o.name };
       });
+    }
+    if (o.kind === 'amount' && (o.amount ?? 0) > 0) {
+      const inCat = o.categoryId ? withDescendants(o.categoryId, cats) : null;
+      const idx = out
+        .map((l, i) => ({ l, i }))
+        .filter(({ l }) => {
+          if (!free(l)) return false;
+          if (!inCat) return true;
+          const it = items.get(l.itemId!);
+          const cat = it?.categoryId ?? (it?.variantOf ? items.get(it.variantOf)?.categoryId : undefined);
+          return !!cat && inCat.has(cat);
+        });
+      const weights = idx.map(({ l }) => gross(l));
+      const total = weights.reduce((a, w) => a + w, 0);
+      if (total > 0) {
+        // ₹ off as the customer pays it: before tax on each line, in proportion to its value.
+        const off = Math.min(o.amount!, total);
+        const shares = allocateProportionally(off, weights);
+        idx.forEach(({ l, i }, k) => {
+          const share = shares[k]!;
+          const base = !noTax && l.taxPct ? Math.round(share / (1 + l.taxPct / 100)) : share;
+          if (base > 0) out[i] = { ...l, discount: { type: 'amount', value: Math.min(base, gross(l)) }, offer: o.name };
+        });
+      }
     }
     if (o.kind === 'buyget' && o.itemId && (o.buyQty ?? 0) > 0 && (o.getQty ?? 0) > 0) {
       out.forEach((l, i) => {
@@ -80,3 +114,22 @@ export function applyOffers(lines: DocLine[], offers: Offer[], items: Map<string
 /** Same lines, same discounts and offers? (to avoid re-saving unchanged lines) */
 export const sameOffers = (a: DocLine[], b: DocLine[]) =>
   a.length === b.length && a.every((l, i) => (l.offer ?? null) === (b[i]!.offer ?? null) && JSON.stringify(l.discount ?? null) === JSON.stringify(b[i]!.discount ?? null));
+
+/** Is this coupon code usable on a bill now? (exists, running, uses left) */
+export async function checkCoupon(businessId: string, raw: string, date = todayISO(), exceptInvoiceId?: string): Promise<{ ok: true; offer: Offer } | { ok: false; reason: string }> {
+  const code = raw.trim().toUpperCase();
+  if (!code) return { ok: false, reason: t('Type a coupon code') };
+  const { db } = await import('./db');
+  const offer = (await db.offers.where('businessId').equals(businessId).toArray()).find((o) => !o.deleted && o.code?.toUpperCase() === code);
+  if (!offer) return { ok: false, reason: t('No such coupon') };
+  if (!offerRuns(offer, date)) return { ok: false, reason: t('This coupon is not on now') };
+  if (offer.maxUses) {
+    const used = await db.invoices
+      .where('businessId')
+      .equals(businessId)
+      .filter((i) => !i.deleted && i.status === 'saved' && i.id !== exceptInvoiceId && i.coupon?.toUpperCase() === code)
+      .count();
+    if (used >= offer.maxUses) return { ok: false, reason: t('This coupon has been used up') };
+  }
+  return { ok: true, offer };
+}

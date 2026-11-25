@@ -84,7 +84,7 @@ export function OfferEditScreen() {
   if (!o) return null;
   const valid =
     !!o.name.trim() &&
-    (o.kind === 'percent' ? (o.pct ?? 0) > 0 : o.kind === 'buyget' ? !!o.itemId && (o.buyQty ?? 0) > 0 && (o.getQty ?? 0) > 0 : (o.combo?.length ?? 0) >= 2 && (o.comboPrice ?? 0) > 0);
+    (o.kind === 'percent' ? (o.pct ?? 0) > 0 : o.kind === 'amount' ? (o.amount ?? 0) > 0 : o.kind === 'buyget' ? !!o.itemId && (o.buyQty ?? 0) > 0 && (o.getQty ?? 0) > 0 : (o.combo?.length ?? 0) >= 2 && (o.comboPrice ?? 0) > 0);
 
   return (
     <FormPage title={isNew ? t('New offer') : t('Edit offer')} backHref="/tabs/items/offers" onSave={() => save(() => putRecord('offers', actor, { ...o, name: o.name.trim() }), { message: t('Offer saved'), back: true })} saving={saving} canSave={valid}>
@@ -100,6 +100,7 @@ export function OfferEditScreen() {
           value={o.kind}
           options={[
             { value: 'percent' as const, label: t('% off') },
+            { value: 'amount' as const, label: t('₹ off') },
             { value: 'buyget' as const, label: t('Buy X get Y free') },
             { value: 'combo' as const, label: t('Combo price') },
           ]}
@@ -122,6 +123,24 @@ export function OfferEditScreen() {
           />
         </FormSection>
       )}
+
+      {o.kind === 'amount' && (
+        <FormSection title={t('₹ off')}>
+          <MoneyField label={t('Amount off')} value={o.amount ?? null} onChange={(amount) => patch({ amount: amount ?? 0 })} />
+          <SelectField
+            label={t('On')}
+            value={o.categoryId ?? ''}
+            options={[{ value: '', label: t('The whole bill') }, ...cats.map((c) => ({ value: c.cat.id, label: c.path }))]}
+            onChange={(categoryId) => patch({ categoryId: categoryId || null })}
+          />
+        </FormSection>
+      )}
+
+      <FormSection title={t('Conditions')}>
+        <MoneyField label={t('Only on bills of at least')} value={o.minBill ?? null} onChange={(minBill) => patch({ minBill })} />
+        <TextField label={t('Coupon code (optional)')} value={o.code ?? ''} onChange={(code) => patch({ code: code.trim().toUpperCase() || null })} autocapitalize="characters" helper={t('With a code, the offer applies only when the code is typed on the bill.')} />
+        {o.code && <NumberField label={t('Most bills that can use it')} value={o.maxUses ?? null} onChange={(maxUses) => patch({ maxUses })} min={1} />}
+      </FormSection>
 
       {o.kind === 'buyget' && (
         <FormSection title={t('Buy X get Y free')}>
