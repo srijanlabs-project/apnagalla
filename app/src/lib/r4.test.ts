@@ -120,3 +120,14 @@ describe('R4.3 credit notes and advances', () => {
   });
 });
 
+
+describe('Wi-Fi printer address', () => {
+  it('accepts IPv4 addresses only', async () => {
+    const { isIpAddress } = await import('./printer');
+    expect(isIpAddress('192.168.1.50')).toBe(true);
+    expect(isIpAddress(' 10.0.0.7 ')).toBe(true);
+    expect(isIpAddress('192.168.1.256')).toBe(false);
+    expect(isIpAddress('192.168.1')).toBe(false);
+    expect(isIpAddress('printer.local')).toBe(false);
+  });
+});

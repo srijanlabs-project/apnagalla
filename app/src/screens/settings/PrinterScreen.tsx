@@ -1,11 +1,11 @@
 import { IonButton, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonNote, IonSpinner, useIonToast } from '@ionic/react';
-import { bluetoothOutline, printOutline } from 'ionicons/icons';
+import { bluetoothOutline, printOutline, wifiOutline } from 'ionicons/icons';
 import { useEffect, useState } from 'react';
-import { FormSection, SelectField, ToggleRow } from '../../components/Fields';
+import { FormSection, SelectField, TextField, ToggleRow } from '../../components/Fields';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
 import { t } from '../../lib/i18n';
-import { canPrint, loadPrinter, pairedClassicPrinters, pickBlePrinter, savePrinter, testPrint, type PrinterConfig } from '../../lib/printer';
+import { canPrint, isIpAddress, loadPrinter, pairedClassicPrinters, pickBlePrinter, savePrinter, testPrint, type PrinterConfig } from '../../lib/printer';
 
 /** This phone's receipt printer: pick it, paper width, logo, auto-print, test print. */
 export default function PrinterScreen() {
@@ -14,6 +14,7 @@ export default function PrinterScreen() {
   const [printer, setPrinter] = useState<PrinterConfig | null>(null);
   const [paired, setPaired] = useState<{ name: string; address: string }[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [wifi, setWifi] = useState<{ ip: string; port: string } | null>(null);
   const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : String(e), duration: 3500, color: 'danger' });
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export default function PrinterScreen() {
   if (!canPrint()) {
     return (
       <PageShell title={t('Printer')} backHref="/tabs/more">
-        <p>{t('Bluetooth receipt printers work in the ApnaGalla Android app. On the web, share the PDF instead.')}</p>
+        <p>{t('Receipt printers (Bluetooth or Wi-Fi) work in the ApnaGalla Android app. On the web, share the PDF instead.')}</p>
       </PageShell>
     );
   }
@@ -50,7 +51,7 @@ export default function PrinterScreen() {
             <IonIcon icon={printOutline} slot="start" />
             <IonLabel>
               <h2>{printer.name}</h2>
-              <p>{printer.kind === 'classic' ? t('Bluetooth (paired)') : t('Bluetooth Low Energy')}</p>
+              <p>{printer.kind === 'classic' ? t('Bluetooth (paired)') : printer.kind === 'wifi' ? `${t('Wi-Fi')} · ${printer.id}:${printer.port ?? 9100}` : t('Bluetooth Low Energy')}</p>
             </IonLabel>
             <IonButton slot="end" fill="clear" color="medium" onClick={() => void update(null)}>
               {t('Forget')}
@@ -86,7 +87,28 @@ export default function PrinterScreen() {
           >
             {busy === 'ble' ? <IonSpinner name="dots" /> : null} {t('Find BLE printer')}
           </IonButton>
+          <IonButton fill="outline" disabled={!!busy} onClick={() => setWifi({ ip: printer?.kind === 'wifi' ? printer.id : '', port: String(printer?.port ?? 9100) })}>
+            <IonIcon icon={wifiOutline} slot="start" /> {t('Wi-Fi printer')}
+          </IonButton>
         </div>
+        {wifi && (
+          <div>
+            <TextField label={t('Printer IP address')} value={wifi.ip} inputmode="decimal" placeholder="192.168.1.50" onChange={(ip) => setWifi({ ...wifi, ip })} error={wifi.ip && !isIpAddress(wifi.ip) ? t('Like 192.168.1.50') : null} />
+            <TextField label={t('Port')} value={wifi.port} inputmode="numeric" onChange={(port) => setWifi({ ...wifi, port: port.replace(/\D/g, '') })} />
+            <p className="section-note">{t('The printer and this phone must be on the same Wi-Fi. Print the printer’s self-test page (hold the feed button while switching on) to see its IP address.')}</p>
+            <IonButton
+              expand="block"
+              disabled={!isIpAddress(wifi.ip)}
+              onClick={() => {
+                const port = Number(wifi.port) || 9100;
+                void update({ ...base('wifi', wifi.ip.trim(), `${t('Wi-Fi printer')} ${wifi.ip.trim()}`), port });
+                setWifi(null);
+              }}
+            >
+              {t('Use this printer')}
+            </IonButton>
+          </div>
+        )}
         <p className="section-note">{t('Most printers: pair them first in the phone’s Bluetooth settings, then tap “Paired printers”.')}</p>
         {paired && (
           <IonList>

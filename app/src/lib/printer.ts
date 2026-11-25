@@ -3,6 +3,7 @@ import type { Lang } from '@invoice/shared';
 import { t } from './i18n';
 import { canvasToJob, toBase64, type PaperWidth } from './receipt/escpos';
 import { renderReceipt, type ReceiptInput } from './receipt/render';
+import { ShopTools } from './shopTools';
 import { KEYS, kv } from './storage';
 
 /*
@@ -19,8 +20,8 @@ interface ClassicPrinterPlugin {
 const Classic = registerPlugin<ClassicPrinterPlugin>('ClassicPrinter');
 
 export interface PrinterConfig {
-  kind: 'classic' | 'ble';
-  /** MAC address (classic) or BLE device id. */
+  kind: 'classic' | 'ble' | 'wifi';
+  /** MAC address (classic), BLE device id, or IP address (Wi-Fi / network printer). */
   id: string;
   name: string;
   paper: PaperWidth;
@@ -28,7 +29,12 @@ export interface PrinterConfig {
   logo: boolean;
   /** Print automatically after each counter sale. */
   autoPrint: boolean;
+  /** Wi-Fi printers: the raw printing port (9100 on almost all). */
+  port?: number;
 }
+
+/** A Wi-Fi / LAN printer address: four numbers 0-255. */
+export const isIpAddress = (s: string) => /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(s.trim()) && s.trim().split('.').every((n) => Number(n) <= 255);
 
 export const canPrint = () => Capacitor.isNativePlatform();
 
@@ -94,6 +100,7 @@ async function sendBle(id: string, bytes: Uint8Array) {
 export async function sendToPrinter(p: PrinterConfig, bytes: Uint8Array): Promise<void> {
   if (!canPrint()) throw new Error(t('Printing works in the ApnaGalla phone app.'));
   if (p.kind === 'classic') await Classic.print({ address: p.id, data: toBase64(bytes) });
+  else if (p.kind === 'wifi') await ShopTools.printTcp({ host: p.id, port: p.port ?? 9100, data: toBase64(bytes) });
   else await sendBle(p.id, bytes);
 }
 
