@@ -162,6 +162,10 @@ export interface Item extends SyncedRecord {
   reorderQty?: number | null;
   /** Supplier this item is usually bought from. */
   supplierId?: string | null;
+  /** Electronics: each piece has a serial / IMEI number, recorded in and out. */
+  trackSerial?: boolean;
+  /** Warranty from the date of sale, in months. */
+  warrantyMonths?: number | null;
   /** Garments etc.: this item only groups its variants (no stock of its own). */
   hasVariants?: boolean;
   /** A variant: its parent item and "M · Red". */
@@ -203,6 +207,10 @@ export interface DocLine {
   mrp?: number;
   /** Base units in one of this line's unit (a box of 12 → 12). Stock moves qty × this. */
   unitFactor?: number;
+  /** Serial / IMEI numbers of the pieces on this line. */
+  serials?: string[];
+  /** Copied from the item: warranty months from the bill date. */
+  warrantyMonths?: number | null;
 }
 
 /** Item category; up to 3 levels (parentId = null for a top level). */

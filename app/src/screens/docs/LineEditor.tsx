@@ -21,6 +21,7 @@ import { FormSection, MoneyField, NumberField, SelectField, TextArea, TextField,
 import { useBusiness } from '../../lib/business';
 import { db, type DocLine, type Item, type PriceLevel } from '../../lib/db';
 import { priceFor, sellable, unitOptions } from '../../lib/pricing';
+import { serialsInStock } from '../../lib/serials';
 import { t } from '../../lib/i18n';
 import { isAreaLine, lineSize, rupees } from '../../lib/format';
 import { newId, putRecord } from '../../lib/repo';
@@ -44,6 +45,8 @@ export function lineFromItem(it: Item, level: PriceLevel = 'retail'): DocLine {
     pricing: it.pricing,
     dims: area ? { length: 0, width: 0, pieces: 1, in: 'ft' } : null,
     mrp: it.mrp,
+    warrantyMonths: it.warrantyMonths ?? undefined,
+    serials: it.trackSerial ? [] : undefined,
   };
 }
 
@@ -87,6 +90,8 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
   );
   // The catalogue item of this line, for its other units (box, dozen…).
   const lineItem = useLiveQuery(async () => (l?.itemId ? db.items.get(l.itemId) : undefined), [l?.itemId]);
+  const inStockSerials = useLiveQuery(async () => (lineItem?.trackSerial ? serialsInStock(actor.businessId, lineItem.id) : []), [lineItem?.id, lineItem?.trackSerial, actor.businessId]);
+  const [typedSerial, setTypedSerial] = useState('');
   const matches = useMemo(() => {
     const s = q.trim().toLowerCase();
     return s ? (items ?? []).filter((i) => i.name.toLowerCase().includes(s)) : items ?? [];
@@ -194,6 +199,44 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
           </IonList>
         ) : (
           <>
+            {lineItem?.trackSerial && (
+              <FormSection title={t('Serial / IMEI numbers')} note={t('Tap the pieces being sold; the quantity follows.')}>
+                <div className="filter-chips">
+                  {[...new Set([...(inStockSerials ?? []), ...(l.serials ?? [])])].map((s) => {
+                    const on = l.serials?.includes(s);
+                    return (
+                      <IonButton
+                        key={s}
+                        size="small"
+                        fill={on ? 'solid' : 'outline'}
+                        onClick={() => {
+                          const serials = on ? (l.serials ?? []).filter((x) => x !== s) : [...(l.serials ?? []), s];
+                          set({ serials, qty: Math.max(serials.length, 1) });
+                        }}
+                      >
+                        {s}
+                      </IonButton>
+                    );
+                  })}
+                </div>
+                {(inStockSerials ?? []).length === 0 && <p className="section-note">{t('No numbers in stock. Type the number of the piece being sold.')}</p>}
+                <div className="search-row">
+                  <TextField label={t('Type a number')} value={typedSerial} onChange={setTypedSerial} autocapitalize="characters" />
+                  <IonButton
+                    fill="clear"
+                    disabled={!typedSerial.trim()}
+                    onClick={() => {
+                      const s = typedSerial.trim().toUpperCase();
+                      const serials = [...new Set([...(l.serials ?? []), s])];
+                      set({ serials, qty: serials.length });
+                      setTypedSerial('');
+                    }}
+                  >
+                    {t('Add')}
+                  </IonButton>
+                </div>
+              </FormSection>
+            )}
             <FormSection>
               <TextField label={t('Item')} required value={l.name} onChange={(name) => set({ name })} />
               <TextArea label={t('Description')} value={l.description} onChange={(description) => set({ description })} />

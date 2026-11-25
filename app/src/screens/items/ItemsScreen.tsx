@@ -29,6 +29,7 @@ export default function ItemsScreen() {
     [actor.businessId],
   );
   const stock = useLiveQuery(() => stockLevels(actor.businessId), [actor.businessId]);
+  const hasSerials = (items ?? []).some((i) => i.trackSerial);
   const lowCount = useMemo(() => (items ?? []).filter((i) => isLow(i, stock?.get(i.id) ?? 0)).length, [items, stock]);
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -63,6 +64,11 @@ export default function ItemsScreen() {
               {c.name}
             </IonChip>
           ))}
+          {hasSerials && (
+            <IonButton size="small" fill="clear" routerLink="/tabs/items/serials">
+              {t('Find serial / IMEI')}
+            </IonButton>
+          )}
           {isOwner && (
             <>
               <IonButton size="small" fill="clear" routerLink="/tabs/items/categories">

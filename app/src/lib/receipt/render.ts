@@ -1,4 +1,5 @@
 import { amountInWordsIn, formatDateIN, formatPaise, type InvoiceTotals, type Lang } from '@invoice/shared';
+import { serialText } from '../serials';
 import QRCode from 'qrcode';
 import type { BusinessProfile, DocBase, SyncedRecord, UpiId } from '../db';
 import { addressLines, lineSize } from '../format';
@@ -146,6 +147,7 @@ export async function renderReceipt(input: ReceiptInput): Promise<HTMLCanvasElem
     text(l.name, { bold: true });
     const size = lineSize(l);
     if (size) text(size, { size: base - 3 });
+    if (l.serials?.length || l.warrantyMonths) text(serialText(l, doc.date), { size: base - 3 });
     row(`${l.qty} ${l.unit} × ${money(Math.round(r.baseRate))}${view.mode !== 'none' && l.taxPct ? `  (${l.taxPct}%)` : ''}`, money(r.net));
     if (r.lineDiscount) row(`  ${L('Discount')}`, `−${money(r.lineDiscount)}`, { size: base - 3 });
   });

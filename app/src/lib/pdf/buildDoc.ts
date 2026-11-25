@@ -1,4 +1,5 @@
 import { amountInWords, formatDateIN, formatPaise, roundHalfUp, stateCode, type InvoiceTotals } from '@invoice/shared';
+import { serialText } from '../serials';
 import type { Content, ContentTable, TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import type { BankAccount, BusinessProfile, DesignSettings, DocBase, SyncedRecord, UpiId } from '../db';
 import { addressLines, lineSize } from '../format';
@@ -207,6 +208,7 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
           { text: l.name, bold: true },
           ...(lineSize(l) ? [{ text: lineSize(l), color: '#333333', fontSize: base - 1 }] : []),
           ...(show.itemDescription && l.description ? [{ text: l.description, color: '#555555', fontSize: base - 1 }] : []),
+          ...(serialText(l, doc.date) ? [{ text: serialText(l, doc.date), color: '#333333', fontSize: base - 1 }] : []),
         ],
       },
       qty: { text: show.unitColumn ? String(l.qty) : `${l.qty} ${l.unit}`, alignment: 'right' },

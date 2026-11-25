@@ -152,7 +152,7 @@ export default function SaleScreen() {
 
   function addItem(it: Item) {
     // Priced by size: ask for the size straight away.
-    if (it.pricing === 'sqft' || it.pricing === 'rft') {
+    if (it.pricing === 'sqft' || it.pricing === 'rft' || it.trackSerial) {
       setEditing({ line: lineFromItem(it, level), isNew: true });
       setQ('');
       return;

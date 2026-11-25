@@ -7,6 +7,8 @@ import { billMoney, convertEstimate, ensureBusinessRecords, newInvoiceDraft, put
 import { createVariants, priceFor, repriceLines, unitOptions, variantsOf } from './pricing';
 import { newPurchaseDraft, purchaseLineFromItem, savePurchase } from './purchases';
 import { stockLevels, tracksStock } from './stock';
+import { serialEvents, serialText, serialsInStock, warrantyEnd } from './serials';
+import { newCreditNoteDraft, saveCreditNote } from './repo';
 import type { Item } from './db';
 
 const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
@@ -94,6 +96,29 @@ describe('items: variants, units, price levels', () => {
     await saveInvoice(owner, { ...d, lines }, { finalize: true });
     expect((await stockLevels('b1')).get('pen')).toBe(36);
     expect((await repriceLines(lines, 'wholesale'))[0]!.rate).toBe(9600);
+  });
+});
+
+describe('serial / IMEI', () => {
+  it('numbers come in on purchase, go out on sale, come back on a return', async () => {
+    const phone = await putRecord('items', owner, { id: 'ph', name: 'Phone X', unit: 'pcs', rate: 1500000, rateIncludesTax: true, taxPct: 18, trackSerial: true, warrantyMonths: 12 } as Item);
+    const p = await newPurchaseDraft(owner);
+    await savePurchase(owner, { ...p, lines: [{ ...purchaseLineFromItem(phone, 3), serials: ['IMEI1', 'IMEI2', 'IMEI3'] }] }, { finalize: true });
+    expect(await serialsInStock('b1', 'ph')).toEqual(['IMEI1', 'IMEI2', 'IMEI3']);
+    const d = await newInvoiceDraft(owner);
+    const inv = await saveInvoice(
+      owner,
+      { ...d, date: '2026-11-25', lines: [{ id: 'l', itemId: 'ph', name: 'Phone X', qty: 2, unit: 'pcs', rate: 1500000, rateIncludesTax: true, taxPct: 18, serials: ['IMEI1', 'IMEI3'], warrantyMonths: 12 }] },
+      { finalize: true },
+    );
+    expect(await serialsInStock('b1', 'ph')).toEqual(['IMEI2']);
+    expect((await stockLevels('b1')).get('ph')).toBe(1);
+    expect(serialText(inv.lines[0]!, inv.date)).toBe('IMEI / S.No: IMEI1, IMEI3 · Warranty till 24/11/2027');
+    const note = await newCreditNoteDraft(owner, inv.id);
+    await saveCreditNote(owner, { ...note, reason: 'return', lines: note.lines.map((l) => ({ ...l, qty: 1, serials: ['IMEI3'] })) }, { finalize: true });
+    expect(await serialsInStock('b1', 'ph')).toEqual(['IMEI2', 'IMEI3']);
+    expect((await serialEvents('b1')).get('IMEI3')!.map((e) => e.kind)).toEqual(['bought', 'sold', 'returned_by_customer']);
+    expect(warrantyEnd('2024-02-29', 12)).toBe('2025-02-28');
   });
 });
 

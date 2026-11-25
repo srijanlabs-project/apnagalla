@@ -2,7 +2,7 @@ import { IonButton, IonIcon, IonItem, IonLabel, IonList, IonNote, useIonToast } 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { addOutline, trashOutline } from 'ionicons/icons';
 import { useState } from 'react';
-import { FormSection, MoneyField, NumberField, TextField } from '../../components/Fields';
+import { FormSection, MoneyField, NumberField, TextField, ToggleRow } from '../../components/Fields';
 import { useBusiness } from '../../lib/business';
 import { db, type Item } from '../../lib/db';
 import { rupees } from '../../lib/format';
@@ -127,6 +127,23 @@ export function VariantsSection({ it, saved }: { it: Item; saved: boolean }) {
         </IonButton>
       )}
       {!it.hasVariants && <p className="section-note">{t('Each size and colour becomes its own item with its own stock, barcode and price.')}</p>}
+    </FormSection>
+  );
+}
+
+/** Electronics: serial / IMEI per piece and the warranty. */
+export function SerialSection({ it, patch, disabled }: { it: Item; patch: (p: Partial<Item>) => void; disabled?: boolean }) {
+  if ((it.pricing && it.pricing !== 'unit') || it.hasVariants) return null;
+  return (
+    <FormSection title={t('Serial / IMEI and warranty')}>
+      <ToggleRow
+        label={t('Keep serial / IMEI numbers')}
+        note={t('Each piece is recorded by its number when bought and when sold.')}
+        checked={!!it.trackSerial}
+        onChange={(trackSerial) => patch({ trackSerial })}
+        disabled={disabled}
+      />
+      <NumberField label={t('Warranty (months)')} value={it.warrantyMonths ?? null} onChange={(warrantyMonths) => patch({ warrantyMonths })} min={0} disabled={disabled} />
     </FormSection>
   );
 }

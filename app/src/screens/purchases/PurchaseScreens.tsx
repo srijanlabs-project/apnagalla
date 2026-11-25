@@ -352,6 +352,18 @@ export function PurchaseEditScreen() {
                   />
                 );
               })()}
+              {l.itemId && lineItems?.get(l.itemId)?.trackSerial && (
+                <TextArea
+                  label={t('Serial / IMEI numbers (one per line)')}
+                  value={(l.serials ?? []).join('\n')}
+                  rows={3}
+                  disabled={locked}
+                  onChange={(v) => {
+                    const serials = [...new Set(v.split(/[\n,]/).map((x) => x.trim().toUpperCase()).filter(Boolean))];
+                    patchLine(l.id, { serials, ...(serials.length ? { qty: serials.length } : {}) });
+                  }}
+                />
+              )}
               <div className="field-row">
                 <NumberField label={t('Quantity')} value={l.qty} onChange={(qty) => patchLine(l.id, { qty: qty ?? 0 })} suffix={l.unit} min={0} disabled={locked} />
                 <MoneyField label={l.rateIncludesTax ? t('Cost (incl. tax)') : t('Cost (before tax)')} value={l.rate} onChange={(rate) => patchLine(l.id, { rate: rate ?? 0 })} disabled={locked} />
