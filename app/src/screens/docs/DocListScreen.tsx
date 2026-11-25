@@ -1,7 +1,12 @@
 import { IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonSearchbar, IonSegment, IonSegmentButton, useIonRouter } from '@ionic/react';
+import { useIonToast } from '@ionic/react';
+import { useEffect, useRef, useState } from 'react';
+import { NetworkError, api } from '../../lib/api';
+import { fileToResizedDataUrl } from '../../lib/format';
+import { draftFromPaperBill } from '../../lib/paperBill';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { add, documentTextOutline } from 'ionicons/icons';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
 import StatusBadge, { invoiceStatus } from '../../components/StatusBadge';
@@ -19,6 +24,27 @@ const INVOICE_FILTERS = ['All', 'Unpaid', 'Overdue', 'Paid', 'Draft'] as const;
 export default function DocListScreen({ kind }: { kind: DocKind }) {
   const { actor, ledger } = useBusiness();
   const router = useIonRouter();
+  const [toast] = useIonToast();
+  const paperInput = useRef<HTMLInputElement>(null);
+  const [scanOn, setScanOn] = useState(false);
+  const [reading, setReading] = useState(false);
+  useEffect(() => {
+    if (kind === 'invoice' && CAN_CREATE_INVOICES) void api.features().then((f) => setScanOn(f.scanBill)).catch(() => setScanOn(false));
+  }, [kind]);
+  async function scanPaper(file: File) {
+    setReading(true);
+    try {
+      const photo = await fileToResizedDataUrl(file, 1600, true);
+      const { bill } = await api.scanBill(actor.businessId, photo.split(',')[1]!, 'image/jpeg', 'sale');
+      const draft = await draftFromPaperBill(actor, bill, photo);
+      void toast({ message: t('Bill read. Check every line before saving.'), duration: 3000, position: 'top', color: 'warning' });
+      router.push(`/tabs/invoices/${draft.id}/edit`);
+    } catch (e) {
+      void toast({ message: e instanceof NetworkError ? t('Scanning needs the internet.') : (e as Error).message, duration: 3000, position: 'top', color: 'danger' });
+    } finally {
+      setReading(false);
+    }
+  }
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<(typeof INVOICE_FILTERS)[number]>('All');
 
@@ -115,6 +141,25 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
         </IonList>
       )}
 
+      {kind === 'invoice' && scanOn && (
+        <div className="ion-padding-horizontal">
+          <input
+            ref={paperInput}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (f) void scanPaper(f);
+            }}
+          />
+          <IonChip onClick={() => !reading && paperInput.current?.click()}>
+            <IonLabel>{reading ? t('Reading the bill…') : t('Scan a paper bill')}</IonLabel>
+          </IonChip>
+        </div>
+      )}
       {kind === 'estimate' && CAN_CREATE_INVOICES && (
         <div className="ion-padding-horizontal">
           <IonChip onClick={() => router.push(`${base}/new?challan=1`)}>

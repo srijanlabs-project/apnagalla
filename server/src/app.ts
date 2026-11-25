@@ -344,12 +344,13 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
   const scanner = billScanner === undefined ? billScannerFromEnv(env) : billScanner;
   app.get('/v1/features', authed, async () => ({ scanBill: !!scanner }));
 
-  app.post<{ Params: BizParams; Body: { image?: string; mediaType?: string } }>(
+  app.post<{ Params: BizParams; Body: { image?: string; mediaType?: string; kind?: string } }>(
     '/v1/businesses/:businessId/scan-bill',
     { ...authed, bodyLimit: 12_000_000 },
     async (req): Promise<{ bill: ScannedBill }> => {
       const role = await accounts.requireRole(uid(req), req.params.businessId);
-      if (role === 'staff' && !(await seesCost(req.params.businessId, uid(req)))) throw forbidden('Only the owner handles purchases in this store');
+      const scanKind = req.body?.kind === 'sale' ? 'sale' : 'purchase';
+      if (scanKind === 'purchase' && role === 'staff' && !(await seesCost(req.params.businessId, uid(req)))) throw forbidden('Only the owner handles purchases in this store');
       if (!scanner) throw badRequest('scan_off', 'Bill scanning is not set up yet');
       const mediaType = req.body?.mediaType;
       if (!req.body?.image || (mediaType !== 'image/jpeg' && mediaType !== 'image/png' && mediaType !== 'image/webp')) throw badRequest('bad_image', 'Send a JPEG, PNG or WebP photo');
@@ -359,8 +360,8 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
       );
       if (Number(counted.rows[0]?.n ?? 0) >= (await billing.scansPerDay(req.params.businessId, env.SCAN_PER_DAY))) throw tooMany('Today’s bill scans are used up. Enter the bill by hand or try tomorrow.', 3600);
       try {
-        const bill = await scanner.scan({ mediaType, base64: req.body.image });
-        await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: 'bill.scanned', detail: { lines: bill.lines.length, provider: scanner.name } });
+        const bill = await scanner.scan({ mediaType, base64: req.body.image }, scanKind);
+        await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: 'bill.scanned', detail: { lines: bill.lines.length, provider: scanner.name, kind: scanKind } });
         return { bill };
       } catch (e) {
         if (e instanceof ScanError) throw badRequest('scan_failed', e.message);

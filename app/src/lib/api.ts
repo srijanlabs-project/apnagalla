@@ -171,8 +171,8 @@ export const api = {
   adminCreateCoupon: (c: { code: string; kind: 'pct' | 'amount' | 'days'; value: number; partner?: string | null; maxUses?: number | null }) => request<unknown>('POST', '/v1/admin/coupons', c),
   adminStoreBilling: (id: string) => request<{ status: BillingStatusDto }>('GET', `/v1/admin/stores/${id}/billing`),
   adminSetStorePlan: (id: string, planId: string, days: number) => request<{ status: BillingStatusDto }>('POST', `/v1/admin/stores/${id}/plan`, { planId, days }),
-  scanBill: (id: string, image: string, mediaType: 'image/jpeg') =>
-    request<{ bill: ScannedBillDto }>('POST', `/v1/businesses/${id}/scan-bill`, { image, mediaType }, { timeoutMs: 120_000 }),
+  scanBill: (id: string, image: string, mediaType: 'image/jpeg', kind: 'purchase' | 'sale' = 'purchase') =>
+    request<{ bill: ScannedBillDto }>('POST', `/v1/businesses/${id}/scan-bill`, { image, mediaType, kind }, { timeoutMs: 120_000 }),
   exportSettings: (id: string) => request<ExportSettingsDto>('GET', `/v1/businesses/${id}/exports`),
   saveExportSettings: (id: string, body: { enabled: boolean; email: string | null; hour: number }) => request<ExportSettingsDto>('PUT', `/v1/businesses/${id}/exports`, body),
   connectExport: (id: string, provider: 'google' | 'onedrive' | 'dropbox') => request<{ url: string }>('POST', `/v1/businesses/${id}/exports/connect/${provider}`),

@@ -5,6 +5,7 @@ import { jobAdvance, newJob, nextStage, saveJob, setStage, settleJobAdvance, tak
 import { applyExchange, khataOf } from './khata';
 import { cheques, markBounced, markCleared } from './cheques';
 import { buildGstr1, uqcOf } from './gstr1';
+import { draftFromPaperBill } from './paperBill';
 import { PermissionError, biggestDiscountPct, newCreditNoteDraft as newNote, newEstimateDraft, recordPayments, saveCreditNote as saveNote, saveEstimate, billMoney, convertEstimate, ensureBusinessRecords, newInvoiceDraft, putRecord, saveInvoice, type Actor } from './repo';
 import { createVariants, priceFor, repriceLines, unitOptions, variantsOf } from './pricing';
 import { newPurchaseDraft, purchaseLineFromItem, savePurchase } from './purchases';
@@ -256,6 +257,23 @@ describe('GSTR-1', () => {
     expect(json.doc_issue.doc_det[0].docs[0]).toMatchObject({ totnum: 2, cancel: 0, net_issue: 2 });
     expect(uqcOf('Pcs')).toBe('NOS');
     expect(uqcOf('sq ft')).toBe('SQF');
+  });
+});
+
+describe('paper bill scan', () => {
+  it('becomes a draft bill with the customer, items, paper number and photo', async () => {
+    await putRecord('items', owner, { id: 'rice', name: 'Rice', unit: 'bag', rate: 50000, rateIncludesTax: false, taxPct: 5 } as Item);
+    const inv = await draftFromPaperBill(
+      owner,
+      { supplierName: 'mehta', supplierGstin: '', billNo: '217', date: '2026-11-01', hasGst: false, igst: false, lines: [{ name: 'Rice', hsn: '', qty: 2, unit: 'bag', rate: 480, taxPct: 0, mrp: 0 }, { name: 'Oil 1L', hsn: '', qty: 1, unit: 'L', rate: 160, taxPct: 0, mrp: 0 }], total: 1120 },
+      'data:image/jpeg;base64,xx',
+    );
+    expect(inv.status).toBe('draft');
+    expect(inv.billTo?.customerId).toBe('c1');
+    expect(inv.reference).toBe('Paper bill 217');
+    expect(inv.lines.map((l) => [l.itemId, l.rate])).toEqual([['rice', 48000], [null, 16000]]);
+    expect(inv.photos).toEqual(['data:image/jpeg;base64,xx']);
+    expect(inv.date).toBe('2026-11-01');
   });
 });
 

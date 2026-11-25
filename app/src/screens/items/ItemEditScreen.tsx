@@ -7,6 +7,7 @@ import { useLocation, useParams } from 'react-router-dom';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import { FormSection, MoneyField, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
 import FormPage from '../../components/FormPage';
+import ImagePicker from '../../components/ImagePicker';
 import { useBusiness } from '../../lib/business';
 import { db, type BusinessSettings, type Item } from '../../lib/db';
 import { rupees } from '../../lib/format';
@@ -67,6 +68,7 @@ export function ItemForm({
       <FormSection>
         <TextField label={t('Item / service name')} required value={it.name} onChange={(name) => patch({ name })} />
         <TextArea label={t('Description (optional)')} value={it.description} onChange={(description) => patch({ description })} />
+        <ImagePicker label={t('Photo (optional)')} value={it.photo ?? undefined} onChange={(photo) => patch({ photo: photo ?? null })} maxPx={400} photo disabled={priceLocked} />
         <div className="field-row">
           {cats.length > 0 && (
             <SelectField

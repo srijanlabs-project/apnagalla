@@ -158,6 +158,8 @@ export interface Item extends SyncedRecord {
   code?: string;
   /** Maximum retail price per unit, incl. tax (paise). */
   mrp?: number;
+  /** Small photo shown in lists and pickers (JPEG data URL). */
+  photo?: string | null;
   /** Keep count of stock (default on; off for services). Area-priced items never do. */
   trackStock?: boolean;
   /** Warn and put on the reorder list at or below this stock. */
@@ -285,6 +287,8 @@ export interface DocBase extends SyncedRecord {
   upiIdId?: string | null;
   /** Copy of totals for lists/dashboard; always recomputed on save. */
   totals: InvoiceTotals;
+  /** Photos attached (a paper bill, a delivery proof); small JPEGs. */
+  photos?: string[];
   createdBy: string;
   history: HistoryEntry[];
 }

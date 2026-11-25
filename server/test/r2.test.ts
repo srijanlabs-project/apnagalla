@@ -95,7 +95,8 @@ describe('bill scanning', () => {
     expect(ok.json().bill.billNo).toBe('ST/88');
     expect((await scan(oH, { image: 'aGVsbG8=', mediaType: 'image/gif' })).statusCode).toBe(400);
     expect((await scan(sH, { image: 'aGVsbG8=', mediaType: 'image/jpeg' })).statusCode).toBe(403);
-    expect((await scan(oH, { image: 'aGVsbG8=', mediaType: 'image/png' })).statusCode).toBe(200);
+    // A paper sales bill isn't about costs: staff may scan it.
+    expect((await scan(sH, { image: 'aGVsbG8=', mediaType: 'image/jpeg', kind: 'sale' })).statusCode).toBe(200);
     expect((await scan(oH, { image: 'aGVsbG8=', mediaType: 'image/png' })).statusCode).toBe(429);
   });
 });

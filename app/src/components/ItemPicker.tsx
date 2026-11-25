@@ -1,4 +1,4 @@
-import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonModal, IonNote, IonSearchbar, IonTitle, IonToolbar } from '@ionic/react';
+import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonModal, IonNote, IonSearchbar, IonThumbnail, IonTitle, IonToolbar } from '@ionic/react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { addOutline } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
@@ -78,6 +78,11 @@ export default function ItemPicker({
                 close();
               }}
             >
+              {i.photo && (
+                <IonThumbnail slot="start">
+                  <img src={i.photo} alt="" />
+                </IonThumbnail>
+              )}
               <IonLabel>
                 <h2>{i.name}</h2>
                 <p>

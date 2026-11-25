@@ -1,4 +1,4 @@
-import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
+import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar, IonThumbnail } from '@ionic/react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { add, alertCircleOutline, chevronBackOutline, cloudUploadOutline, cubeOutline, folderOpenOutline } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
@@ -96,6 +96,11 @@ export default function ItemsScreen() {
         <IonList>
           {filtered.map((i) => (
             <IonItem key={i.id} routerLink={`/tabs/items/${i.id}`} detail={false}>
+              {i.photo && (
+                <IonThumbnail slot="start">
+                  <img src={i.photo} alt="" />
+                </IonThumbnail>
+              )}
               <IonLabel>
                 <h2>{i.name}</h2>
                 <p>

@@ -77,7 +77,7 @@ type Change = SyncPushBody['changes'][number];
 const MAX_CLOCK_SKEW_MS = 5 * 60_000;
 
 /** Fields staff (and the web) may still change on a saved invoice: history and marking it delivered. */
-const PAYMENT_FIELDS = ['payment', 'history', 'deliveredAt', 'deliveredByName', 'updatedAt', 'updatedBy'];
+const PAYMENT_FIELDS = ['payment', 'history', 'deliveredAt', 'deliveredByName', 'photos', 'updatedAt', 'updatedBy'];
 
 function stable(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;

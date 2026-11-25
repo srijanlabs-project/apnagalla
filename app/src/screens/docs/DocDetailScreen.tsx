@@ -15,6 +15,7 @@ import {
   useIonRouter,
   useIonToast,
 } from '@ionic/react';
+import DocPhotos from '../../components/DocPhotos';
 import { formatDateIN } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { createOutline, ellipsisVertical, eyeOutline, logoWhatsapp, shareSocialOutline, walletOutline, printOutline, swapHorizontalOutline } from 'ionicons/icons';
@@ -43,6 +44,7 @@ import {
   setEstimateStatus,
   voidPayment,
   type DocKind,
+  putRecord,
 } from '../../lib/repo';
 import PaySheet from '../../components/PaySheet';
 import { applyAdvance, khataOf } from '../../lib/khata';
@@ -386,6 +388,13 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
         </div>
       )}
 
+      {(kind !== 'credit' || (doc.photos?.length ?? 0) > 0) && (
+        <DocPhotos
+          photos={doc.photos ?? []}
+          canAdd={doc.status !== 'cancelled'}
+          onChange={(photos) => void putRecord(kind === 'invoice' ? 'invoices' : 'estimates', actor, { ...(doc as Invoice), photos }).catch(fail)}
+        />
+      )}
       {money && money.entries.length > 0 && (
         <IonList inset>
           <IonListHeader>

@@ -37,14 +37,19 @@ export const scannedBill = z.object({
 });
 export type ScannedBill = z.infer<typeof scannedBill>;
 
+export type ScanKind = 'purchase' | 'sale';
+
 export interface BillScanner {
   readonly name: string;
-  scan(image: { mediaType: 'image/jpeg' | 'image/png' | 'image/webp'; base64: string }): Promise<ScannedBill>;
+  scan(image: { mediaType: 'image/jpeg' | 'image/png' | 'image/webp'; base64: string }, kind?: ScanKind): Promise<ScannedBill>;
 }
 
 export class ScanError extends Error {}
 
 const TOOL_NAME = 'record_bill';
+
+const SALE_INTRO = `This is a photo of a sales bill an Indian shop wrote or printed for its customer (often a page of a paper bill book).
+Read it and call the ${TOOL_NAME} tool once with what is on it. Put the customer's name in supplierName and their GSTIN (if any) in supplierGstin.`;
 
 const PROMPT = `This is a photo of a supplier's purchase bill (tax invoice or cash memo) from an Indian shop.
 Read it and call the ${TOOL_NAME} tool once with what is printed on it.
@@ -98,7 +103,8 @@ export class ClaudeBillScanner implements BillScanner {
     this.client = new Anthropic({ apiKey, timeout: 90_000, maxRetries: 1 });
   }
 
-  async scan(image: { mediaType: 'image/jpeg' | 'image/png' | 'image/webp'; base64: string }): Promise<ScannedBill> {
+  async scan(image: { mediaType: 'image/jpeg' | 'image/png' | 'image/webp'; base64: string }, kind: ScanKind = 'purchase'): Promise<ScannedBill> {
+    const prompt = kind === 'sale' ? `${SALE_INTRO}\n${PROMPT.split('\n').slice(2).join('\n')}` : PROMPT;
     const response = await this.client.beta.messages.create({
       model: this.model,
       max_tokens: 16000,
@@ -113,7 +119,7 @@ export class ClaudeBillScanner implements BillScanner {
           role: 'user',
           content: [
             { type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.base64 } },
-            { type: 'text', text: PROMPT },
+            { type: 'text', text: prompt },
           ],
         },
       ],
