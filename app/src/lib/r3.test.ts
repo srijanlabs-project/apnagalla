@@ -4,6 +4,7 @@ import { db, type Customer } from './db';
 import { jobAdvance, newJob, nextStage, saveJob, setStage, settleJobAdvance, takeAdvance } from './jobs';
 import { applyExchange, khataOf } from './khata';
 import { cheques, markBounced, markCleared } from './cheques';
+import { buildGstr1, uqcOf } from './gstr1';
 import { PermissionError, biggestDiscountPct, newCreditNoteDraft as newNote, newEstimateDraft, recordPayments, saveCreditNote as saveNote, saveEstimate, billMoney, convertEstimate, ensureBusinessRecords, newInvoiceDraft, putRecord, saveInvoice, type Actor } from './repo';
 import { createVariants, priceFor, repriceLines, unitOptions, variantsOf } from './pricing';
 import { newPurchaseDraft, purchaseLineFromItem, savePurchase } from './purchases';
@@ -230,6 +231,31 @@ describe('exchange and cheques', () => {
     list = await cheques('b1');
     await markBounced(owner, list.find((g) => g.number === '999')!);
     expect((await billMoney(bill2.id)).pending).toBe(20000);
+  });
+});
+
+describe('GSTR-1', () => {
+  it('splits a month into B2B, B2C small, credit notes, HSN and documents issued', async () => {
+    await db.profiles.update('b1', { gstType: 'regular', taxIdValue: '27AAPFU0939F1ZV', address: { state: 'Maharashtra' } });
+    const month = TODAY.slice(0, 7);
+    const line = (rate: number) => [{ id: 'l', name: 'Paint', qty: 2, unit: 'ltr', rate, rateIncludesTax: false, taxPct: 18, hsn: '3209' }];
+    const d1 = await newInvoiceDraft(owner);
+    const b2b = await saveInvoice(owner, { ...d1, taxMode: 'gst', billTo: { customerId: null, name: 'Builder', taxId: '27AAPFU0939F1ZV', address: { state: 'Maharashtra' } }, lines: line(50000) }, { finalize: true });
+    const d2 = await newInvoiceDraft(owner);
+    await saveInvoice(owner, { ...d2, taxMode: 'gst', billTo: { customerId: null, name: 'Walk-in', address: {} }, lines: line(10000) }, { finalize: true });
+    const n = await newNote(owner, b2b.id);
+    await saveNote(owner, { ...n, reason: 'return', lines: n.lines.map((l) => ({ ...l, qty: 1 })) }, { finalize: true });
+    const { json } = (await buildGstr1('b1', month)) as unknown as { json: Record<string, any> };
+    expect(json.fp).toBe(`${month.slice(5)}${month.slice(0, 4)}`);
+    expect(json.b2b[0].ctin).toBe('27AAPFU0939F1ZV');
+    expect(json.b2b[0].inv[0]).toMatchObject({ inum: b2b.number, val: 1180, pos: '27', itms: [{ itm_det: { txval: 1000, rt: 18, camt: 90, samt: 90, iamt: 0 } }] });
+    expect(json.b2cs).toEqual([{ sply_ty: 'INTRA', pos: '27', typ: 'OE', rt: 18, txval: 200, iamt: 0, camt: 18, samt: 18, csamt: 0 }]);
+    expect(json.cdnr[0].nt[0]).toMatchObject({ ntty: 'C', val: 590 });
+    expect(json.hsn.hsn_b2b[0]).toMatchObject({ hsn_sc: '3209', uqc: 'LTR', qty: 1, txval: 500 });
+    expect(json.doc_issue.doc_det.map((d: { doc_num: number }) => d.doc_num)).toEqual([1, 5]);
+    expect(json.doc_issue.doc_det[0].docs[0]).toMatchObject({ totnum: 2, cancel: 0, net_issue: 2 });
+    expect(uqcOf('Pcs')).toBe('NOS');
+    expect(uqcOf('sq ft')).toBe('SQF');
   });
 });
 

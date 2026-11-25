@@ -29,6 +29,7 @@ function useAllowed() {
 
 export function ReportsScreen() {
   const allowed = useAllowed();
+  const { isOwner } = useBusiness();
   return (
     <PageShell title={t('Reports')} backHref="/tabs/more" padded={false}>
       {GROUPS.map((g) => {
@@ -44,6 +45,11 @@ export function ReportsScreen() {
                 <IonLabel>{r.title()}</IonLabel>
               </IonItem>
             ))}
+            {g.id === 'gst' && isOwner && (
+              <IonItem routerLink="/tabs/reports/gstr1" detail>
+                <IonLabel>{t('GSTR-1 (JSON for the GST portal)')}</IonLabel>
+              </IonItem>
+            )}
           </IonList>
         );
       })}
