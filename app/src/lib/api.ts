@@ -9,6 +9,9 @@ import type {
   MeResponse,
   ReserveNumbersBody,
   ReturnNumbersBody,
+  AdminCreateStoreBody,
+  AdminStoreDto,
+  AuditEntryDto,
   GstinInfo,
   ReserveNumbersResponse,
   SessionDto,
@@ -20,7 +23,8 @@ import type {
 } from '@invoice/shared';
 import { API_URL } from '../config';
 import { t } from './i18n';
-import { KEYS, kv } from './storage';
+import { secure } from './secureStore';
+import { KEYS } from './storage';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -46,14 +50,15 @@ let refreshing: Promise<AuthTokens | null> | null = null;
 const onSignedOut = new Set<Listener>();
 
 export async function loadTokens(): Promise<AuthTokens | null> {
-  tokens = await kv.get<AuthTokens>(KEYS.tokens);
+  tokens = await secure.get<AuthTokens>(KEYS.tokens);
   return tokens;
 }
 
+/** Tokens are kept in encrypted storage on the phone (see secureStore.ts). */
 export async function saveTokens(t: AuthTokens | null) {
   tokens = t;
-  if (t) await kv.set(KEYS.tokens, t);
-  else await kv.remove(KEYS.tokens);
+  if (t) await secure.set(KEYS.tokens, t);
+  else await secure.remove(KEYS.tokens);
 }
 
 /** Called when the server rejects our refresh token (session revoked / expired). */
@@ -145,6 +150,11 @@ export const api = {
     request<ReserveNumbersResponse>('POST', `/v1/businesses/${id}/numbers/reserve`, body, { timeoutMs }),
   returnNumbers: (id: string, body: ReturnNumbersBody) => request<void>('POST', `/v1/businesses/${id}/numbers/return`, body),
   gstinLookup: (id: string, gstin: string) => request<{ found: boolean; info: GstinInfo | null }>('GET', `/v1/businesses/${id}/gstin/${encodeURIComponent(gstin)}`, undefined, { timeoutMs: 15_000 }),
+  adminStores: (q?: string) => request<{ stores: AdminStoreDto[]; activeDevices: number }>('GET', `/v1/admin/stores${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  adminCreateStore: (body: AdminCreateStoreBody) => request<{ id: string }>('POST', '/v1/admin/stores', body),
+  adminSuspend: (id: string, reason: string) => request<void>('POST', `/v1/admin/stores/${id}/suspend`, { reason }),
+  adminReactivate: (id: string) => request<void>('POST', `/v1/admin/stores/${id}/reactivate`),
+  adminAudit: (id: string) => request<{ entries: AuditEntryDto[] }>('GET', `/v1/admin/stores/${id}/audit`),
   setSeriesCode: (id: string, userId: string, code: string) => request<TeamResponse>('POST', `/v1/businesses/${id}/members/${userId}/series-code`, { code }),
 
   acceptInvite: (inviteId: string) => request<MeResponse>('POST', `/v1/invites/${inviteId}/accept`),

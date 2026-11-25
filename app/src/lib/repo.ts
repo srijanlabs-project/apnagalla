@@ -132,6 +132,7 @@ export function defaultSettings(businessId: string): BusinessSettings {
     areaBilling: false,
     deliveryAlertTime: '09:00',
     staffSeeCost: false,
+    staffMustLock: false,
     billLanguage: 'en',
     resetEachFinancialYear: true,
     defaultPaymentTermsDays: 0,

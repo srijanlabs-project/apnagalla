@@ -252,6 +252,13 @@ export default function InvoiceSettingsScreen() {
           onChange={(staffSeeCost) => patch({ staffSeeCost })}
           disabled={ro}
         />
+        <ToggleRow
+          label={t('Staff must lock the app')}
+          note={t('Staff set a PIN (or fingerprint) on their phones; the app asks for it on opening and after 5 minutes away.')}
+          checked={s.staffMustLock}
+          onChange={(staffMustLock) => patch({ staffMustLock })}
+          disabled={ro}
+        />
       </FormSection>
 
       <FormSection title={t('Shop features')}>

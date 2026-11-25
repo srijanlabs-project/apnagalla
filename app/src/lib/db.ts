@@ -100,6 +100,8 @@ export interface BusinessSettings extends SyncedRecord {
   areaBilling: boolean;
   /** Language of printed receipts (labels and amount in words). PDFs stay English for now. */
   billLanguage: Lang;
+  /** Staff must lock the app with a PIN / fingerprint on their phones. */
+  staffMustLock: boolean;
   /** Staff may see items' purchase price. Off: the server never sends it to staff phones. */
   staffSeeCost: boolean;
   /** "HH:MM": when the day-before delivery alert rings. */

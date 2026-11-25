@@ -15,6 +15,7 @@
     "i18n": "node scripts/i18n.mjs"
   },
   "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
     "@capacitor-community/bluetooth-le": "^8.4.0",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.6.2",
@@ -29,6 +30,7 @@
     "@ionic/react-router": "^9.0.13",
     "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.23.0",
+    "capacitor-secure-storage-plugin": "^0.14.2",
     "dexie": "^4.4.7",
     "dexie-react-hooks": "^4.4.0",
     "ionicons": "^8.1.1",

@@ -18,6 +18,7 @@ import { errorMessage } from '../../lib/api';
 import { t } from '../../lib/i18n';
 import { useOnline } from '../../lib/network';
 import { useSession } from '../../lib/session';
+import { CLIENT_KIND } from '../../lib/platform';
 import { sync } from '../../lib/sync';
 import '../auth/auth.css';
 
@@ -53,6 +54,11 @@ export default function OnboardingScreen() {
       <IonHeader>
         <IonToolbar>
           <IonTitle>{needsName ? t('Welcome') : t('Set up your business')}</IonTitle>
+          {me?.isAdmin && CLIENT_KIND === 'web' && (
+            <IonButton slot="end" fill="clear" href="/admin">
+              {t('ApnaGalla admin')}
+            </IonButton>
+          )}
           <IonButton slot="end" fill="clear" onClick={() => void logout(true)}>
             {t('Log out')}
           </IonButton>

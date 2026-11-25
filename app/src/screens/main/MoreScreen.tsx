@@ -3,6 +3,8 @@ import { LANGS, LANG_NAMES, formatIndianMobile, type Lang } from '@invoice/share
 import {
   businessOutline,
   languageOutline,
+  lockClosedOutline,
+  shieldCheckmarkOutline,
   cardOutline,
   clipboardOutline,
   colorPaletteOutline,
@@ -17,6 +19,8 @@ import {
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
 import { useSession } from '../../lib/session';
+import { lockSupported } from '../../lib/appLock';
+import { CLIENT_KIND } from '../../lib/platform';
 import { appLanguage, setAppLanguage, t } from '../../lib/i18n';
 
 export default function MoreScreen() {
@@ -123,6 +127,18 @@ export default function MoreScreen() {
             ))}
           </IonSelect>
         </IonItem>
+        {lockSupported() && (
+          <IonItem routerLink="/tabs/more/lock" detail lines="full">
+            <IonIcon icon={lockClosedOutline} slot="start" />
+            <IonLabel>{t('App lock')}</IonLabel>
+          </IonItem>
+        )}
+        {me?.isAdmin && CLIENT_KIND === 'web' && (
+          <IonItem href="/admin" detail lines="full">
+            <IonIcon icon={shieldCheckmarkOutline} slot="start" />
+            <IonLabel>{t('ApnaGalla admin')}</IonLabel>
+          </IonItem>
+        )}
         <IonItem routerLink="/tabs/more/printer" detail lines="full">
           <IonIcon icon={printOutline} slot="start" />
           <IonLabel>{t('Printer')}</IonLabel>

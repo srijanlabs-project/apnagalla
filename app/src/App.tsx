@@ -1,7 +1,10 @@
 import { IonApp, IonContent, IonPage, IonRouterOutlet, IonSpinner } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { Navigate, Route } from 'react-router-dom';
+import LockGate from './components/LockGate';
 import Splash from './components/Splash';
+import { CLIENT_KIND } from './lib/platform';
+import AdminScreen from './screens/admin/AdminScreen';
 import { SessionProvider, useSession } from './lib/session';
 import LoginScreen from './screens/auth/LoginScreen';
 import MainTabs from './screens/main/MainTabs';
@@ -39,17 +42,22 @@ function Screens() {
     );
   }
   if (status === 'signedOut' || !me) return <LoginScreen />;
+  // ApnaGalla's admin panel: web only, at /admin, for numbers listed on the server.
+  if (me.isAdmin && CLIENT_KIND === 'web' && window.location.pathname.startsWith('/admin')) return <AdminScreen />;
   if (!me.user.name || !membership) return <OnboardingScreen />;
+  if (membership.suspended) return <PausedScreen suspended />;
   if (membership.active === false) return <PausedScreen />;
 
   // Keyed by store: switching stores rebuilds every screen with that store's data.
   return (
-    <IonReactRouter key={membership.businessId}>
-      <IonRouterOutlet>
-        <Route path="/tabs/*" element={<MainTabs />} />
-        <Route path="*" element={<Navigate to="/tabs/home" replace />} />
-      </IonRouterOutlet>
-    </IonReactRouter>
+    <LockGate>
+      <IonReactRouter key={membership.businessId}>
+        <IonRouterOutlet>
+          <Route path="/tabs/*" element={<MainTabs />} />
+          <Route path="*" element={<Navigate to="/tabs/home" replace />} />
+        </IonRouterOutlet>
+      </IonReactRouter>
+    </LockGate>
   );
 }
 

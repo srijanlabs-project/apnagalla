@@ -231,3 +231,9 @@
 /* ---------- thermal receipt preview (web) ---------- */
 .receipt-preview { margin: 12px; text-align: center; }
 .receipt-preview img { max-width: 100%; width: 384px; border: 1px solid var(--ion-color-medium); background: #fff; image-rendering: pixelated; }
+
+/* ---------- app lock ---------- */
+.lock-screen { text-align: center; }
+.lock-screen .lock-icon { font-size: 56px; color: var(--ion-color-primary); margin-top: 32px; }
+.pin-input { max-width: 260px; margin: 12px auto; font-size: 1.4rem; letter-spacing: 0.4em; text-align: center; }
+.lock-toggle { margin: 12px 0; }
