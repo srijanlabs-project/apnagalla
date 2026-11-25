@@ -119,6 +119,16 @@ Built in this order; each step is tested and committed before the next.
 | R1.6 Print and languages | Bluetooth thermal printing (2" / 3"), English / Hindi / Gujarati / Punjabi | Done (translations to be reviewed; printing to be tried on real printers) |
 | R1.7 Admin and security | Admin panel (create / suspend stores), app PIN, secure token storage, tenant-isolation tests, rate limits, backups, monitoring | Done (lock and fingerprint to be tried on a phone) |
 
+Pending (not scheduled yet):
+- **iPhone app.** Needs an Apple Developer account ($99/yr), a Mac or cloud Mac builds, and an iPhone to
+  test. Work: add the iOS project, icons and launch screen, permission texts (camera, Face ID,
+  Bluetooth, notifications), BLE printers only on iPhone (Apple blocks classic Bluetooth printers),
+  Face ID wording, Keychain cleared after reinstall, iPhone fonts for receipts, notch / home-bar
+  layout, "Android app" texts. App Store also needs in-app account deletion, a reviewer login,
+  a privacy policy and the privacy form. About 3–4 days plus Apple's approval and review.
+  Open questions: Mac or cloud builds; individual or company account; are BLE-only printers OK.
+- **Automatic APK downloads** (GitHub Releases on every deploy), later Google Play internal testing.
+
 Known gaps after R1.2:
 - A phone signed out because the same login was used on a new phone loses changes it had not
   uploaded yet. Sync runs 2 s after every save, so this is usually nothing; a grace upload for the

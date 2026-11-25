@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { kv } from './storage';
 
 /**
@@ -8,15 +9,15 @@ import { kv } from './storage';
  */
 const native = () => Capacitor.isNativePlatform();
 
-async function plugin() {
-  return (await import('capacitor-secure-storage-plugin')).SecureStoragePlugin;
-}
+// Never return a Capacitor plugin from an async function or a promise: the plugin answers every
+// property, including `then`, so awaiting it waits forever (the app stuck on the splash).
+const plugin = () => SecureStoragePlugin;
 
 export const secure = {
   async get<T>(key: string): Promise<T | null> {
     if (!native()) return kv.get<T>(key);
     try {
-      const { value } = await (await plugin()).get({ key });
+      const { value } = await plugin().get({ key });
       return JSON.parse(value) as T;
     } catch {
       // Not stored yet (the plugin throws), or written by an older app version: move it over.
@@ -30,11 +31,11 @@ export const secure = {
   },
   async set(key: string, value: unknown): Promise<void> {
     if (!native()) return kv.set(key, value);
-    await (await plugin()).set({ key, value: JSON.stringify(value) });
+    await plugin().set({ key, value: JSON.stringify(value) });
   },
   async remove(key: string): Promise<void> {
     if (!native()) return kv.remove(key);
-    await (await plugin())
+    await plugin()
       .remove({ key })
       .catch(() => undefined);
     await kv.remove(key);
