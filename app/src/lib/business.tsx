@@ -1,4 +1,5 @@
 import { IonSpinner } from '@ionic/react';
+import { refreshCatalog } from './catalog';
 import { scheduleShopAlerts } from './alerts';
 import { DEFAULT_STAFF_PERMISSIONS, type StaffAccess } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -139,6 +140,12 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     const timer = setTimeout(() => void scheduleShopAlerts(actor, { canSeeMoney, storeName }), 4000);
     return () => clearTimeout(timer);
   }, [actor, shopKey, canSeeMoney, storeName]);
+
+  // Shared product list: download the store's sections (then changes only, every few hours).
+  const sectionsKey = value?.settings.catalogSections?.join(',') ?? '';
+  useEffect(() => {
+    if (sectionsKey) void refreshCatalog();
+  }, [sectionsKey]);
 
   // Bills from before payment entries: turn their paid amount into an entry (once, same id everywhere).
   const actorForConvert = value?.actor;

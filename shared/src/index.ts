@@ -9,3 +9,4 @@ export * from './area';
 export * from './langs';
 export * from './customReport';
 export * from './locks';
+export * from './catalog';

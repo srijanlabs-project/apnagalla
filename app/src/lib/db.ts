@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { ChargeInput, DiscountInput, Dims, GstType, InvoiceTotals, Lang, NumberingMode, PaymentMode, SyncTable, TaxMode } from '@invoice/shared';
+import type { ChargeInput, DiscountInput, Dims, GstType, InvoiceTotals, Lang, NumberingMode, PaymentMode, SyncTable, TaxMode, CatalogSection, CatalogItemDto, CatalogAliasDto } from '@invoice/shared';
 
 /**
  * Local offline database (IndexedDB via Dexie). The app reads and writes here first;
@@ -110,6 +110,10 @@ export interface BusinessSettings extends SyncedRecord {
   creditLimitBlocks?: boolean;
   /** Delivery challans: their own number series. */
   challanPrefix?: string;
+  /** Shared product lists this store uses for suggestions (undefined = not chosen yet). */
+  catalogSections?: CatalogSection[];
+  /** Suggest products from the list when adding items (default yes). */
+  catalogSuggest?: boolean;
   /** Lock saved bills older than this many days (0 / empty = never). */
   lockBillsAfterDays?: number | null;
   /** Books closed up to this date (e.g. the GST return is filed): bills on or before it are locked. */
@@ -184,6 +188,8 @@ export interface Item extends SyncedRecord {
   warrantyMonths?: number | null;
   /** Garments etc.: this item only groups its variants (no stock of its own). */
   hasVariants?: boolean;
+  /** The shared-list product it was made from (R5). */
+  catalogId?: string;
   /** A variant: its parent item and "M · Red". */
   variantOf?: string | null;
   variantLabel?: string;
@@ -645,6 +651,8 @@ export const db = new Dexie('apnagalla') as Dexie & {
   savedReports: EntityTable<SavedReport, 'id'>;
   employees: EntityTable<Employee, 'id'>;
   attendance: EntityTable<Attendance, 'id'>;
+  catalogItems: EntityTable<CatalogItemDto, 'id'>;
+  catalogAliases: EntityTable<CatalogAliasDto, 'word'>;
   outbox: EntityTable<OutboxEntry, 'seq'>;
   meta: EntityTable<MetaEntry, 'key'>;
 };
@@ -694,6 +702,12 @@ db.version(6).stores({
 db.version(7).stores({
   employees: 'id, businessId',
   attendance: 'id, businessId, employeeId, [businessId+date]',
+});
+
+/** The shared product list (not synced: downloaded by section, the same for every shop). */
+db.version(8).stores({
+  catalogItems: 'id, section',
+  catalogAliases: 'word',
 });
 
 export const ALL_TABLES = [

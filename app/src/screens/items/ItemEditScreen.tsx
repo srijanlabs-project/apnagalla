@@ -1,4 +1,6 @@
-import { IonButton, IonIcon, IonItem, IonLabel, IonNote, useIonAlert, useIonRouter } from '@ionic/react';
+import { IonButton, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonNote, useIonAlert, useIonRouter } from '@ionic/react';
+import { categoryFor, itemFieldsFrom } from '../../lib/catalog';
+import CatalogSuggestions from '../../components/CatalogSuggestions';
 import { barcodeOutline, layersOutline } from 'ionicons/icons';
 import { AREA_UNIT, calculateInvoice, checkHsn } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -184,6 +186,19 @@ export default function ItemEditScreen() {
   );
   const { value: it, patch, save, saving } = useForm<Item>(initial);
   const [opening, setOpening] = useState<number | null>(null);
+  const typed = it?.name.trim().toLowerCase() ?? '';
+  const sameNamed = useLiveQuery(
+    async () =>
+      isNew && typed.length >= 2
+        ? db.items
+            .where('businessId')
+            .equals(actor.businessId)
+            .filter((x) => !x.deleted && x.name.toLowerCase().includes(typed))
+            .limit(5)
+            .toArray()
+        : [],
+    [isNew, typed, actor.businessId],
+  );
   const stock = useLiveQuery(async () => (isNew ? undefined : ((await stockLevels(actor.businessId)).get(id!) ?? 0)), [isNew, id, actor.businessId]);
   const [alert] = useIonAlert();
   const router = useIonRouter();
@@ -221,6 +236,30 @@ export default function ItemEditScreen() {
         </IonItem>
       )}
       <ItemForm value={it} onChange={patch} settings={settings} priceLocked={priceLocked} showCost={perms.seeCost} />
+      {isNew && !it.catalogId && it.name.trim().length >= 2 && (
+        <>
+          {sameNamed && sameNamed.length > 0 && (
+            <IonList>
+              <IonListHeader>
+                <IonLabel>{t('Already in your items')}</IonLabel>
+              </IonListHeader>
+              {sameNamed.map((x) => (
+                <IonItem key={x.id} routerLink={`/tabs/items/${x.id}`} detail>
+                  <IonLabel>{x.name}</IonLabel>
+                  <IonNote slot="end">{rupees(x.rate)}</IonNote>
+                </IonItem>
+              ))}
+            </IonList>
+          )}
+          <CatalogSuggestions
+            query={it.name}
+            exclude={(sameNamed ?? []).map((x) => x.name)}
+            onPick={(row) =>
+              void categoryFor(actor, row.category).then((categoryId) => patch({ ...itemFieldsFrom(row, settings.defaultTaxPct, settings.units), ...(categoryId ? { categoryId } : {}) }))
+            }
+          />
+        </>
+      )}
       {!it.hasVariants && <PriceLevelsSection it={it} patch={patch} disabled={priceLocked} />}
       {!it.hasVariants && <UnitsSection it={it} patch={patch} disabled={priceLocked} />}
       <SerialSection it={it} patch={patch} disabled={priceLocked} />

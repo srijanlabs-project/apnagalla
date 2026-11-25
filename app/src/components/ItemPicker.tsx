@@ -1,4 +1,6 @@
 import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonModal, IonNote, IonSearchbar, IonThumbnail, IonTitle, IonToolbar } from '@ionic/react';
+import type { CatalogItemDto } from '@invoice/shared';
+import CatalogSuggestions, { AddFromCatalogSheet } from './CatalogSuggestions';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { addOutline } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
@@ -26,6 +28,7 @@ export default function ItemPicker({
   showCost?: boolean;
 }) {
   const [q, setQ] = useState('');
+  const [fromList, setFromList] = useState<CatalogItemDto | null>(null);
   const items = useLiveQuery(() => (isOpen ? db.items.where('businessId').equals(businessId).filter(sellable).toArray() : []), [isOpen, businessId]);
   const stock = useLiveQuery(() => (isOpen ? stockLevels(businessId) : undefined), [isOpen, businessId]);
   const list = useMemo(() => {
@@ -68,6 +71,9 @@ export default function ItemPicker({
               <IonLabel>{t('Add “{name}” as a new item', { name: q.trim() })}</IonLabel>
             </IonItem>
           )}
+          {list.length < 8 && q.trim().length >= 2 && (
+            <CatalogSuggestions query={q} exclude={list.map((i) => i.name)} onPick={setFromList} />
+          )}
           {list.map((i) => (
             <IonItem
               key={i.id}
@@ -95,6 +101,15 @@ export default function ItemPicker({
           ))}
         </IonList>
       </IonContent>
+      <AddFromCatalogSheet
+        row={fromList}
+        askCost={showCost}
+        onClose={() => setFromList(null)}
+        onAdded={(item) => {
+          onPick(item);
+          close();
+        }}
+      />
     </IonModal>
   );
 }

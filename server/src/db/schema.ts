@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { bigint, boolean, index, integer, jsonb, pgEnum, pgSequence, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { bigint, boolean, doublePrecision, index, integer, jsonb, pgEnum, pgSequence, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 export const roleEnum = pgEnum('role', ['owner', 'staff']);
 
@@ -301,3 +301,39 @@ export const platformPayments = pgTable(
   },
   (t) => [index('platform_payments_business_idx').on(t.businessId), index('platform_payments_link_idx').on(t.linkId)],
 );
+
+/* ---------- shared product list (R5) ---------- */
+
+/** Every change to the product list gets the next value; phones download "everything after N". */
+export const catalogSeq = pgSequence('catalog_seq');
+
+/** Products kept by ApnaGalla (no prices); shops pick from them when adding items. */
+export const catalogItems = pgTable(
+  'catalog_items',
+  {
+    id: text('id').primaryKey(),
+    section: text('section').notNull(),
+    category: text('category').notNull(),
+    item: text('item').notNull(),
+    brand: text('brand'),
+    size: doublePrecision('size'),
+    sizeUnit: text('size_unit'),
+    sellUnit: text('sell_unit').notNull(),
+    hsn: text('hsn'),
+    gstPct: doublePrecision('gst_pct'),
+    otherNames: jsonb('other_names').$type<string[]>().notNull().default([]),
+    notes: text('notes'),
+    deleted: boolean('deleted').notNull().default(false),
+    seq: bigint('seq', { mode: 'number' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('catalog_items_section_seq').on(t.section, t.seq)],
+);
+
+/** Words people type and what they mean in the list ("ashirwad" → "Aashirvaad", "तेल" → "Oil"). */
+export const catalogAliases = pgTable('catalog_aliases', {
+  word: text('word').primaryKey(),
+  means: text('means').notNull(),
+  deleted: boolean('deleted').notNull().default(false),
+  seq: bigint('seq', { mode: 'number' }).notNull(),
+});

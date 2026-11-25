@@ -22,6 +22,8 @@ import {
   useIonRouter,
   useIonToast,
 } from '@ionic/react';
+import { itemFieldsFrom } from '../../lib/catalog';
+import CatalogSuggestions from '../../components/CatalogSuggestions';
 import { isAreaPricing } from '@invoice/shared';
 import { formatPaise } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -66,7 +68,7 @@ interface Done {
  * A bill can be held (kept as a draft) to serve the next customer and resumed later.
  */
 export default function SaleScreen() {
-  const { actor, profile, settings, upiIds, ledger } = useBusiness();
+  const { actor, profile, settings, upiIds, ledger, perms } = useBusiness();
   const location = useLocation();
   const router = useIonRouter();
   const [toast] = useIonToast();
@@ -74,7 +76,7 @@ export default function SaleScreen() {
   const [bill, setBill] = useState<Invoice | null>(null);
   const [q, setQ] = useState('');
   const [picker, setPicker] = useState(false);
-  const [editing, setEditing] = useState<{ line: DocLine; isNew: boolean } | null>(null);
+  const [editing, setEditing] = useState<{ line: DocLine; isNew: boolean; saveNew?: boolean } | null>(null);
   const [paying, setPaying] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<Done | null>(null);
@@ -437,6 +439,22 @@ export default function SaleScreen() {
               >
                 <IonLabel color="primary">{t('+ Sell "{name}" (not in the catalogue)', { name: q.trim() })}</IonLabel>
               </IonItem>
+              {matches.length < 5 && (
+                <CatalogSuggestions
+                  query={q}
+                  limit={5}
+                  exclude={matches.map((m) => m.name)}
+                  onPick={(row) => {
+                    const f = itemFieldsFrom(row, settings.defaultTaxPct, settings.units);
+                    setEditing({
+                      line: { id: newId(), name: f.name!, qty: 1, unit: f.unit!, rate: 0, rateIncludesTax: true, taxPct: f.taxPct!, hsn: f.hsn },
+                      isNew: true,
+                      saveNew: perms.access === 'full',
+                    });
+                    setQ('');
+                  }}
+                />
+              )}
             </IonList>
           ) : bill.lines.length === 0 ? (
             <div className="sale-empty">
@@ -554,6 +572,7 @@ export default function SaleScreen() {
         }}
       />
       <LineEditor
+        saveNew={editing?.saveNew}
         level={level}
         line={editing?.line ?? null}
         isNew={editing?.isNew ?? false}

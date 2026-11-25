@@ -1,4 +1,5 @@
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonRouterLink, useIonRouter } from '@ionic/react';
+import { ChooseProductListCard } from '../settings/ProductListScreen';
 import type { BillingStatusDto } from '@invoice/shared';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
@@ -69,6 +70,7 @@ export function HomeScreen() {
       </div>
       {!CAN_CREATE_INVOICES && <p className="section-note">{webInvoiceNote()}</p>}
 
+      <ChooseProductListCard />
       {renew && (
         <IonRouterLink routerLink="/tabs/more/plan">
           <p className="renew-banner">

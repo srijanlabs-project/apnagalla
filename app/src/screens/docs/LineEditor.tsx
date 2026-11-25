@@ -14,6 +14,8 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/react';
+import { itemFieldsFrom } from '../../lib/catalog';
+import CatalogSuggestions from '../../components/CatalogSuggestions';
 import { AREA_UNIT, areaQty, calculateInvoice, checkHsn, defaultSizeUnit, isAreaOf, isAreaPricing, type AreaPricing, type SizeUnit } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
@@ -65,9 +67,11 @@ interface Props {
   onDelete: (id: string) => void;
   /** The customer's price type (wholesale / special prices). */
   level?: PriceLevel;
+  /** Start with "Save this item to my catalogue" on (a product picked from the shared list). */
+  saveNew?: boolean;
 }
 
-export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDelete, level = 'retail' }: Props) {
+export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDelete, level = 'retail', saveNew = false }: Props) {
   const { actor, settings, perms } = useBusiness();
   const [l, setL] = useState<DocLine | null>(line);
   const [picking, setPicking] = useState(false);
@@ -78,8 +82,8 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
     setL(line);
     setPicking(!!line && isNew && !line.name);
     setQ('');
-    setSaveToCatalogue(false);
-  }, [line, isNew]);
+    setSaveToCatalogue(saveNew);
+  }, [line, isNew, saveNew]);
 
   const items = useLiveQuery(
     () =>
@@ -179,6 +183,18 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
             >
               <IonLabel color="primary">{q.trim() ? t('Use "{name}" (new item)', { name: q.trim() }) : t('Type an item not in the catalogue')}</IonLabel>
             </IonItem>
+            {matches.length < 8 && q.trim().length >= 2 && (
+              <CatalogSuggestions
+                query={q}
+                exclude={matches.map((m) => m.name)}
+                onPick={(row) => {
+                  const f = itemFieldsFrom(row, settings.defaultTaxPct, settings.units);
+                  set({ name: f.name!, unit: f.unit!, hsn: f.hsn, taxPct: f.taxPct!, rate: 0, rateIncludesTax: true });
+                  setSaveToCatalogue(perms.access === 'full');
+                  setPicking(false);
+                }}
+              />
+            )}
             {matches.map((it) => (
               <IonItem
                 key={it.id}

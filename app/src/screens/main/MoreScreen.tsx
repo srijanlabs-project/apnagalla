@@ -13,6 +13,7 @@ import {
   constructOutline,
   cloudUploadOutline,
   busOutline,
+  listOutline,
   notificationsOutline,
   carOutline,
   cartOutline,
@@ -227,6 +228,12 @@ export default function MoreScreen() {
           <IonIcon icon={carOutline} slot="start" />
           <IonLabel>{t('Deliveries')}</IonLabel>
         </IonItem>
+        {isOwner && (
+          <IonItem routerLink="/tabs/more/product-list" detail lines="full">
+            <IonIcon icon={listOutline} slot="start" />
+            <IonLabel>{t('Product list')}</IonLabel>
+          </IonItem>
+        )}
         <IonItem routerLink="/tabs/more/alerts" detail lines="full">
           <IonIcon icon={notificationsOutline} slot="start" />
           <IonLabel>{t('Phone alerts')}</IonLabel>

@@ -119,3 +119,36 @@ describe('plans and billing', () => {
     expect(lapsed).toMatchObject({ state: 'expired', limits: { staff: 1, billsPerMonth: 1 } });
   });
 });
+
+describe('shared product list', () => {
+  it('admins upload; phones download changes only; replaced rows are removed', async () => {
+    const admin = bearer((await login('9870410001', 'web')).accessToken);
+    const shop = bearer((await login('9870410301')).accessToken);
+    const row = (item: string, brand: string | null, size: number | null, extra: Record<string, unknown> = {}) => ({ category: 'Atta & Flour', item, brand, size, sizeUnit: size ? 'kg' : null, sellUnit: 'pcs', hsn: '1101', gstPct: 5, otherNames: ['आटा'], ...extra });
+    const up = (rows: unknown[], replace = false) => app.inject({ method: 'POST', url: '/v1/admin/catalog/import', headers: admin, payload: { section: 'kirana', rows, replace } });
+
+    expect((await app.inject({ method: 'POST', url: '/v1/admin/catalog/import', headers: shop, payload: { section: 'kirana', rows: [] } })).statusCode).toBe(403);
+    expect((await up([row('Wheat Atta', 'Aashirvaad', 5), row('Wheat Atta', 'Aashirvaad', 10), row('Wheat Atta', null, null)])).json()).toEqual({ added: 3, updated: 0, unchanged: 0, removed: 0 });
+    expect((await up([{ ...row('Bad', null, null), hsn: '12' }])).statusCode).toBe(400);
+
+    const pull = async (since: number) => (await app.inject({ method: 'GET', url: `/v1/catalog/items/kirana?since=${since}`, headers: shop })).json<{ rows: { item: string; brand: string | null; deleted?: boolean }[]; cursor: number; more: boolean }>();
+    const first = await pull(0);
+    expect(first.rows).toHaveLength(3);
+    expect(first.more).toBe(false);
+
+    // Same sheet again: nothing changes, so nothing new to download.
+    expect((await up([row('Wheat Atta', 'Aashirvaad', 5), row('Wheat Atta', 'Aashirvaad', 10), row('Wheat Atta', null, null)])).json()).toMatchObject({ unchanged: 3 });
+    expect((await pull(first.cursor)).rows).toHaveLength(0);
+
+    // A GST fix and a replace that drops the 10 kg pack.
+    expect((await up([row('Wheat Atta', 'Aashirvaad', 5, { gstPct: 0 }), row('Wheat Atta', null, null)], true)).json()).toEqual({ added: 0, updated: 1, unchanged: 1, removed: 1 });
+    const next = await pull(first.cursor);
+    expect(next.rows.map((r) => r.deleted ?? false).sort()).toEqual([false, true]);
+    expect((await app.inject({ method: 'GET', url: '/v1/catalog/items/nope', headers: shop })).statusCode).toBe(400);
+
+    await app.inject({ method: 'POST', url: '/v1/admin/catalog-aliases/import', headers: admin, payload: { rows: [{ word: 'Ashirwad', means: 'Aashirvaad' }] } });
+    const al = (await app.inject({ method: 'GET', url: '/v1/catalog/aliases?since=0', headers: shop })).json<{ rows: { word: string }[] }>();
+    expect(al.rows.map((r) => r.word)).toEqual(['ashirwad']);
+    expect((await app.inject({ method: 'GET', url: '/v1/admin/catalog', headers: admin })).json().sections).toEqual([expect.objectContaining({ section: 'kirana', items: 2 })]);
+  });
+});

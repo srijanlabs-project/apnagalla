@@ -6,6 +6,10 @@ import { sql } from 'drizzle-orm';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { ZodError, type ZodType } from 'zod';
 import {
+  CATALOG_SECTIONS,
+  catalogAliasImportBody,
+  catalogImportBody,
+  type CatalogSection,
   createBusinessBody,
   createInviteBody,
   otpRequestBody,
@@ -30,6 +34,7 @@ import {
 } from '@invoice/shared';
 import { OtpService } from './auth/otp';
 import { AdminService } from './services/admin';
+import { CatalogService } from './services/catalog';
 import { audit } from './services/audit';
 import { GstLookupService, createGstProvider, type GstProvider } from './gst/lookup';
 import { TokenService, type AuthContext } from './auth/tokens';
@@ -106,6 +111,7 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
   );
   const accounts = new AccountService(db, adminPhones);
   const admin = new AdminService(db);
+  const catalog = new CatalogService(db);
   const syncService = new SyncService(db);
 
   const allowedOrigins = new Set([
@@ -289,6 +295,36 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     if (!(await accounts.isAdmin(uid(req)))) throw forbidden('Admins only', 'not_admin');
   }
   const adminOnly = { preHandler: requireAdmin };
+
+  /* ---------- shared product list (R5) ---------- */
+  const sectionOf = (s: string): CatalogSection => {
+    if (!(CATALOG_SECTIONS as readonly string[]).includes(s)) throw badRequest('unknown_section', 'Unknown product list');
+    return s as CatalogSection;
+  };
+  const sinceOf = (s: string | undefined) => Math.max(0, Number.parseInt(s ?? '0', 10) || 0);
+  // Any signed-in phone or browser: the list has no shop data, only products.
+  app.get<{ Params: { section: string }; Querystring: { since?: string } }>('/v1/catalog/items/:section', authed, async (req) =>
+    catalog.page(sectionOf(req.params.section), sinceOf(req.query.since)),
+  );
+  app.get<{ Querystring: { since?: string } }>('/v1/catalog/aliases', authed, async (req) => catalog.aliasPage(sinceOf(req.query.since)));
+
+  app.get('/v1/admin/catalog', adminOnly, async () => ({ sections: await catalog.stats() }));
+  app.get<{ Params: { section: string }; Querystring: { q?: string; all?: string } }>('/v1/admin/catalog/:section', adminOnly, async (req) => ({
+    rows: await catalog.list(sectionOf(req.params.section), req.query.q, req.query.all === '1' ? 50_000 : 200),
+  }));
+  app.post('/v1/admin/catalog/import', { ...adminOnly, bodyLimit: 20_000_000 }, async (req) => {
+    const body = parse(catalogImportBody, req.body);
+    const result = await catalog.import(body);
+    await audit(db, { businessId: null, actorUserId: uid(req), action: 'catalog.import', detail: { section: body.section, replace: body.replace, ...result } });
+    return result;
+  });
+  app.get('/v1/admin/catalog-aliases', adminOnly, async () => ({ rows: await catalog.allAliases() }));
+  app.post('/v1/admin/catalog-aliases/import', { ...adminOnly, bodyLimit: 5_000_000 }, async (req) => {
+    const body = parse(catalogAliasImportBody, req.body);
+    const result = await catalog.importAliases(body);
+    await audit(db, { businessId: null, actorUserId: uid(req), action: 'catalog.aliases', detail: { replace: body.replace, ...result } });
+    return result;
+  });
 
   app.get<{ Querystring: { q?: string } }>('/v1/admin/stores', adminOnly, async (req) => ({ stores: await admin.listStores(req.query.q), activeDevices: await admin.activeSessions() }));
   app.post('/v1/admin/stores', adminOnly, async (req, reply) => reply.status(201).send(await admin.createStore(uid(req), parse(adminCreateStoreBody, req.body))));
