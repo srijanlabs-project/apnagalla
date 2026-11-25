@@ -42,6 +42,7 @@ import { sync } from '../../lib/sync';
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
 import { repriceLines, sellable } from '../../lib/pricing';
+import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from '../docs/LineEditor';
 
 /** What the counter shows after a sale is saved. */
@@ -115,6 +116,7 @@ export default function SaleScreen() {
   }, [items, q]);
 
   const totals = useMemo(() => (bill ? computeTotals(bill) : null), [bill]);
+  useOffers(actor.businessId, bill?.lines, bill?.date, !!bill, (lines) => setBill((cur) => (cur ? { ...cur, lines } : cur)));
 
   if (!CAN_CREATE_INVOICES) {
     return (

@@ -22,14 +22,20 @@ export const SYNC_TABLES = [
   'supplierPayments',
   'expenses',
   'dayCloses',
+  // R3
+  'offers',
+  'savedReports',
 ] as const;
 export type SyncTable = (typeof SYNC_TABLES)[number];
 
 /** Tables added in R2. Phones on an older app version don't have them, so they aren't sent there. */
 export const R2_TABLES: readonly SyncTable[] = ['stockMoves', 'suppliers', 'purchaseOrders', 'purchases', 'supplierPayments', 'expenses', 'dayCloses'];
 
+/** Tables added in R3 (sent to apps of schema 3 or later). */
+export const R3_TABLES: readonly SyncTable[] = ['offers', 'savedReports'];
+
 /** The data layout the phone understands; sent on pull. Older apps send none (= 1). */
-export const SYNC_SCHEMA = 2;
+export const SYNC_SCHEMA = 3;
 
 /**
  * Purchase prices live in these tables: staff of a store that hides costs from staff never
@@ -41,7 +47,7 @@ export const COST_TABLES: readonly SyncTable[] = ['suppliers', 'purchaseOrders',
 export const APPEND_ONLY_TABLES: readonly SyncTable[] = ['payments', 'supplierPayments', 'stockMoves'];
 
 /** Store details: only the owner may change them. */
-export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'categories'];
+export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'categories', 'offers', 'savedReports'];
 
 /** Payment modes for a payment or refund entry. `advance` = paid from money the customer left on account. */
 export const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque', 'other', 'advance', 'finance'] as const;

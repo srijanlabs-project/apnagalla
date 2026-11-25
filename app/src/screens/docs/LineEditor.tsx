@@ -22,6 +22,7 @@ import { useBusiness } from '../../lib/business';
 import { db, type DocLine, type Item, type PriceLevel } from '../../lib/db';
 import { priceFor, sellable, unitOptions } from '../../lib/pricing';
 import { serialsInStock } from '../../lib/serials';
+import { OFF } from '../../lib/offers';
 import { t } from '../../lib/i18n';
 import { isAreaLine, lineSize, rupees } from '../../lib/format';
 import { newId, putRecord } from '../../lib/repo';
@@ -314,6 +315,14 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
             </FormSection>
 
             <FormSection title={t('Discount on this item')}>
+              {l.offer && l.offer !== OFF && (
+                <p className="section-note">
+                  {t('Offer: {name}', { name: l.offer })}{' '}
+                  <IonButton size="small" fill="clear" color="danger" onClick={() => set({ offer: OFF, discount: null })}>
+                    {t('Remove offer')}
+                  </IonButton>
+                </p>
+              )}
               <IonSegment
                 value={l.discount?.type ?? 'pct'}
                 onIonChange={sync((e) => set({ discount: { type: e.detail.value as 'pct' | 'amount', value: 0 } }))}
@@ -326,9 +335,9 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
                 </IonSegmentButton>
               </IonSegment>
               {(l.discount?.type ?? 'pct') === 'pct' ? (
-                <NumberField label={t('Discount %')} value={l.discount?.value || null} onChange={(v) => set({ discount: v ? { type: 'pct', value: v } : null })} min={0} max={100} suffix="%" />
+                <NumberField label={t('Discount %')} value={l.discount?.value || null} onChange={(v) => set({ discount: v ? { type: 'pct', value: v } : null, offer: null })} min={0} max={100} suffix="%" />
               ) : (
-                <MoneyField label={t('Discount ₹ (whole line)')} value={l.discount?.value || null} onChange={(v) => set({ discount: v ? { type: 'amount', value: v } : null })} />
+                <MoneyField label={t('Discount ₹ (whole line)')} value={l.discount?.value || null} onChange={(v) => set({ discount: v ? { type: 'amount', value: v } : null, offer: null })} />
               )}
             </FormSection>
 

@@ -4,6 +4,7 @@ import {
   COST_TABLES,
   OWNER_ONLY_TABLES,
   R2_TABLES,
+  R3_TABLES,
   PAYMENT_MODES,
   PAYMENT_VOID_FIELDS,
   SYNC_PULL_MAX,
@@ -279,7 +280,8 @@ export class SyncService {
    * from 0, so it still gets them.
    */
   async pull(businessId: string, since: number, limit = SYNC_PULL_MAX, opts: { hideCost?: boolean; schema?: number } = {}): Promise<SyncPullResponse> {
-    const skip = [...((opts.schema ?? 1) < 2 ? R2_TABLES : []), ...(opts.hideCost ? COST_TABLES : [])];
+    const schema = opts.schema ?? 1;
+    const skip = [...(schema < 2 ? R2_TABLES : []), ...(schema < 3 ? R3_TABLES : []), ...(opts.hideCost ? COST_TABLES : [])];
     const rows = await this.db
       .select({ table: syncRecords.tableName, id: syncRecords.id, data: syncRecords.data, seq: syncRecords.seq })
       .from(syncRecords)

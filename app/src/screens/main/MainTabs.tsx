@@ -19,6 +19,9 @@ import ItemEditScreen from '../items/ItemEditScreen';
 import ItemsScreen from '../items/ItemsScreen';
 import LowStockScreen from '../items/LowStockScreen';
 import SerialSearchScreen from '../items/SerialSearchScreen';
+import { OfferEditScreen, OffersScreen } from '../items/OfferScreens';
+import BulkPriceScreen from '../items/BulkPriceScreen';
+import LabelsScreen from '../items/LabelsScreen';
 import StockScreen from '../items/StockScreen';
 import BusinessProfileScreen from '../settings/BusinessProfileScreen';
 import DesignScreen from '../settings/DesignScreen';
@@ -67,6 +70,10 @@ export default function MainTabs() {
           <Route path="items/import" element={<ImportScreen />} />
           <Route path="items/low-stock" element={<LowStockScreen />} />
           <Route path="items/serials" element={<SerialSearchScreen />} />
+          <Route path="items/offers" element={<OffersScreen />} />
+          <Route path="items/offers/:id" element={<OfferEditScreen />} />
+          <Route path="items/bulk-price" element={<BulkPriceScreen />} />
+          <Route path="items/labels" element={<LabelsScreen />} />
           <Route path="items/:id/stock" element={<StockScreen />} />
           <Route path="items/:id" element={<ItemEditScreen />} />
 

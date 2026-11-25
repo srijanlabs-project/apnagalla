@@ -19,6 +19,7 @@ import { addressLines } from './format';
 import { t } from './i18n';
 import { PermissionError, effectiveGstType, newId, putRecord, storeStateCode, type Actor } from './repo';
 import { setOpeningStock } from './stock';
+import { withPriceHistory } from './pricing';
 
 /* ---------- suppliers ---------- */
 
@@ -229,7 +230,7 @@ export async function savePurchase(actor: Actor, p: Purchase, opts: { finalize: 
         if (l.salePrice && per(l.salePrice) !== item.rate) patch.rate = per(l.salePrice);
         if (!item.supplierId && p.supplier?.supplierId) patch.supplierId = p.supplier.supplierId;
         // Only the owner changes catalogue prices; staff saves still record the bill.
-        if (Object.keys(patch).length && (actor.role === 'owner' || !('rate' in patch))) await putRecord('items', actor, { ...item, ...patch });
+        if (Object.keys(patch).length && (actor.role === 'owner' || !('rate' in patch))) await putRecord('items', actor, withPriceHistory(item, { ...item, ...patch }, actor.userName));
       }
     }
     if (p.fromOrderId) {

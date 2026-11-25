@@ -53,6 +53,7 @@ import CustomerPicker, { snapshotOf } from './CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
 import { settleJobAdvance } from '../../lib/jobs';
 import { repriceLines } from '../../lib/pricing';
+import { useOffers } from '../../lib/useOffers';
 import LineEditor from './LineEditor';
 import { sync } from '../../lib/sync';
 import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
@@ -135,6 +136,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
 
   const totals = useMemo(() => (doc ? computeTotals(doc) : null), [doc]);
   const docCustomerId = doc?.billTo?.customerId;
+  useOffers(actor.businessId, doc?.lines, doc?.date, kind !== 'credit' && doc?.status === 'draft', (lines) => setDoc((cur) => (cur ? { ...cur, lines } : cur)));
   const level = useLiveQuery(async () => (docCustomerId ? ((await db.customers.get(docCustomerId))?.priceLevel ?? 'retail') : 'retail'), [docCustomerId]) ?? 'retail';
 
   if (kind !== 'estimate' && !CAN_CREATE_INVOICES) {

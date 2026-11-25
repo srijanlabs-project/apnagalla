@@ -78,3 +78,37 @@ export async function applyToVariants(actor: Actor, parent: Item): Promise<numbe
   }
   return list.length;
 }
+
+/** Adds a price change to the item's history (last 20), when the selling price changed. */
+export function withPriceHistory(before: Pick<Item, 'rate' | 'priceHistory'> | undefined, next: Item, byName: string): Item {
+  if (!before || before.rate === next.rate) return next;
+  const entry = { at: new Date().toISOString(), from: before.rate, to: next.rate, byName };
+  return { ...next, priceHistory: [...(before.priceHistory ?? []), entry].slice(-20) };
+}
+
+export interface BulkChange {
+  categoryIds: Set<string> | null;
+  /** + raise, − lower. */
+  by: number;
+  kind: 'pct' | 'amount';
+  /** Round the new price to this many rupees (0 = to the paisa). */
+  roundTo: 0 | 1 | 5 | 10;
+}
+
+/** New selling price per item (unchanged ones left out). */
+export function bulkPrices(items: Item[], c: BulkChange): { item: Item; to: number }[] {
+  const step = c.roundTo * 100;
+  return items
+    .filter((i) => !i.deleted && !i.hasVariants && (!c.categoryIds || (i.categoryId && c.categoryIds.has(i.categoryId))))
+    .map((item) => {
+      let to = c.kind === 'pct' ? item.rate * (1 + c.by / 100) : item.rate + c.by;
+      to = step ? Math.round(to / step) * step : Math.round(to);
+      return { item, to: Math.max(0, to) };
+    })
+    .filter((x) => x.to !== x.item.rate);
+}
+
+export async function applyBulkPrices(actor: Actor, changes: { item: Item; to: number }[]): Promise<number> {
+  for (const { item, to } of changes) await putRecord('items', actor, withPriceHistory(item, { ...item, rate: to }, actor.userName));
+  return changes.length;
+}

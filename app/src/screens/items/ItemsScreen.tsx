@@ -64,6 +64,9 @@ export default function ItemsScreen() {
               {c.name}
             </IonChip>
           ))}
+          <IonButton size="small" fill="clear" routerLink="/tabs/items/labels">
+            {t('Labels')}
+          </IonButton>
           {hasSerials && (
             <IonButton size="small" fill="clear" routerLink="/tabs/items/serials">
               {t('Find serial / IMEI')}
@@ -76,6 +79,12 @@ export default function ItemsScreen() {
               </IonButton>
               <IonButton size="small" fill="clear" routerLink="/tabs/items/import">
                 <IonIcon icon={cloudUploadOutline} slot="start" /> {t('Import')}
+              </IonButton>
+              <IonButton size="small" fill="clear" routerLink="/tabs/items/offers">
+                {t('Offers')}
+              </IonButton>
+              <IonButton size="small" fill="clear" routerLink="/tabs/items/bulk-price">
+                {t('Change prices')}
               </IonButton>
             </>
           )}

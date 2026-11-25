@@ -16,6 +16,7 @@ import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
 import { isLow, qtyText, setOpeningStock, stockLevels, tracksStock } from '../../lib/stock';
 import { PriceLevelsSection, SerialSection, UnitsSection, VariantsSection } from './ItemExtras';
+import { withPriceHistory } from '../../lib/pricing';
 
 export function blankItem(actor: Actor, settings: BusinessSettings, name = '', barcode?: string): Item {
   return {
@@ -194,7 +195,7 @@ export default function ItemEditScreen() {
           ? () =>
               save(
                 async () => {
-                  const saved = await putRecord('items', actor, { ...it, name: it.name.trim() });
+                  const saved = await putRecord('items', actor, withPriceHistory(existing, { ...it, name: it.name.trim() }, actor.userName));
                   if (isNew && opening && tracksStock(saved)) await setOpeningStock(actor, saved, opening);
                   return saved;
                 },

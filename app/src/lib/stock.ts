@@ -158,3 +158,21 @@ export async function voidStockMove(actor: Actor, id: string, reason: string): P
 
 /** "12", "2.5" — up to 3 decimals, no trailing zeros. */
 export const qtyText = (n: number): string => String(round(n));
+
+/** Average base units sold per day over the last `days` days (returns taken off). */
+export async function salesSpeed(businessId: string, days = 30): Promise<Map<string, number>> {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+  const events = await stockEvents(businessId);
+  const speed = new Map<string, number>();
+  for (const [itemId, list] of events) {
+    const sold = list.filter((e) => e.date >= since && (e.kind === 'sale' || e.kind === 'return')).reduce((a, e) => a - e.qty, 0);
+    if (sold > 0) speed.set(itemId, sold / days);
+  }
+  return speed;
+}
+
+/** Days of stock left at the current sales speed (null = not selling). */
+export const daysLeft = (qty: number, perDay: number | undefined): number | null => (perDay && perDay > 0 ? Math.max(0, Math.floor(qty / perDay)) : null);
+
+/** Enough for `coverDays` of sales, less what is on the shelf. */
+export const orderFor = (qty: number, perDay: number, coverDays = 15): number => Math.max(1, Math.ceil(perDay * coverDays - qty));

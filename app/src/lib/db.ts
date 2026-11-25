@@ -175,6 +175,8 @@ export interface Item extends SyncedRecord {
   altUnits?: { unit: string; factor: number; rate?: number | null }[];
   /** Prices per base unit for customer types; retail is `rate`. */
   prices?: { wholesale?: number | null; special?: number | null };
+  /** Last price changes, newest last (at most 20). */
+  priceHistory?: { at: string; from: number; to: number; byName?: string }[];
   /** Cost per unit (paise). Hidden from staff unless the store allows it. */
   purchasePrice?: number;
   categoryId?: string | null;
@@ -211,6 +213,8 @@ export interface DocLine {
   serials?: string[];
   /** Copied from the item: warranty months from the bill date. */
   warrantyMonths?: number | null;
+  /** Offer that set this line's discount; "off" = the cashier removed it. */
+  offer?: string | null;
 }
 
 /** Item category; up to 3 levels (parentId = null for a top level). */
@@ -499,6 +503,34 @@ export interface DayClose extends SyncedRecord {
   closedByName?: string;
 }
 
+/* ---------- R3: offers, saved reports ---------- */
+
+export interface Offer extends SyncedRecord {
+  name: string;
+  active: boolean;
+  /** Dates it runs (inclusive); empty = always. */
+  from?: string | null;
+  to?: string | null;
+  /** percent: % off items of a category (or all); buyget: buy N get M free; combo: set price. */
+  kind: 'percent' | 'buyget' | 'combo';
+  pct?: number;
+  categoryId?: string | null;
+  itemId?: string | null;
+  buyQty?: number;
+  getQty?: number;
+  combo?: { itemId: string; qty: number }[];
+  /** Price of one combo set (paise, as the items are priced). */
+  comboPrice?: number;
+}
+
+/** A report the owner set up (columns, filters, grouping). */
+export interface SavedReport extends SyncedRecord {
+  name: string;
+  spec: unknown;
+  /** Add it to the nightly Excel. */
+  nightly?: boolean;
+}
+
 /* ---------- sync bookkeeping ---------- */
 
 export type SyncedTable = SyncTable;
@@ -536,6 +568,8 @@ export const db = new Dexie('apnagalla') as Dexie & {
   supplierPayments: EntityTable<SupplierPayment, 'id'>;
   expenses: EntityTable<Expense, 'id'>;
   dayCloses: EntityTable<DayClose, 'id'>;
+  offers: EntityTable<Offer, 'id'>;
+  savedReports: EntityTable<SavedReport, 'id'>;
   outbox: EntityTable<OutboxEntry, 'seq'>;
   meta: EntityTable<MetaEntry, 'key'>;
 };
@@ -577,6 +611,11 @@ db.version(5).stores({
   dayCloses: 'id, businessId, [businessId+date]',
 });
 
+db.version(6).stores({
+  offers: 'id, businessId',
+  savedReports: 'id, businessId',
+});
+
 export const ALL_TABLES = [
   db.profiles,
   db.settings,
@@ -596,6 +635,8 @@ export const ALL_TABLES = [
   db.supplierPayments,
   db.expenses,
   db.dayCloses,
+  db.offers,
+  db.savedReports,
   db.outbox,
   db.meta,
 ];

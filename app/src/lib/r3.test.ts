@@ -9,7 +9,10 @@ import { newPurchaseDraft, purchaseLineFromItem, savePurchase } from './purchase
 import { stockLevels, tracksStock } from './stock';
 import { serialEvents, serialText, serialsInStock, warrantyEnd } from './serials';
 import { newCreditNoteDraft, saveCreditNote } from './repo';
-import type { Item } from './db';
+import type { Category, DocLine, Item, Offer } from './db';
+import { OFF, applyOffers } from './offers';
+import { applyBulkPrices, bulkPrices } from './pricing';
+import { daysLeft, orderFor, salesSpeed } from './stock';
 
 const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -119,6 +122,50 @@ describe('serial / IMEI', () => {
     expect(await serialsInStock('b1', 'ph')).toEqual(['IMEI2', 'IMEI3']);
     expect((await serialEvents('b1')).get('IMEI3')!.map((e) => e.kind)).toEqual(['bought', 'sold', 'returned_by_customer']);
     expect(warrantyEnd('2024-02-29', 12)).toBe('2025-02-28');
+  });
+});
+
+describe('offers, bulk prices, reorder', () => {
+  const offer = (o: Partial<Offer>): Offer => ({ id: 'o', businessId: 'b1', createdAt: '', updatedAt: '', updatedBy: '', name: 'Sale', active: true, kind: 'percent', ...o }) as Offer;
+  const line = (id: string, itemId: string, qty: number, rate: number, extra: Partial<DocLine> = {}): DocLine => ({ id, itemId, name: itemId, qty, unit: 'pcs', rate, rateIncludesTax: false, taxPct: 0, ...extra });
+  const items = new Map<string, Item>([
+    ['tee', { id: 'tee', name: 'Tee', categoryId: 'shirts' } as Item],
+    ['jean', { id: 'jean', name: 'Jean', categoryId: 'pants' } as Item],
+    ['tee-m', { id: 'tee-m', name: 'Tee · M', variantOf: 'tee' } as Item],
+  ]);
+  const cats = [{ id: 'shirts', name: 'Shirts', parentId: null }, { id: 'pants', name: 'Pants', parentId: null }] as Category[];
+
+  it('% off a category, buy X get Y, combo; hand discounts and removed offers stay', () => {
+    const lines = [line('a', 'tee', 2, 50000), line('b', 'jean', 1, 100000), line('c', 'tee', 1, 50000, { discount: { type: 'amount', value: 100 } })];
+    const out = applyOffers(lines, [offer({ pct: 10, categoryId: 'shirts' })], items, cats);
+    expect(out[0]).toMatchObject({ discount: { type: 'pct', value: 10 }, offer: 'Sale' });
+    expect(out[1]!.discount).toBeUndefined();
+    expect(out[2]!.discount).toEqual({ type: 'amount', value: 100 });
+    // The offer ended: its discount goes; a line the cashier took it off stays off.
+    expect(applyOffers(out, [], items, cats)[0]).toMatchObject({ discount: null, offer: null });
+    expect(applyOffers([{ ...out[0]!, offer: OFF, discount: null }], [offer({ pct: 10 })], items, cats)[0]!.discount).toBeNull();
+
+    const bg = applyOffers([line('a', 'tee-m', 5, 50000)], [offer({ kind: 'buyget', itemId: 'tee', buyQty: 2, getQty: 1 })], items, cats);
+    expect(bg[0]!.discount).toEqual({ type: 'amount', value: 50000 });
+
+    const combo = applyOffers([line('a', 'tee', 1, 50000), line('b', 'jean', 1, 100000)], [offer({ kind: 'combo', combo: [{ itemId: 'tee', qty: 1 }, { itemId: 'jean', qty: 1 }], comboPrice: 120000 })], items, cats);
+    expect(combo.reduce((a, l) => a + (l.discount?.value ?? 0), 0)).toBe(30000);
+  });
+
+  it('bulk price change rounds and keeps history; reorder follows sales speed', async () => {
+    const a = await putRecord('items', owner, { id: 'a', name: 'Paint', unit: 'L', rate: 41000, rateIncludesTax: false, taxPct: 18, categoryId: 'p' } as Item);
+    const b = await putRecord('items', owner, { id: 'b', name: 'Brush', unit: 'pcs', rate: 5000, rateIncludesTax: false, taxPct: 18 } as Item);
+    const plan = bulkPrices([a, b], { categoryIds: new Set(['p']), by: 7, kind: 'pct', roundTo: 5 });
+    expect(plan.map((x) => [x.item.id, x.to])).toEqual([['a', 44000]]);
+    await applyBulkPrices(owner, plan);
+    expect((await db.items.get('a'))!.priceHistory).toMatchObject([{ from: 41000, to: 44000, byName: 'Owner' }]);
+
+    const d = await newInvoiceDraft(owner);
+    await saveInvoice(owner, { ...d, lines: [line('x', 'b', 30, 5000)] }, { finalize: true });
+    const speed = (await salesSpeed('b1', 30)).get('b')!;
+    expect(speed).toBe(1);
+    expect(daysLeft(5, speed)).toBe(5);
+    expect(orderFor(5, speed, 15)).toBe(10);
   });
 });
 
