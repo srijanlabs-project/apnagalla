@@ -268,6 +268,16 @@ export default function InvoiceSettingsScreen() {
         />
       </FormSection>
 
+      <FormSection title={t('Scanning')}>
+        <ToggleRow
+          label={t('Ask before adding the same item again')}
+          note={t('When an item already on the bill is scanned again: ask “Add 1 more?”. Off: each scan adds one.')}
+          checked={s.confirmRepeatScan !== false}
+          onChange={(confirmRepeatScan) => patch({ confirmRepeatScan })}
+          disabled={ro}
+        />
+      </FormSection>
+
       <FormSection title={t('Shop features')}>
         <ToggleRow
           label={t('Area / job-work billing')}

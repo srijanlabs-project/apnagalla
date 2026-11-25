@@ -81,6 +81,8 @@ export interface DesignSettings {
     amountInWords: boolean;
     /** MRP column on bills (items that have an MRP). */
     mrpColumn: boolean;
+    /** Photos attached to a bill, printed on a page after it. Missing = yes. */
+    photos?: boolean;
   };
 }
 
@@ -102,6 +104,8 @@ export interface BusinessSettings extends SyncedRecord {
   billLanguage: Lang;
   /** Staff must lock the app with a PIN / fingerprint on their phones. */
   staffMustLock: boolean;
+  /** Scanning an item already on the bill asks before adding one more (default yes). */
+  confirmRepeatScan?: boolean;
   /** Staff can't bill on credit beyond a customer's credit limit (the owner still can). */
   creditLimitBlocks?: boolean;
   /** Delivery challans: their own number series. */
@@ -160,6 +164,8 @@ export interface Item extends SyncedRecord {
   mrp?: number;
   /** Small photo shown in lists and pickers (JPEG data URL). */
   photo?: string | null;
+  /** Sold as non-returnable (the bill line is marked so). */
+  nonReturnable?: boolean;
   /** Keep count of stock (default on; off for services). Area-priced items never do. */
   trackStock?: boolean;
   /** Warn and put on the reorder list at or below this stock. */
@@ -221,6 +227,8 @@ export interface DocLine {
   warrantyMonths?: number | null;
   /** Offer that set this line's discount; "off" = the cashier removed it. */
   offer?: string | null;
+  /** Can't be returned (printed on the bill; returns of it need the owner). */
+  nonReturnable?: boolean;
 }
 
 /** Item category; up to 3 levels (parentId = null for a top level). */
@@ -289,6 +297,10 @@ export interface DocBase extends SyncedRecord {
   totals: InvoiceTotals;
   /** Photos attached (a paper bill, a delivery proof); small JPEGs. */
   photos?: string[];
+  /** Notes for the shop only: shown in the app, never printed or shared. */
+  privateNotes?: string;
+  /** Photo taken by the warehouse when the goods were delivered. */
+  deliveryPhoto?: string | null;
   createdBy: string;
   history: HistoryEntry[];
 }

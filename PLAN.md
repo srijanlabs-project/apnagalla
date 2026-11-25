@@ -214,6 +214,43 @@ R3 decisions (defaults):
   limits on the number of stores (counted only when a store is created — to add with plans enforced),
   an SMS renewal reminder (the app shows one on Home).
 
+### Release 4 — reach, control, many stores
+Agreed 25 Nov 2026 (scope chosen by the owner from the client's R4 list plus their own points);
+built without stopping for each design question, using the defaults below.
+
+| Step | Scope | Status |
+|---|---|---|
+| R4.1 Billing | Barcode scan in the invoice / estimate editor (asks before adding a repeat), private notes on a bill (never printed), bill photos printed on a page after the bill, WhatsApp button straight to the customer's chat with the PDF, non-returnable items, "+ New" with invoice / estimate / delivery challan | |
+| R4.2 Offers | ₹ off offers (with a minimum bill), coupon codes typed at billing (uses, dates, minimum bill) | |
+| R4.3 Credit and advances | Return credit note: refund now or keep as credit (never both); pay with a credit note; advances on any estimate or challan, used on its bill | |
+| R4.4 Job work | sq m and running metre, sizes in m / cm / mm, quantity typed directly; "work order" switch inside the estimate | |
+| R4.5 Wi-Fi printing | Wi-Fi receipt printers by IP address; A4 printers through Android's print screen | |
+| R4.6 Roles and control | Warehouse team (deliveries only, marks delivered with a photo), accountant (read-only login), lock old bills, "may cancel bills" permission, Tally export | |
+| R4.7 Many stores and staff | Stock transfer between stores, owner dashboard across stores, staff attendance, salary and advances | |
+| R4.8 Phone alerts | Low stock, overdue payments, daily summary as phone notifications (no Google services) | |
+
+On hold (client's R4 list): customer khata link, WhatsApp catalogue / orders, voice billing,
+recurring bills, review link, iOS app.
+
+R4 decisions (defaults):
+- Private notes: a separate "Notes for us" box on bills and estimates; shown in the app only, never
+  on the PDF, receipt or WhatsApp text.
+- WhatsApp: Android opens WhatsApp in the customer's chat (their number, even if not in contacts)
+  with the PDF attached; the seller taps send. It uses WhatsApp's chat-id share, which is widely
+  used but not documented by WhatsApp; if it fails, the normal share sheet opens.
+- Warehouse and accountant are new roles beside owner and staff. Warehouse sees bills, estimates
+  and challans with goods to deliver, and marks them delivered with a photo (stored on the bill);
+  nothing else. Accountant sees everything (with costs) and changes nothing; the server refuses
+  any change from them.
+- Credit notes keep one choice: refund (cash / UPI / bank) or "keep as credit". Credit kept can
+  pay any later bill of that customer (payment mode "Credit note"); for a walk-in, by the credit
+  note number.
+- Phone alerts are local notifications planned by the phone whenever the app runs or syncs (no
+  Google push): low stock right away, overdue bills each morning, and the day's summary at the
+  store's closing time with the figures as of the last sync.
+- Tally export: Tally's XML import (sales, receipts, purchases, payments as vouchers, ledgers by
+  customer / supplier name). The CA should check the ledger names once before the first import.
+
 ### Release 5 (proposed) — global product reference
 Agreed in outline 25 Nov 2026; details to settle before building. Barcodes are out of scope.
 

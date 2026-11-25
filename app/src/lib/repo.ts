@@ -789,6 +789,9 @@ export async function newCreditNoteDraft(actor: Actor, invoiceId: string): Promi
 }
 
 export async function saveCreditNote(actor: Actor, note: CreditNote, opts: { finalize: boolean }): Promise<CreditNote> {
+  if (opts.finalize && actor.role !== 'owner' && note.reason === 'return' && note.lines.some((l) => l.nonReturnable && l.qty > 0)) {
+    throw new PermissionError(t('Non-returnable items: only the owner can take them back'));
+  }
   const existing = await db.creditNotes.get(note.id);
   if (actor.role !== 'owner') {
     if (note.reason !== 'return') throw new PermissionError(t('Only the owner can make this credit note'));

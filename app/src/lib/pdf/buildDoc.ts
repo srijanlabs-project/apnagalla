@@ -209,6 +209,7 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
           ...(lineSize(l) ? [{ text: lineSize(l), color: '#333333', fontSize: base - 1 }] : []),
           ...(show.itemDescription && l.description ? [{ text: l.description, color: '#555555', fontSize: base - 1 }] : []),
           ...(serialText(l, doc.date) ? [{ text: serialText(l, doc.date), color: '#333333', fontSize: base - 1 }] : []),
+          ...(l.nonReturnable ? [{ text: 'Non-returnable', color: '#b00020', fontSize: base - 1, bold: true }] : []),
         ],
       },
       qty: { text: show.unitColumn ? String(l.qty) : `${l.qty} ${l.unit}`, alignment: 'right' },
@@ -332,6 +333,17 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
       { columns: [{ ...(leftColumn as object), width: '*' } as unknown as Content, { ...(summaryTable as object), width: a5 ? 170 : 220 } as unknown as Content], columnGap: 16, margin: [0, 4, 0, 0] },
       ...footerBlocks,
       signature,
+      ...photoPages(doc.photos, show.photos !== false, a5),
     ],
   };
+}
+
+/** Photos attached to the bill, two to a page after it, each fitted to half the page. */
+function photoPages(photos: string[] | undefined, show: boolean, a5: boolean): Content[] {
+  if (!show || !photos?.length) return [];
+  const fit: [number, number] = a5 ? [370, 260] : [515, 360];
+  return photos.flatMap((p, i) => [
+    ...(i % 2 === 0 ? [{ text: i === 0 ? 'Photos' : '', pageBreak: 'before', bold: true, margin: [0, 0, 0, 6] } as Content] : []),
+    { image: p, fit, alignment: 'center', margin: [0, 4, 0, 10] } as Content,
+  ]);
 }

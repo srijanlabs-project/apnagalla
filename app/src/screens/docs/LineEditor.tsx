@@ -47,6 +47,7 @@ export function lineFromItem(it: Item, level: PriceLevel = 'retail'): DocLine {
     dims: area ? { length: 0, width: 0, pieces: 1, in: 'ft' } : null,
     mrp: it.mrp,
     warrantyMonths: it.warrantyMonths ?? undefined,
+    nonReturnable: it.nonReturnable || undefined,
     serials: it.trackSerial ? [] : undefined,
   };
 }
@@ -341,6 +342,7 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
               )}
             </FormSection>
 
+            <ToggleRow label={t('Non-returnable')} note={t('Printed on the bill; a return needs the owner.')} checked={!!l.nonReturnable} onChange={(nonReturnable) => set({ nonReturnable })} />
             {!l.itemId && <ToggleRow label={t('Save this item to my catalogue')} checked={saveToCatalogue} onChange={setSaveToCatalogue} />}
 
             <div className="line-preview">

@@ -21,6 +21,7 @@ const COLORS = ['#3b5bdb', '#0b7285', '#2b8a3e', '#c2255c', '#e8590c', '#5f3dc4'
 
 const TOGGLES: { key: keyof DesignSettings['show']; label: string }[] = [
   { key: 'logo', label: 'Logo' },
+  { key: 'photos', label: 'Photos attached to the bill (next page)' },
   { key: 'taxId', label: 'Tax ID' },
   { key: 'shipTo', label: 'Ship-to address' },
   { key: 'itemDescription', label: 'Item description' },
@@ -170,7 +171,7 @@ export default function DesignScreen() {
 
       <FormSection title={t('Show on invoice')}>
         {TOGGLES.map((tg) => (
-          <ToggleRow key={tg.key} label={t(tg.label)} checked={d.show[tg.key]} disabled={!isOwner} onChange={(v) => set({ show: { ...d.show, [tg.key]: v } })} />
+          <ToggleRow key={tg.key} label={t(tg.label)} checked={d.show[tg.key] ?? true} disabled={!isOwner} onChange={(v) => set({ show: { ...d.show, [tg.key]: v } })} />
         ))}
       </FormSection>
 

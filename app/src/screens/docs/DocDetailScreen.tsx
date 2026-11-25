@@ -18,7 +18,8 @@ import {
 import DocPhotos from '../../components/DocPhotos';
 import { formatDateIN } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { createOutline, ellipsisVertical, eyeOutline, logoWhatsapp, shareSocialOutline, walletOutline, printOutline, swapHorizontalOutline } from 'ionicons/icons';
+import { createOutline, documentOutline, ellipsisVertical, eyeOutline, logoWhatsapp, shareSocialOutline, walletOutline, printOutline, swapHorizontalOutline } from 'ionicons/icons';
+import { printPdfFile, sendOnWhatsApp } from '../../lib/shopTools';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import PageShell from '../../components/PageShell';
@@ -109,14 +110,15 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
     return renderPdf(await pdfInputFor(kind, doc!, settings));
   }
 
-  async function onShare() {
-    setBusy('share');
+  /** With a phone number: straight into that WhatsApp chat with the PDF; else the share sheet. */
+  async function onShare(phone?: string) {
+    setBusy(phone ? 'wa' : 'share');
     try {
       const pdf = await makePdf();
       const text = inv
         ? `${profile.name}: ${view.title} ${doc!.number} for ${rupees(inv.totals.grandTotal)}${pending > 0 ? `. Pending ${rupees(pending)}.` : '.'}`
         : `${profile.name}: ${view.title} ${doc!.number}`;
-      const r = await sharePdf(pdfFileName(kind, doc!), pdf, text);
+      const r = phone ? await sendOnWhatsApp(phone, pdfFileName(kind, doc!), pdf.blob, text) : await sharePdf(pdfFileName(kind, doc!), pdf, text);
       if (r === 'downloaded') void toast({ message: t('PDF downloaded'), duration: 1500 });
     } catch (e) {
       fail(e);
@@ -293,8 +295,16 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
           )}
 
           <div className="detail-actions">
-            <IonButton onClick={() => void onShare()} disabled={!!busy}>
+            {doc.billTo?.phone && (
+              <IonButton color="success" onClick={() => void onShare(doc.billTo!.phone)} disabled={!!busy}>
+                {busy === 'wa' ? <IonSpinner name="dots" /> : <IonIcon icon={logoWhatsapp} slot="start" />} WhatsApp
+              </IonButton>
+            )}
+            <IonButton fill={doc.billTo?.phone ? 'outline' : 'solid'} onClick={() => void onShare()} disabled={!!busy}>
               {busy === 'share' ? <IonSpinner name="dots" /> : <IonIcon icon={shareSocialOutline} slot="start" />} {t('Share PDF')}
+            </IonButton>
+            <IonButton fill="outline" onClick={() => void makePdf().then((pdf) => printPdfFile(pdfFileName(kind, doc), pdf.blob, `${view.title} ${doc.number}`)).catch(fail)} disabled={!!busy}>
+              <IonIcon icon={documentOutline} slot="start" /> {t('Print A4')}
             </IonButton>
             {doc.status !== 'draft' && kind !== 'estimate' && (
               <IonButton
@@ -388,6 +398,11 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
         </div>
       )}
 
+      {doc.privateNotes && (
+        <p className="private-notes">
+          <strong>{t('Notes for us')}:</strong> {doc.privateNotes}
+        </p>
+      )}
       {(kind !== 'credit' || (doc.photos?.length ?? 0) > 0) && (
         <DocPhotos
           photos={doc.photos ?? []}

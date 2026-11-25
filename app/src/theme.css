@@ -269,3 +269,4 @@
 .switch-help summary { cursor: pointer; font-weight: 600; margin: 8px 0; }
 .renew-banner { background: var(--ion-color-warning); color: var(--ion-color-warning-contrast); padding: 10px 12px; border-radius: 10px; margin: 8px 0; font-weight: 600; }
 .admin-plan { border: 1px solid var(--ion-color-light-shade); border-radius: 10px; padding: 8px; margin: 10px 0; }
+.private-notes { background: var(--ion-color-light); border-left: 3px solid var(--ion-color-warning); padding: 8px 10px; border-radius: 6px; margin: 8px 0; }

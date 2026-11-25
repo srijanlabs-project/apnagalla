@@ -44,6 +44,7 @@ import CreditLimitNote from '../../components/CreditLimitNote';
 import { applyExchange, creditOverLimit } from '../../lib/khata';
 import { moneyOf } from '../../lib/ledger';
 import { repriceLines, sellable } from '../../lib/pricing';
+import { useScanToBill } from '../../lib/useScanToBill';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from '../docs/LineEditor';
 
@@ -145,6 +146,19 @@ export default function SaleScreen() {
       </IonPage>
     );
   }
+
+  // Camera scans: a repeat asks "Add 1 more?" when the store wants it.
+  const scanToBill = useScanToBill({
+    businessId: actor.businessId,
+    lines: () => bill?.lines ?? [],
+    confirmRepeat: settings.confirmRepeatScan !== false,
+    addNew: (it) => {
+      if (it.pricing === 'sqft' || it.pricing === 'rft' || it.trackSerial) setScanning(false);
+      addItem(it);
+    },
+    addOne: (lineId) => step(lineId, 1),
+    unknown: (code) => void byBarcode(code),
+  });
 
   if (!bill || !totals) {
     return (
@@ -500,7 +514,16 @@ export default function SaleScreen() {
         onClose={() => setPaying(false)}
         onConfirm={finish}
       />
-      <BarcodeScanner isOpen={scanning} continuous title={t('Scan items')} onClose={() => setScanning(false)} onScan={(code) => byBarcode(code)} />
+      <BarcodeScanner
+        isOpen={scanning}
+        continuous
+        title={t('Scan items')}
+        onClose={() => setScanning(false)}
+        onScan={(code) => {
+          void scanToBill(code);
+          return true;
+        }}
+      />
       <CustomerPicker
         isOpen={picker}
         onClose={() => setPicker(false)}

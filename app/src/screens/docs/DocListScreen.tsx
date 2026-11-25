@@ -1,5 +1,5 @@
 import { IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonSearchbar, IonSegment, IonSegmentButton, useIonRouter } from '@ionic/react';
-import { useIonToast } from '@ionic/react';
+import { useIonActionSheet, useIonToast } from '@ionic/react';
 import { useEffect, useRef, useState } from 'react';
 import { NetworkError, api } from '../../lib/api';
 import { fileToResizedDataUrl } from '../../lib/format';
@@ -25,6 +25,7 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
   const { actor, ledger } = useBusiness();
   const router = useIonRouter();
   const [toast] = useIonToast();
+  const [sheet] = useIonActionSheet();
   const paperInput = useRef<HTMLInputElement>(null);
   const [scanOn, setScanOn] = useState(false);
   const [reading, setReading] = useState(false);
@@ -169,7 +170,24 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
       )}
       {(kind === 'estimate' || (kind === 'invoice' && CAN_CREATE_INVOICES)) && (
         <IonFab slot="fixed" vertical="bottom" horizontal="end">
-          <IonFabButton routerLink={`${base}/new`} aria-label={kind === 'invoice' ? t('New invoice') : t('New estimate')}>
+          <IonFabButton
+            aria-label={kind === 'invoice' ? t('New invoice') : t('New estimate')}
+            onClick={() =>
+              CAN_CREATE_INVOICES
+                ? void sheet({
+                    header: t('New'),
+                    buttons: [
+                      { text: t('Invoice'), handler: () => router.push('/tabs/invoices/new') },
+                      { text: t('Counter sale'), handler: () => router.push('/tabs/sale') },
+                      { text: t('Estimate / quotation'), handler: () => router.push('/tabs/estimates/new') },
+                      { text: t('Work order'), handler: () => router.push('/tabs/estimates/new?work=1') },
+                      { text: t('Delivery challan'), handler: () => router.push('/tabs/estimates/new?challan=1') },
+                      { text: t('Cancel'), role: 'cancel' },
+                    ],
+                  })
+                : router.push(`${base}/new`)
+            }
+          >
             <IonIcon icon={add} />
           </IonFabButton>
         </IonFab>

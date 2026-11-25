@@ -147,3 +147,12 @@ export function SerialSection({ it, patch, disabled }: { it: Item; patch: (p: Pa
     </FormSection>
   );
 }
+
+/** Items sold as non-returnable (electricals, cut-to-size goods, innerwear…). */
+export function ReturnSection({ it, patch, disabled }: { it: Item; patch: (p: Partial<Item>) => void; disabled?: boolean }) {
+  return (
+    <FormSection>
+      <ToggleRow label={t('Non-returnable')} note={t('Bills mark it “Non-returnable”; a return of it needs the owner.')} checked={!!it.nonReturnable} onChange={(nonReturnable) => patch({ nonReturnable })} disabled={disabled} />
+    </FormSection>
+  );
+}

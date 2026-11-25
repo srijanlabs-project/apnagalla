@@ -22,7 +22,7 @@ import {
   useIonToast,
 } from '@ionic/react';
 import { GST_STATES, addDaysISO, amountInWords, discountForTarget, parseRupees, type ChargeInput } from '@invoice/shared';
-import { addOutline, closeCircle, personCircleOutline } from 'ionicons/icons';
+import { addOutline, closeCircle, personCircleOutline, barcodeOutline } from 'ionicons/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { AddressFields, FormSection, MoneyField, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
@@ -55,7 +55,9 @@ import { settleJobAdvance } from '../../lib/jobs';
 import { creditOverLimit } from '../../lib/khata';
 import { repriceLines } from '../../lib/pricing';
 import { useOffers } from '../../lib/useOffers';
-import LineEditor from './LineEditor';
+import LineEditor, { lineFromItem } from './LineEditor';
+import BarcodeScanner from '../../components/BarcodeScanner';
+import { useScanToBill } from '../../lib/useScanToBill';
 import { sync } from '../../lib/sync';
 import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
 
@@ -138,6 +140,31 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
 
   const totals = useMemo(() => (doc ? computeTotals(doc) : null), [doc]);
   const docCustomerId = doc?.billTo?.customerId;
+  const [scanning, setScanning] = useState(false);
+  const scanToBill = useScanToBill({
+    businessId: actor.businessId,
+    lines: () => doc?.lines ?? [],
+    confirmRepeat: settings.confirmRepeatScan !== false,
+    addNew: (it) => {
+      const line = lineFromItem(it, level);
+      if (it.pricing === 'sqft' || it.pricing === 'rft' || it.trackSerial) {
+        setScanning(false);
+        setEditing({ line, isNew: true });
+      } else setDoc((cur) => (cur ? { ...cur, lines: [...cur.lines, line] } : cur));
+    },
+    addOne: (lineId) => setDoc((cur) => (cur ? { ...cur, lines: cur.lines.map((l) => (l.id === lineId ? { ...l, qty: l.qty + 1 } : l)) } : cur)),
+    unknown: (code) => {
+      setScanning(false);
+      void alert({
+        header: t('Not in your items'),
+        message: t('No item has barcode {code}. Add it to your items?', { code }),
+        buttons: [
+          { text: t('Cancel'), role: 'cancel' },
+          { text: t('Add item'), handler: () => router.push(`/tabs/items/new?barcode=${encodeURIComponent(code)}`) },
+        ],
+      });
+    },
+  });
   useOffers(actor.businessId, doc?.lines, doc?.date, kind !== 'credit' && doc?.status === 'draft', (lines) => setDoc((cur) => (cur ? { ...cur, lines } : cur)));
   const level = useLiveQuery(async () => (docCustomerId ? ((await db.customers.get(docCustomerId))?.priceLevel ?? 'retail') : 'retail'), [docCustomerId]) ?? 'retail';
 
@@ -428,14 +455,29 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
             })}
           </IonList>
           {!locked && !credit && (
-            <IonButton
-              expand="block"
-              fill="outline"
-              onClick={() => setEditing({ line: { id: newId(), name: '', qty: 1, unit: settings.units[0] ?? 'pcs', rate: 0, rateIncludesTax: false, taxPct: settings.defaultTaxPct }, isNew: true })}
-            >
-              <IonIcon icon={addOutline} slot="start" /> {t('Add item')}
-            </IonButton>
+            <div className="field-row">
+              <IonButton
+                expand="block"
+                fill="outline"
+                onClick={() => setEditing({ line: { id: newId(), name: '', qty: 1, unit: settings.units[0] ?? 'pcs', rate: 0, rateIncludesTax: false, taxPct: settings.defaultTaxPct }, isNew: true })}
+              >
+                <IonIcon icon={addOutline} slot="start" /> {t('Add item')}
+              </IonButton>
+              <IonButton expand="block" fill="outline" onClick={() => setScanning(true)}>
+                <IonIcon icon={barcodeOutline} slot="start" /> {t('Scan')}
+              </IonButton>
+            </div>
           )}
+          <BarcodeScanner
+            isOpen={scanning}
+            continuous
+            title={t('Scan items')}
+            onClose={() => setScanning(false)}
+            onScan={(code) => {
+              void scanToBill(code);
+              return true;
+            }}
+          />
         </FormSection>
 
         {/* ---------- discount & charges ---------- */}
@@ -551,6 +593,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
 
         <FormSection title={t('Notes & terms')}>
           <TextArea label={t('Notes')} value={doc.notes} onChange={(notes) => patch({ notes })} disabled={locked} />
+          <TextArea label={t('Notes for us (not printed)')} value={doc.privateNotes} onChange={(privateNotes) => patch({ privateNotes })} helper={t('Only the shop sees these; never on the bill or WhatsApp.')} />
           <TextArea label={t('Terms & conditions')} value={doc.terms} onChange={(terms) => patch({ terms })} disabled={locked} rows={3} />
         </FormSection>
       </IonContent>
