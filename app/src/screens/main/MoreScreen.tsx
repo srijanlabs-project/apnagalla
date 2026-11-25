@@ -1,4 +1,5 @@
 import { IonBadge, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonNote, IonSelect, IonSelectOption, useIonAlert } from '@ionic/react';
+import { APP_VERSION_LABEL } from '../../lib/version';
 import { LANGS, LANG_NAMES, formatIndianMobile, type Lang } from '@invoice/shared';
 import {
   businessOutline,
@@ -243,6 +244,7 @@ export default function MoreScreen() {
           <IonLabel color="danger">{t('Log out')}</IonLabel>
         </IonItem>
       </IonList>
+      <p className="app-version">ApnaGalla {APP_VERSION_LABEL}</p>
     </PageShell>
   );
 }

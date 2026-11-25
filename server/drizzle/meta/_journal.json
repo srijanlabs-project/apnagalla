@@ -64,6 +64,13 @@
       "when": 1795594746671,
       "tag": "0008_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795700000000,
+      "tag": "0009_app_version",
+      "breakpoints": true
     }
   ]
 }

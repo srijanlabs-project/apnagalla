@@ -76,6 +76,12 @@ export interface BuildAppOptions {
   logger?: boolean;
 }
 
+/** The app version a phone or browser sends (header x-app-version), when it looks like one. */
+function appVersionOf(req: { headers: Record<string, string | string[] | undefined> }): string | null {
+  const v = req.headers['x-app-version'];
+  return typeof v === 'string' && /^[\w.-]{1,40}$/.test(v) ? v : null;
+}
+
 export async function buildApp({ env, database, otpSender, gstProvider, billScanner, logger = true }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger ? { redact: ['req.headers.authorization'] } : false,
@@ -181,13 +187,13 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     const { phone, code, deviceName, client } = parse(otpVerifyBody, req.body);
     await otp.verify(phone, code);
     const userId = await accounts.upsertUserByPhone(phone);
-    const t = await tokens.createSession(userId, deviceName, client);
+    const t = await tokens.createSession(userId, deviceName, client, appVersionOf(req));
     return { ...t, me: await accounts.getMe(userId) };
   });
 
   app.post('/v1/auth/refresh', async (req) => {
     const { refreshToken } = parse(refreshBody, req.body);
-    return tokens.refresh(refreshToken);
+    return tokens.refresh(refreshToken, appVersionOf(req));
   });
 
   app.post('/v1/auth/logout', authed, async (req, reply) => {

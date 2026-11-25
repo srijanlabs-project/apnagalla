@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "typecheck": "tsc -b",
-    "android:sync": "npm run build && cap sync android",
+    "android:sync": "node scripts/stamp-version.mjs && npm run build && cap sync android",
     "android:open": "cap open android",
     "test": "vitest run",
     "i18n": "node scripts/i18n.mjs"

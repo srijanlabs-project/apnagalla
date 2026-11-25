@@ -280,3 +280,4 @@
 .att-absent { background: var(--ion-color-danger); color: #fff; border-color: transparent; }
 .att-half { background: var(--ion-color-warning); color: #000; border-color: transparent; }
 .att-leave { background: var(--ion-color-tertiary); color: #fff; border-color: transparent; }
+.app-version { text-align: center; font-size: 12px; color: var(--ion-color-medium); margin: 8px 0 24px; }

@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import { todayISO, addDaysISO } from '@invoice/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { cashDay, closeDay } from './cashbook';
 import { db, type Customer, type Item, type Supplier } from './db';
@@ -10,7 +11,7 @@ import { REPORTS, todaySummary } from './reports';
 
 const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Staff', role: 'staff', seriesCode: 'A' };
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = todayISO(); // local date, as the app uses
 
 let rice: Item;
 let gupta: Customer;
@@ -156,7 +157,7 @@ describe('cash book', () => {
     await closeDay(owner, day, 37000);
     const closed = await cashDay('b1', TODAY);
     expect(closed.close?.difference).toBe(-500);
-    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const tomorrow = addDaysISO(TODAY, 1);
     expect((await cashDay('b1', tomorrow)).opening).toBe(37000);
   });
 });

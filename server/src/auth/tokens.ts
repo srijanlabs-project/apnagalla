@@ -62,7 +62,7 @@ export class TokenService {
    * Creates a new device session (after OTP login). A phone login ends the user's other phone
    * sessions: one phone at a time per login. Web sessions are not limited.
    */
-  async createSession(userId: string, deviceName: string | undefined, client: ClientKind): Promise<AuthTokens> {
+  async createSession(userId: string, deviceName: string | undefined, client: ClientKind, appVersion?: string | null): Promise<AuthTokens> {
     const refreshToken = generateRefreshToken();
     const row = await this.db.transaction(async (tx) => {
       if (client === 'mobile') {
@@ -76,6 +76,7 @@ export class TokenService {
         .values({
           userId,
           deviceName: deviceName ?? null,
+          appVersion: appVersion ?? null,
           client,
           refreshTokenHash: hashToken(refreshToken),
           expiresAt: new Date(Date.now() + ttlDays(client) * 86_400_000),
@@ -91,7 +92,7 @@ export class TokenService {
   }
 
   /** Rotates the refresh token: the old one stops working immediately. */
-  async refresh(refreshToken: string): Promise<AuthTokens> {
+  async refresh(refreshToken: string, appVersion?: string | null): Promise<AuthTokens> {
     const now = new Date();
     const next = generateRefreshToken();
     const hash = hashToken(refreshToken);
@@ -100,6 +101,7 @@ export class TokenService {
       .set({
         refreshTokenHash: hashToken(next),
         lastSeenAt: now,
+        ...(appVersion ? { appVersion } : {}),
         // Sliding expiry: each use extends it (7 days for a browser, 90 for the phone).
         expiresAt: sql`${now.toISOString()}::timestamptz + (case when ${sessions.client} = 'web' then ${`${WEB_REFRESH_TOKEN_TTL_DAYS} days`}::interval else ${`${REFRESH_TOKEN_TTL_DAYS} days`}::interval end)`,
       })
@@ -139,6 +141,7 @@ export class TokenService {
       client: s.client,
       createdAt: s.createdAt.toISOString(),
       lastSeenAt: s.lastSeenAt.toISOString(),
+      appVersion: s.appVersion,
       current: s.id === currentSessionId,
     }));
   }

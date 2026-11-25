@@ -28,6 +28,7 @@ import type {
 import { API_URL } from '../config';
 import { t } from './i18n';
 import { secure } from './secureStore';
+import { APP_VERSION_TAG } from './version';
 import { KEYS } from './storage';
 
 export class ApiError extends Error {
@@ -74,6 +75,8 @@ export function subscribeSignedOut(fn: Listener): () => void {
 async function rawFetch(path: string, init: RequestInit & { auth?: boolean; timeoutMs?: number }): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.body !== undefined) headers.set('content-type', 'application/json');
+  // Lets the owner (Devices) and ApnaGalla see which app version each phone runs.
+  headers.set('x-app-version', APP_VERSION_TAG);
   if (init.auth !== false && tokens) headers.set('authorization', `Bearer ${tokens.accessToken}`);
   try {
     return await fetch(`${API_URL}${path}`, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(init.timeoutMs ?? 20_000) });

@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import { todayISO } from '@invoice/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db, type Customer } from './db';
 import { jobAdvance, newJob, nextStage, saveJob, setStage, settleJobAdvance, takeAdvance } from './jobs';
@@ -18,7 +19,7 @@ import { applyBulkPrices, bulkPrices } from './pricing';
 import { daysLeft, orderFor, salesSpeed } from './stock';
 
 const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = todayISO(); // local date, as the app uses
 let painter: Customer;
 
 beforeEach(async () => {
@@ -109,7 +110,7 @@ describe('serial / IMEI', () => {
   it('numbers come in on purchase, go out on sale, come back on a return', async () => {
     const phone = await putRecord('items', owner, { id: 'ph', name: 'Phone X', unit: 'pcs', rate: 1500000, rateIncludesTax: true, taxPct: 18, trackSerial: true, warrantyMonths: 12 } as Item);
     const p = await newPurchaseDraft(owner);
-    await savePurchase(owner, { ...p, lines: [{ ...purchaseLineFromItem(phone, 3), serials: ['IMEI1', 'IMEI2', 'IMEI3'] }] }, { finalize: true });
+    await savePurchase(owner, { ...p, date: '2026-11-24', lines: [{ ...purchaseLineFromItem(phone, 3), serials: ['IMEI1', 'IMEI2', 'IMEI3'] }] }, { finalize: true });
     expect(await serialsInStock('b1', 'ph')).toEqual(['IMEI1', 'IMEI2', 'IMEI3']);
     const d = await newInvoiceDraft(owner);
     const inv = await saveInvoice(

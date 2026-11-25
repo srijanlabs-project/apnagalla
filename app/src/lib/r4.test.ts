@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import { todayISO } from '@invoice/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db, type Customer, type DocLine, type Offer } from './db';
 import { applyOffers, checkCoupon } from './offers';
@@ -13,7 +14,7 @@ import { PermissionError, ensureBusinessRecords, newCreditNoteDraft, newInvoiceD
 
 const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Staff', role: 'staff', seriesCode: 'A' };
-export const TODAY = new Date().toISOString().slice(0, 10);
+export const TODAY = todayISO(); // local date, as the app uses
 
 beforeEach(async () => {
   await Promise.all(db.tables.map((t) => t.clear()));

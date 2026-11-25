@@ -56,6 +56,7 @@ export default function DevicesScreen() {
                 <h2>{s.deviceName || (s.client === 'web' ? t('Web browser') : t('Phone'))}</h2>
                 <p>
                   {s.client === 'web' ? t('Web') : t('Phone app')} · {t('last active {time}', { time: when(s.lastSeenAt) })}
+                  {s.appVersion ? ` · ${t('app {version}', { version: s.appVersion })}` : ''}
                 </p>
               </IonLabel>
               {s.current ? (

@@ -205,6 +205,8 @@ export interface SessionDto {
   client: ClientKind;
   createdAt: string;
   lastSeenAt: string;
+  /** App version last seen from this device, e.g. "R4-2026112601". */
+  appVersion?: string | null;
   /** The session making this request. */
   current: boolean;
 }

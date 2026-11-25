@@ -1600,5 +1600,6 @@
   "{days} paid days of {total}": "{total} ਵਿੱਚੋਂ {days} ਤਨਖ਼ਾਹ ਵਾਲੇ ਦਿਨ",
   "{sales} sales, {returns} credit notes, {purchases} purchases": "{sales} ਵਿਕਰੀਆਂ, {returns} ਕ੍ਰੈਡਿਟ ਨੋਟ, {purchases} ਖ਼ਰੀਦਾਂ",
   "½": "½",
-  "₹{amount} off {what}": "{what} 'ਤੇ ₹{amount} ਛੋਟ"
+  "₹{amount} off {what}": "{what} 'ਤੇ ₹{amount} ਛੋਟ",
+  "app {version}": "ਐਪ {version}"
 }
