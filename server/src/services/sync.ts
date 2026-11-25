@@ -6,6 +6,8 @@ import {
   OWNER_ONLY_TABLES,
   R2_TABLES,
   R3_TABLES,
+  R4_TABLES,
+  OWNER_PRIVATE_TABLES,
   PAYMENT_MODES,
   PAYMENT_VOID_FIELDS,
   SYNC_PULL_MAX,
@@ -67,7 +69,7 @@ function newEntryProblem(table: SyncTable, data: Data): string | null {
   if (table === 'stockMoves') {
     if (typeof data.itemId !== 'string' || !data.itemId) return 'A stock change belongs to an item';
     if (typeof data.qty !== 'number' || !Number.isFinite(data.qty)) return 'Quantity must be a number';
-    if (!['opening', 'adjust', 'count'].includes(String(data.kind))) return 'Unknown stock change';
+    if (!['opening', 'adjust', 'count', 'transfer'].includes(String(data.kind))) return 'Unknown stock change';
     return null;
   }
   if (!Number.isInteger(data.amount) || (data.amount as number) <= 0) return 'Amount must be more than zero';
@@ -327,9 +329,9 @@ export class SyncService {
    * or doesn't know yet (an older app: `schema` 1) are left out; an app that updates starts again
    * from 0, so it still gets them.
    */
-  async pull(businessId: string, since: number, limit = SYNC_PULL_MAX, opts: { hideCost?: boolean; schema?: number } = {}): Promise<SyncPullResponse> {
+  async pull(businessId: string, since: number, limit = SYNC_PULL_MAX, opts: { hideCost?: boolean; schema?: number; notOwner?: boolean } = {}): Promise<SyncPullResponse> {
     const schema = opts.schema ?? 1;
-    const skip = [...(schema < 2 ? R2_TABLES : []), ...(schema < 3 ? R3_TABLES : []), ...(opts.hideCost ? COST_TABLES : [])];
+    const skip = [...(schema < 2 ? R2_TABLES : []), ...(schema < 3 ? R3_TABLES : []), ...(schema < 4 ? R4_TABLES : []), ...(opts.hideCost ? COST_TABLES : []), ...(opts.notOwner ? OWNER_PRIVATE_TABLES : [])];
     const rows = await this.db
       .select({ table: syncRecords.tableName, id: syncRecords.id, data: syncRecords.data, seq: syncRecords.seq })
       .from(syncRecords)

@@ -400,7 +400,7 @@ export interface JobInfo {
 
 /* ---------- R2: stock, purchases, money ---------- */
 
-export type StockReason = 'opening' | 'damage' | 'theft' | 'expired' | 'count' | 'gift' | 'own_use' | 'other';
+export type StockReason = 'opening' | 'damage' | 'theft' | 'expired' | 'count' | 'gift' | 'own_use' | 'other' | 'transfer';
 
 /**
  * Opening stock or a manual change (damage, theft, physical count…). Added, never edited: the
@@ -411,11 +411,14 @@ export interface StockMove extends SyncedRecord {
   itemName: string;
   /** + adds stock, − removes it (item's unit). */
   qty: number;
-  kind: 'opening' | 'adjust' | 'count';
+  kind: 'opening' | 'adjust' | 'count' | 'transfer';
   reason: StockReason;
   note?: string;
   date: string;
   byName?: string;
+  /** Stock transfer: both stores' entries share this id; the other store. */
+  transferId?: string;
+  otherBusinessId?: string;
   voidedAt?: string | null;
   voidedBy?: string;
   voidedByName?: string;
@@ -521,6 +524,36 @@ export interface Expense extends SyncedRecord {
   date: string;
   note?: string;
   paidByName?: string;
+  /** Money paid to a staff member: an advance, or salary for a month (less advance recovered). */
+  employeeId?: string;
+  staffKind?: 'advance' | 'salary';
+  /** Salary: the month it is for (YYYY-MM). */
+  month?: string;
+  /** Salary: advance recovered from it (paise, no cash moves). */
+  recovered?: number;
+}
+
+/** A person who works in the store (with or without an app login): pay and attendance. */
+export interface Employee extends SyncedRecord {
+  name: string;
+  phone?: string;
+  /** What they do (helper, driver…). */
+  job?: string;
+  /** Paid per month, or per day worked. */
+  pay: 'month' | 'day';
+  /** Paise per month or per day. */
+  rate: number;
+  joinDate?: string;
+  active: boolean;
+}
+
+export type AttendanceStatus = 'present' | 'absent' | 'half' | 'leave';
+
+/** One day's attendance; id = `${employeeId}:${date}`. Days not marked count as present. */
+export interface Attendance extends SyncedRecord {
+  employeeId: string;
+  date: string;
+  status: AttendanceStatus;
 }
 
 /** Day-end cash count. id = `${businessId}:${date}`. */
@@ -610,6 +643,8 @@ export const db = new Dexie('apnagalla') as Dexie & {
   dayCloses: EntityTable<DayClose, 'id'>;
   offers: EntityTable<Offer, 'id'>;
   savedReports: EntityTable<SavedReport, 'id'>;
+  employees: EntityTable<Employee, 'id'>;
+  attendance: EntityTable<Attendance, 'id'>;
   outbox: EntityTable<OutboxEntry, 'seq'>;
   meta: EntityTable<MetaEntry, 'key'>;
 };
@@ -656,6 +691,11 @@ db.version(6).stores({
   savedReports: 'id, businessId',
 });
 
+db.version(7).stores({
+  employees: 'id, businessId',
+  attendance: 'id, businessId, employeeId, [businessId+date]',
+});
+
 export const ALL_TABLES = [
   db.profiles,
   db.settings,
@@ -677,6 +717,8 @@ export const ALL_TABLES = [
   db.dayCloses,
   db.offers,
   db.savedReports,
+  db.employees,
+  db.attendance,
   db.outbox,
   db.meta,
 ];

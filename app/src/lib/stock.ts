@@ -20,7 +20,7 @@ export interface StockEvent {
   date: string;
   /** Signed quantity. */
   qty: number;
-  kind: 'opening' | 'adjust' | 'count' | 'sale' | 'return' | 'purchase' | 'purchase_return';
+  kind: 'opening' | 'adjust' | 'count' | 'transfer' | 'sale' | 'return' | 'purchase' | 'purchase_return';
   label: string;
   /** Where to open it in the app. */
   href?: string;
@@ -47,7 +47,7 @@ export async function stockEvents(businessId: string, upTo?: string): Promise<Ma
   };
   for (const m of moves) {
     if (m.deleted || m.voidedAt) continue;
-    add(m.itemId, { date: m.date, qty: m.qty, kind: m.kind, label: m.kind === 'opening' ? t('Opening stock') : reasonLabel(m.reason), move: m });
+    add(m.itemId, { date: m.date, qty: m.qty, kind: m.kind, label: m.kind === 'opening' ? t('Opening stock') : m.kind === 'transfer' ? (m.note ?? reasonLabel(m.reason)) : reasonLabel(m.reason), move: m });
   }
   for (const c of challans) {
     for (const l of c.lines) add(l.itemId, { date: c.date, qty: -l.qty * (l.unitFactor ?? 1), kind: 'sale', label: t('Challan {number}', { number: c.number }), href: `/tabs/estimates/${c.id}` });
@@ -104,6 +104,7 @@ const REASON_TEXT: Record<StockReason, () => string> = {
   gift: () => t('Free / sample'),
   own_use: () => t('Own use'),
   other: () => t('Other'),
+  transfer: () => t('Stock transfer'),
 };
 export const reasonLabel = (r: StockReason): string => REASON_TEXT[r]?.() ?? r;
 

@@ -327,7 +327,7 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     const since = Math.max(0, Number.parseInt(req.query.since ?? '0', 10) || 0);
     const schema = Number.parseInt(req.query.schema ?? '1', 10) || 1;
     const hideCost = role === 'staff' && !(await seesCost(req.params.businessId, uid(req)));
-    return syncService.pull(req.params.businessId, since, undefined, { hideCost, schema });
+    return syncService.pull(req.params.businessId, since, undefined, { hideCost, schema, notOwner: role !== 'owner' });
   });
 
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/numbers/reserve', authed, async (req): Promise<ReserveNumbersResponse> => {

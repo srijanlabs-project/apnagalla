@@ -23,6 +23,9 @@ import SerialSearchScreen from '../items/SerialSearchScreen';
 import { OfferEditScreen, OffersScreen } from '../items/OfferScreens';
 import BulkPriceScreen from '../items/BulkPriceScreen';
 import LabelsScreen from '../items/LabelsScreen';
+import TransferScreen from '../items/TransferScreen';
+import AllStoresScreen from '../stores/AllStoresScreen';
+import { EmployeeScreen, EmployeesScreen } from '../staff/StaffScreens';
 import StockScreen from '../items/StockScreen';
 import BusinessProfileScreen from '../settings/BusinessProfileScreen';
 import DesignScreen from '../settings/DesignScreen';
@@ -80,6 +83,7 @@ export default function MainTabs() {
           <Route path="items/offers/:id" element={<OfferEditScreen />} />
           <Route path="items/bulk-price" element={<BulkPriceScreen />} />
           <Route path="items/labels" element={<LabelsScreen />} />
+          <Route path="items/transfer" element={<TransferScreen />} />
           <Route path="items/:id/stock" element={<StockScreen />} />
           <Route path="items/:id" element={<ItemEditScreen />} />
 
@@ -108,6 +112,9 @@ export default function MainTabs() {
           <Route path="more" element={<MoreScreen />} />
           <Route path="more/team" element={<TeamScreen />} />
           <Route path="more/stores" element={<StoresScreen />} />
+          <Route path="more/dashboard" element={<AllStoresScreen />} />
+          <Route path="more/staff" element={<EmployeesScreen />} />
+          <Route path="more/staff/:id" element={<EmployeeScreen />} />
           <Route path="more/devices" element={<DevicesScreen />} />
           <Route path="more/printer" element={<PrinterScreen />} />
           <Route path="more/lock" element={<LockSettingsScreen />} />

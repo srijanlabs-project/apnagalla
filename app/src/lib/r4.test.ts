@@ -186,3 +186,43 @@ describe('R4.6 logins, locks and Tally', () => {
     expect(xml).toContain('<VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>');
   });
 });
+
+describe('R4.7 stores and staff', () => {
+  it('a transfer moves stock between two stores, adding the item where missing', async () => {
+    const { transferStock, transfersOf } = await import('./transfers');
+    const { setOpeningStock, stockLevels } = await import('./stock');
+    await ensureBusinessRecords('b2', 'Branch');
+    const item = await putRecord('items', owner, { id: 'it1', name: 'Fan', unit: 'pcs', rate: 150000, taxPct: 18, barcode: '8901' } as never);
+    await setOpeningStock(owner, item as never, 10);
+    await transferStock(owner, { businessId: 'b2', name: 'Branch', isOwner: true }, 'Test Co', [{ itemId: 'it1', qty: 4 }], { note: 'van' });
+    expect((await stockLevels('b1')).get('it1')).toBe(6);
+    const there = await db.items.where('businessId').equals('b2').toArray();
+    expect(there).toHaveLength(1);
+    expect(there[0]!.barcode).toBe('8901');
+    expect((await stockLevels('b2')).get(there[0]!.id)).toBe(4);
+    // A second transfer finds the same item there.
+    await transferStock(owner, { businessId: 'b2', name: 'Branch', isOwner: true }, 'Test Co', [{ itemId: 'it1', qty: 1 }]);
+    expect(await db.items.where('businessId').equals('b2').count()).toBe(1);
+    expect((await transfersOf('b2')).every((x) => !x.out)).toBe(true);
+    await expect(transferStock(staff, { businessId: 'b2', name: 'Branch', isOwner: true }, 'Test Co', [{ itemId: 'it1', qty: 1 }])).rejects.toBeInstanceOf(PermissionError);
+  });
+
+  it('salary: unmarked days are present; advances are recovered from salary', async () => {
+    const { markAttendance, monthSheet, giveAdvance, paySalary } = await import('./staffPay');
+    const emp = await putRecord('employees', owner, { id: 'e1', name: 'Raju', pay: 'month', rate: 3000000, active: true } as never);
+    await markAttendance(owner, 'e1', '2026-11-03', 'absent');
+    await markAttendance(owner, 'e1', '2026-11-04', 'half');
+    const s = await monthSheet('b1', emp as never, '2026-11', '2026-11-30');
+    expect(s.paidDays).toBe(28.5);
+    expect(s.earned).toBe(Math.round((3000000 * 28.5) / 30));
+    await giveAdvance(owner, emp as never, { amount: 500000, mode: 'cash', date: '2026-11-10' });
+    expect((await monthSheet('b1', emp as never, '2026-11', '2026-11-30')).advanceLeft).toBe(500000);
+    await paySalary(owner, emp as never, '2026-11', { amount: s.earned - 500000, mode: 'cash', date: '2026-11-30' }, 500000);
+    const after = await monthSheet('b1', emp as never, '2026-11', '2026-11-30');
+    expect(after.due).toBe(0);
+    expect(after.advanceLeft).toBe(0);
+    // Cash out = advance + net salary = what was earned.
+    const out = (await db.expenses.where('businessId').equals('b1').toArray()).reduce((a, e) => a + e.amount, 0);
+    expect(out).toBe(s.earned);
+  });
+});

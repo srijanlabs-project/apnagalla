@@ -498,3 +498,20 @@ describe('R4 logins and locks', () => {
     expect((await pushOk(biz.id, oH, [{ table: 'invoices', id: 'new', data: invoice('new', { number: 'INV/26-27/0002', date: '2026-11-20', lines: [], updatedAt: at(-3) }) }]))[0]!.status).toBe('ok');
   });
 });
+
+describe('R4 staff pay and transfers', () => {
+  it('staff pay records stay with the owner; stock transfers are a stock change', async () => {
+    const { biz, oH, sH } = await setupStore('987021070');
+    await pushOk(biz.id, oH, [
+      { table: 'employees', id: 'e1', data: { id: 'e1', name: 'Raju', pay: 'month', rate: 100, active: true, updatedAt: at(0) } },
+      { table: 'stockMoves', id: 't1', data: { id: 't1', itemId: 'i1', qty: -2, kind: 'transfer', reason: 'transfer', transferId: 'x', date: '2026-11-25', updatedAt: at(0) } },
+    ]).then((r) => expect(r.map((x) => x.status)).toEqual(['ok', 'ok']));
+    const r = await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/sync/pull?since=0&schema=4`, headers: sH });
+    expect(r.json<SyncPullResponse>().changes.some((c) => c.table === 'employees')).toBe(false);
+    const o = await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/sync/pull?since=0&schema=4`, headers: oH });
+    expect(o.json<SyncPullResponse>().changes.some((c) => c.table === 'employees')).toBe(true);
+    const old = await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/sync/pull?since=0&schema=3`, headers: oH });
+    expect(old.json<SyncPullResponse>().changes.some((c) => c.table === 'employees')).toBe(false);
+    expect((await pushOk(biz.id, sH, [{ table: 'attendance', id: 'e1:2026-11-25', data: { id: 'e1:2026-11-25', employeeId: 'e1', date: '2026-11-25', status: 'absent', updatedAt: at(0) } }]))[0]!.status).toBe('rejected');
+  });
+});

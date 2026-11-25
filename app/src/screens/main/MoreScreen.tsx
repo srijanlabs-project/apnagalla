@@ -4,6 +4,9 @@ import {
   businessOutline,
   languageOutline,
   barChartOutline,
+  gridOutline,
+  idCardOutline,
+  swapHorizontalOutline,
   ribbonOutline,
   documentTextOutline,
   constructOutline,
@@ -39,6 +42,7 @@ export default function MoreScreen() {
   const [alert] = useIonAlert();
   const isOwner = membership?.role === 'owner';
   const storeCount = me?.memberships.length ?? 0;
+  const ownedCount = (me?.memberships ?? []).filter((m) => m.role === 'owner' && m.active).length;
 
   async function onLogout() {
     const res = await logout(false);
@@ -161,6 +165,24 @@ export default function MoreScreen() {
           <IonItem routerLink="/tabs/more/backup" detail lines="full">
             <IonIcon icon={cloudUploadOutline} slot="start" />
             <IonLabel>{t('Daily Excel backup')}</IonLabel>
+          </IonItem>
+        )}
+        {isOwner && (
+          <IonItem routerLink="/tabs/more/staff" detail lines="none">
+            <IonIcon icon={idCardOutline} slot="start" />
+            <IonLabel>{t('Staff & salary')}</IonLabel>
+          </IonItem>
+        )}
+        {ownedCount > 1 && (
+          <IonItem routerLink="/tabs/more/dashboard" detail lines="none">
+            <IonIcon icon={gridOutline} slot="start" />
+            <IonLabel>{t('All stores')}</IonLabel>
+          </IonItem>
+        )}
+        {isOwner && ownedCount > 1 && (
+          <IonItem routerLink="/tabs/items/transfer" detail lines="none">
+            <IonIcon icon={swapHorizontalOutline} slot="start" />
+            <IonLabel>{t('Stock transfer')}</IonLabel>
           </IonItem>
         )}
         {isOwner && (

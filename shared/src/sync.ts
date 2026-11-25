@@ -25,6 +25,9 @@ export const SYNC_TABLES = [
   // R3
   'offers',
   'savedReports',
+  // R4
+  'employees',
+  'attendance',
 ] as const;
 export type SyncTable = (typeof SYNC_TABLES)[number];
 
@@ -34,8 +37,14 @@ export const R2_TABLES: readonly SyncTable[] = ['stockMoves', 'suppliers', 'purc
 /** Tables added in R3 (sent to apps of schema 3 or later). */
 export const R3_TABLES: readonly SyncTable[] = ['offers', 'savedReports'];
 
+/** Tables added in R4 (sent to apps of schema 4 or later). */
+export const R4_TABLES: readonly SyncTable[] = ['employees', 'attendance'];
+
+/** Staff pay and attendance: only the owner sees or changes them. */
+export const OWNER_PRIVATE_TABLES: readonly SyncTable[] = ['employees', 'attendance'];
+
 /** The data layout the phone understands; sent on pull. Older apps send none (= 1). */
-export const SYNC_SCHEMA = 3;
+export const SYNC_SCHEMA = 4;
 
 /**
  * Purchase prices live in these tables: staff of a store that hides costs from staff never
@@ -47,7 +56,7 @@ export const COST_TABLES: readonly SyncTable[] = ['suppliers', 'purchaseOrders',
 export const APPEND_ONLY_TABLES: readonly SyncTable[] = ['payments', 'supplierPayments', 'stockMoves'];
 
 /** Store details: only the owner may change them. */
-export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'categories', 'offers', 'savedReports'];
+export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'categories', 'offers', 'savedReports', 'employees', 'attendance'];
 
 /** Payment modes for a payment or refund entry. `advance` = paid from money the customer left on account. */
 export const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque', 'other', 'advance', 'finance', 'creditnote'] as const;
