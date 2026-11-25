@@ -124,6 +124,14 @@ export async function applyAdvance(actor: Actor, customer: Customer, invoice: In
   await putRecord('payments', actor, { id: newId(), ...base, kind: 'payment', invoiceId: invoice.id, amount: amt } as PaymentEntry);
 }
 
+/** A bill leaving `unpaid` on credit would take the customer above their limit? */
+export async function creditOverLimit(businessId: string, customerId: string | null | undefined, unpaid: number): Promise<{ limit: number; balance: number; after: number } | null> {
+  const c = customerId ? await db.customers.get(customerId) : undefined;
+  if (!c?.creditLimit || unpaid <= 0) return null;
+  const balance = (await khataOf(businessId, c)).balance;
+  return balance + unpaid > c.creditLimit ? { limit: c.creditLimit, balance, after: balance + unpaid } : null;
+}
+
 /** Everyone who owes the store something, biggest first. */
 export async function receivables(businessId: string): Promise<{ customer: Customer; balance: number; overdue: number }[]> {
   const customers = await db.customers.where('businessId').equals(businessId).filter((c) => !c.deleted).toArray();

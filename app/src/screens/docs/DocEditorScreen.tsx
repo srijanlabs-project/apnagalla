@@ -52,6 +52,7 @@ import { PAYMENT_TERMS } from '../settings/InvoiceSettingsScreen';
 import CustomerPicker, { snapshotOf } from './CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
 import { settleJobAdvance } from '../../lib/jobs';
+import { creditOverLimit } from '../../lib/khata';
 import { repriceLines } from '../../lib/pricing';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor from './LineEditor';
@@ -108,6 +109,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
       if (!d && kind === 'credit') return; // credit notes start from an invoice
       if (!d) {
         d = kind === 'invoice' ? await newInvoiceDraft(actor) : await newEstimateDraft(actor);
+        if (kind === 'estimate' && new URLSearchParams(location.search).get('challan')) (d as Estimate).challan = true;
         d.dueDate = addDaysISO(d.date, d.paymentTermsDays ?? 0);
         const customerId = new URLSearchParams(location.search).get('customer');
         const c = customerId ? await db.customers.get(customerId) : undefined;
@@ -229,6 +231,10 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         t('Credit note number {number} is already used', { number: doc.number }),
       );
       return void toast({ message, duration: 2500, color: 'danger' });
+    }
+    if (finalize && kind === 'invoice' && actor.role === 'staff' && settings.creditLimitBlocks && totals) {
+      const over = await creditOverLimit(actor.businessId, doc.billTo?.customerId, totals.grandTotal);
+      if (over) return void toast({ message: t('Above the credit limit of {limit}: ask the owner.', { limit: rupees(over.limit) }), duration: 3000, color: 'danger' });
     }
     setSaving(true);
     try {

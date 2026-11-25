@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db, type Customer } from './db';
 import { jobAdvance, newJob, nextStage, saveJob, setStage, settleJobAdvance, takeAdvance } from './jobs';
 import { khataOf } from './khata';
-import { PermissionError, biggestDiscountPct, billMoney, convertEstimate, ensureBusinessRecords, newInvoiceDraft, putRecord, saveInvoice, type Actor } from './repo';
+import { PermissionError, biggestDiscountPct, newEstimateDraft, saveEstimate, billMoney, convertEstimate, ensureBusinessRecords, newInvoiceDraft, putRecord, saveInvoice, type Actor } from './repo';
 import { createVariants, priceFor, repriceLines, unitOptions, variantsOf } from './pricing';
 import { newPurchaseDraft, purchaseLineFromItem, savePurchase } from './purchases';
 import { stockLevels, tracksStock } from './stock';
@@ -179,6 +179,22 @@ describe('staff permissions', () => {
     await expect(saveInvoice(staff, { ...d, lines: [{ ...lines[0]!, offer: 'Diwali' }] }, { finalize: true })).resolves.toBeTruthy();
     const d2 = await newInvoiceDraft(staff);
     expect(biggestDiscountPct({ ...d2, lines: [{ ...lines[0]!, discount: null }], overallDiscount: { type: 'amount', value: 5000 } })).toBe(5);
+  });
+});
+
+describe('delivery challan', () => {
+  it('has its own number series, takes goods out of stock once, and its bill does not again', async () => {
+    const cement = await putRecord('items', owner, { id: 'cem', name: 'Cement', unit: 'bag', rate: 40000, rateIncludesTax: false, taxPct: 28 } as Item);
+    const p = await newPurchaseDraft(owner);
+    await savePurchase(owner, { ...p, lines: [purchaseLineFromItem(cement, 50)] }, { finalize: true });
+    const d = await newEstimateDraft(owner);
+    const ch = await saveEstimate(owner, { ...d, challan: true, lines: [{ id: 'l', itemId: 'cem', name: 'Cement', qty: 20, unit: 'bag', rate: 40000, rateIncludesTax: false, taxPct: 28 }] }, { finalize: true });
+    expect(ch.number.startsWith('DC')).toBe(true);
+    expect(ch.numberSeries?.startsWith('challan:')).toBe(true);
+    expect((await stockLevels('b1')).get('cem')).toBe(30);
+    const bill = await saveInvoice(owner, await convertEstimate(owner, ch.id), { finalize: true });
+    expect(bill.fromEstimateId).toBe(ch.id);
+    expect((await stockLevels('b1')).get('cem')).toBe(30);
   });
 });
 

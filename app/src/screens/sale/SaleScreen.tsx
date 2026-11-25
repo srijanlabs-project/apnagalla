@@ -41,6 +41,7 @@ import { computeTotals, deleteDraft, effectiveGstType, newId, newInvoiceDraft, r
 import { sync } from '../../lib/sync';
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
+import { creditOverLimit } from '../../lib/khata';
 import { repriceLines, sellable } from '../../lib/pricing';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from '../docs/LineEditor';
@@ -213,6 +214,10 @@ export default function SaleScreen() {
     if (!bill) return;
     setBusy(true);
     try {
+      if (actor.role === 'staff' && settings.creditLimitBlocks && totals) {
+        const over = await creditOverLimit(actor.businessId, bill.billTo?.customerId, totals.grandTotal - parts.reduce((a, p) => a + p.amount, 0));
+        if (over) throw new Error(t('Above the credit limit of {limit}: ask the owner, or take more payment now.', { limit: rupees(over.limit) }));
+      }
       const saved = await saveInvoice(actor, { ...bill, held: false }, { finalize: true });
       const paid = parts.reduce((a, p) => a + p.amount, 0);
       if (paid > 0) await recordPayments(actor, saved.id, parts, { date });

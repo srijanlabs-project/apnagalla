@@ -102,6 +102,10 @@ export interface BusinessSettings extends SyncedRecord {
   billLanguage: Lang;
   /** Staff must lock the app with a PIN / fingerprint on their phones. */
   staffMustLock: boolean;
+  /** Staff can't bill on credit beyond a customer's credit limit (the owner still can). */
+  creditLimitBlocks?: boolean;
+  /** Delivery challans: their own number series. */
+  challanPrefix?: string;
   /** Staff may see items' purchase price. Off: the server never sends it to staff phones. */
   staffSeeCost: boolean;
   /** "HH:MM": when the day-before delivery alert rings. */
@@ -345,6 +349,8 @@ export interface Estimate extends DocBase {
   businessSnapshot?: Omit<BusinessProfile, keyof SyncedRecord> | null;
   /** Set when this estimate is a job (work order or repair): its quote is the estimate's lines. */
   job?: JobInfo | null;
+  /** A delivery challan: goods sent before the bill; own number series; takes stock out. */
+  challan?: boolean;
 }
 
 export type WorkStage = 'measure' | 'quoted' | 'confirmed' | 'in_progress' | 'ready' | 'delivered' | 'cancelled';

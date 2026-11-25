@@ -30,12 +30,14 @@ export interface StockEvent {
 
 /** Everything that changed stock in a store, per item. `upTo` = include only up to that date. */
 export async function stockEvents(businessId: string, upTo?: string): Promise<Map<string, StockEvent[]>> {
-  const [moves, invoices, notes, purchases] = await Promise.all([
+  const [moves, invoices, notes, purchases, challans] = await Promise.all([
     db.stockMoves.where('businessId').equals(businessId).toArray(),
     db.invoices.where('businessId').equals(businessId).filter((d) => d.status === 'saved' && !d.deleted).toArray(),
     db.creditNotes.where('businessId').equals(businessId).filter((d) => d.status === 'saved' && !d.deleted && d.reason === 'return').toArray(),
     db.purchases.where('businessId').equals(businessId).filter((d) => d.status === 'saved' && !d.deleted).toArray(),
+    db.estimates.where('businessId').equals(businessId).filter((d) => !!d.challan && d.status !== 'draft' && d.status !== 'declined' && !d.deleted).toArray(),
   ]);
+  const fromChallan = new Set(challans.map((c) => c.id));
   const map = new Map<string, StockEvent[]>();
   const add = (itemId: string | null | undefined, e: StockEvent) => {
     if (!itemId || (upTo && e.date > upTo)) return;
@@ -47,7 +49,11 @@ export async function stockEvents(businessId: string, upTo?: string): Promise<Ma
     if (m.deleted || m.voidedAt) continue;
     add(m.itemId, { date: m.date, qty: m.qty, kind: m.kind, label: m.kind === 'opening' ? t('Opening stock') : reasonLabel(m.reason), move: m });
   }
+  for (const c of challans) {
+    for (const l of c.lines) add(l.itemId, { date: c.date, qty: -l.qty * (l.unitFactor ?? 1), kind: 'sale', label: t('Challan {number}', { number: c.number }), href: `/tabs/estimates/${c.id}` });
+  }
   for (const inv of invoices) {
+    if (inv.fromEstimateId && fromChallan.has(inv.fromEstimateId)) continue;
     for (const l of inv.lines) add(l.itemId, { date: inv.date, qty: -l.qty * (l.unitFactor ?? 1), kind: 'sale', label: t('Sale {number}', { number: inv.number }), href: `/tabs/invoices/${inv.id}` });
   }
   for (const n of notes) {

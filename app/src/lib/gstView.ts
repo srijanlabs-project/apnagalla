@@ -36,7 +36,7 @@ export function gstViewOf(kind: DocKind, doc: Pick<DocBase, 'taxMode' | 'placeOf
   const split = mode === 'gst' ? splitGst(totals, interState) : null;
 
   let title: string;
-  if (kind === 'estimate') title = 'Estimate';
+  if (kind === 'estimate') title = (doc as { challan?: boolean }).challan ? 'Delivery Challan' : 'Estimate';
   else if (kind === 'credit') title = 'Credit Note';
   else if (mode === 'gst') title = 'Tax Invoice';
   else if (mode === 'none' && gstType !== 'unregistered') title = 'Bill of Supply';

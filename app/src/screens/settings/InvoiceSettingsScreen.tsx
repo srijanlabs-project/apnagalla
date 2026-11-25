@@ -253,6 +253,13 @@ export default function InvoiceSettingsScreen() {
           disabled={ro}
         />
         <ToggleRow
+          label={t('Staff can’t go above a credit limit')}
+          note={t('A staff bill on credit that takes a customer above their limit is stopped; you can still make it.')}
+          checked={!!s.creditLimitBlocks}
+          onChange={(creditLimitBlocks) => patch({ creditLimitBlocks })}
+          disabled={ro}
+        />
+        <ToggleRow
           label={t('Staff must lock the app')}
           note={t('Staff set a PIN (or fingerprint) on their phones; the app asks for it on opening and after 5 minutes away.')}
           checked={s.staffMustLock}

@@ -153,6 +153,8 @@ export function defaultSettings(businessId: string): BusinessSettings {
     deliveryAlertTime: '09:00',
     staffSeeCost: false,
     staffMustLock: false,
+    creditLimitBlocks: false,
+    challanPrefix: 'DC',
     billLanguage: 'en',
     resetEachFinancialYear: true,
     defaultPaymentTermsDays: 0,
@@ -270,7 +272,7 @@ export const isPersonalSeries = (s: BusinessSettings, series: NumberSeries) => s
 export const codeFor = (s: BusinessSettings, series: NumberSeries, actor: Pick<Actor, 'seriesCode'>) => (isPersonalSeries(s, series) ? (actor.seriesCode ?? '') : '');
 
 export function prefixOf(s: BusinessSettings, series: NumberSeries): string {
-  return { invoice: s.invoicePrefix, bill: s.billPrefix, estimate: s.estimatePrefix, credit: s.creditNotePrefix }[series];
+  return { invoice: s.invoicePrefix, bill: s.billPrefix, estimate: s.estimatePrefix, credit: s.creditNotePrefix, challan: s.challanPrefix || 'DC' }[series];
 }
 
 export function formatDocNumber(s: BusinessSettings, series: NumberSeries, date: string, seq: number, code = ''): string {
@@ -342,6 +344,7 @@ async function nextSeq(s: BusinessSettings, series: NumberSeries, actor: Pick<Ac
       bill: () => t('No bill numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
       estimate: () => t('No estimate numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
       credit: () => t('No credit note numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
+      challan: () => t('No challan numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
     };
     throw new NumberingError(messages[series]());
   }
@@ -355,7 +358,7 @@ async function nextSeq(s: BusinessSettings, series: NumberSeries, actor: Pick<Ac
  */
 async function highestOnPhone(businessId: string, series: NumberSeries, key: string): Promise<number> {
   const { code, period } = parseSeriesKey(key)!;
-  const docs = await tableOfKind(series === 'bill' ? 'invoice' : series).where('businessId').equals(businessId).toArray();
+  const docs = await tableOfKind(series === 'bill' ? 'invoice' : series === 'challan' ? 'estimate' : series).where('businessId').equals(businessId).toArray();
   let max = 0;
   for (const d of docs) {
     if (d.numberSeries === key && d.numberSeq) max = Math.max(max, d.numberSeq);
@@ -473,7 +476,7 @@ export async function saveEstimate(actor: Actor, est: Estimate, opts: { finalize
   next.totals = computeTotals(next);
   if (!existing) next.history.push(historyEntry(actor, 'created'));
   if (finalizing) {
-    Object.assign(next, await numberFor('estimate', actor, next));
+    Object.assign(next, next.challan && !next.number ? await takeNextNumber('estimate', 'challan', actor, next.date) : await numberFor('estimate', actor, next));
     next.status = 'open';
     next.businessSnapshot = await snapshotBusiness(actor.businessId);
     next.history.push(historyEntry(actor, 'saved', next.number));

@@ -194,7 +194,7 @@ async function topUpNumbers(businessId: string) {
   const period = s.resetEachFinancialYear ? financialYearLabel(todayISO()) : 'all';
   const kinds: NumberSeries[] = ['estimate'];
   if (CAN_CREATE_INVOICES) {
-    kinds.push('invoice');
+    kinds.push('invoice', 'challan');
     // Non-GST bills have their own series only in a regular GST store; credit notes are the owner's.
     if (effectiveGstType(await db.profiles.get(businessId)) === 'regular') kinds.push('bill');
     if (await isOwnerOf(businessId)) kinds.push('credit');
