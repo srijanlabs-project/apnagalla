@@ -220,14 +220,14 @@ built without stopping for each design question, using the defaults below.
 
 | Step | Scope | Status |
 |---|---|---|
-| R4.1 Billing | Barcode scan in the invoice / estimate editor (asks before adding a repeat), private notes on a bill (never printed), bill photos printed on a page after the bill, WhatsApp button straight to the customer's chat with the PDF, non-returnable items, "+ New" with invoice / estimate / delivery challan | |
-| R4.2 Offers | ₹ off offers (with a minimum bill), coupon codes typed at billing (uses, dates, minimum bill) | |
-| R4.3 Credit and advances | Return credit note: refund now or keep as credit (never both); pay with a credit note; advances on any estimate or challan, used on its bill | |
-| R4.4 Job work | sq m and running metre, sizes in m / cm / mm, quantity typed directly; "work order" switch inside the estimate | |
-| R4.5 Wi-Fi printing | Wi-Fi receipt printers by IP address; A4 printers through Android's print screen | |
-| R4.6 Roles and control | Warehouse team (deliveries only, marks delivered with a photo), accountant (read-only login), lock old bills, "may cancel bills" permission, Tally export | |
-| R4.7 Many stores and staff | Stock transfer between stores, owner dashboard across stores, staff attendance, salary and advances | |
-| R4.8 Phone alerts | Low stock, overdue payments, daily summary as phone notifications (no Google services) | |
+| R4.1 Billing | Barcode scan in the invoice / estimate editor (asks before adding a repeat), private notes on a bill (never printed), bill photos printed on a page after the bill, WhatsApp button straight to the customer's chat with the PDF, non-returnable items, "+ New" with invoice / estimate / delivery challan | Done |
+| R4.2 Offers | ₹ off offers (with a minimum bill), coupon codes typed at billing (uses, dates, minimum bill) | Done |
+| R4.3 Credit and advances | Return credit note: refund now or keep as credit (never both); pay with a credit note; advances on any estimate or challan, used on its bill | Done |
+| R4.4 Job work | sq m and running metre, sizes in m / cm / mm, quantity typed directly; "work order" switch inside the estimate | Done |
+| R4.5 Wi-Fi printing | Wi-Fi receipt printers by IP address; A4 printers through Android's print screen | Done |
+| R4.6 Roles and control | Warehouse team (deliveries only, marks delivered with a photo), accountant (read-only login), lock old bills, "may cancel bills" permission, Tally export | Done |
+| R4.7 Many stores and staff | Stock transfer between stores, owner dashboard across stores, staff attendance, salary and advances | Done |
+| R4.8 Phone alerts | Low stock, overdue payments, daily summary as phone notifications (no Google services) | Done |
 
 On hold (client's R4 list): customer khata link, WhatsApp catalogue / orders, voice billing,
 recurring bills, review link, iOS app.
@@ -238,18 +238,32 @@ R4 decisions (defaults):
 - WhatsApp: Android opens WhatsApp in the customer's chat (their number, even if not in contacts)
   with the PDF attached; the seller taps send. It uses WhatsApp's chat-id share, which is widely
   used but not documented by WhatsApp; if it fails, the normal share sheet opens.
-- Warehouse and accountant are new roles beside owner and staff. Warehouse sees bills, estimates
-  and challans with goods to deliver, and marks them delivered with a photo (stored on the bill);
-  nothing else. Accountant sees everything (with costs) and changes nothing; the server refuses
-  any change from them.
+- Warehouse and accountant are kinds of staff login (Team → a person → Kind of login), so invites
+  and number series work as before. Warehouse sees bills, challans and job orders to deliver
+  (More → Deliveries) and marks them delivered with a photo (stored on the bill); nothing else,
+  and never cost prices. Accountant / CA sees everything (costs if the owner allows), including
+  GSTR-1 and the Tally export, and changes nothing; the server refuses any change from them.
+- "May cancel bills" is a staff permission (off by default). Old bills lock after N days and / or
+  up to a "books closed" date (Invoice settings); a locked bill still takes payments and notes,
+  nothing else, not even from the owner; corrections go on a credit note.
+- Stock transfer: owner of both stores only; two linked stock entries (out of one store, into the
+  other); the item in the other store is matched by barcode, then name, else copied there.
+- Staff pay: staff are a list of people (with or without an app login), owner-only. Only
+  absences are marked; unmarked days count as present. Monthly salary is earned per day; daily
+  wage × days. Advances and salary are "Salary" expenses, so the cash book and profit stay right;
+  an advance is recovered from a later salary.
+- Wi-Fi printers: raw ESC/POS to the printer's IP address (port 9100); the phone and printer must
+  be on the same Wi-Fi.
 - Credit notes keep one choice: refund (cash / UPI / bank) or "keep as credit". Credit kept can
   pay any later bill of that customer (payment mode "Credit note"); for a walk-in, by the credit
   note number.
-- Phone alerts are local notifications planned by the phone whenever the app runs or syncs (no
-  Google push): low stock right away, overdue bills each morning, and the day's summary at the
-  store's closing time with the figures as of the last sync.
-- Tally export: Tally's XML import (sales, receipts, purchases, payments as vouchers, ledgers by
-  customer / supplier name). The CA should check the ledger names once before the first import.
+- Phone alerts are local notifications planned by the phone whenever the app runs or data changes
+  (no Google push), set per phone in More → Phone alerts: low stock and overdue money each
+  morning, the day's summary at closing time with the figures as of the last change synced.
+- Tally export (Reports → GST): Tally's XML import with Sales, Credit Note and Purchase vouchers,
+  ledgers Sales / Purchase / CGST / SGST / IGST (Input … for purchases) / Round Off, parties by
+  customer / supplier name (walk-ins to Cash). Payments are not exported yet. The CA should check
+  the ledger names once before the first import.
 
 ### Release 5 (proposed) — global product reference
 Agreed in outline 25 Nov 2026; details to settle before building. Barcodes are out of scope.
