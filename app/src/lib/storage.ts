@@ -30,4 +30,6 @@ export const KEYS = {
   currentBusiness: 'auth.currentBusiness',
   /** This phone's receipt printer (PrinterConfig). */
   printer: 'device.printer',
+  /** This phone's shop alerts (AlertSettings). */
+  alerts: 'device.alerts',
 } as const;

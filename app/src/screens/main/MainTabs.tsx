@@ -12,6 +12,7 @@ import SaleScreen from '../sale/SaleScreen';
 import CategoriesScreen from '../items/CategoriesScreen';
 import ImportScreen from '../items/ImportScreen';
 import PrinterScreen from '../settings/PrinterScreen';
+import AlertsScreen from '../settings/AlertsScreen';
 import LockSettingsScreen from '../settings/LockSettingsScreen';
 import BackupScreen from '../settings/BackupScreen';
 import PlanScreen from '../settings/PlanScreen';
@@ -117,6 +118,7 @@ export default function MainTabs() {
           <Route path="more/staff/:id" element={<EmployeeScreen />} />
           <Route path="more/devices" element={<DevicesScreen />} />
           <Route path="more/printer" element={<PrinterScreen />} />
+          <Route path="more/alerts" element={<AlertsScreen />} />
           <Route path="more/lock" element={<LockSettingsScreen />} />
           <Route path="more/backup" element={<BackupScreen />} />
           <Route path="more/plan" element={<PlanScreen />} />

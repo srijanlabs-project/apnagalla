@@ -3,6 +3,7 @@ import { addDaysISO, todayISO } from '@invoice/shared';
 import { db, type DocBase, type Estimate, type Invoice } from './db';
 import { t } from './i18n';
 import { putRecord, type Actor } from './repo';
+import { SHOP_ALERT_MAX_ID } from './alerts';
 
 /** A bill or estimate (job-work order) with a delivery date, not yet delivered. */
 export interface DeliveryDue {
@@ -83,7 +84,8 @@ export async function warehouseList(businessId: string, opts: { delivered: boole
 function alertId(docId: string): number {
   let h = 0;
   for (let i = 0; i < docId.length; i++) h = (Math.imul(31, h) + docId.charCodeAt(i)) | 0;
-  return (h & 0x7fffffff) || 1;
+  // Above the shop alerts' ids (low stock, overdue, summary), so each kind replaces only its own.
+  return (h & 0x7fffffff) | SHOP_ALERT_MAX_ID;
 }
 
 let asked = false;
@@ -103,8 +105,8 @@ export async function scheduleDeliveryAlerts(actor: Actor, alertTime: string): P
   }
   if ((await LocalNotifications.checkPermissions()).display !== 'granted') return;
 
-  const pending = await LocalNotifications.getPending();
-  if (pending.notifications.length) await LocalNotifications.cancel({ notifications: pending.notifications.map((n) => ({ id: n.id })) });
+  const pending = (await LocalNotifications.getPending()).notifications.filter((n) => n.id >= SHOP_ALERT_MAX_ID);
+  if (pending.length) await LocalNotifications.cancel({ notifications: pending.map((n) => ({ id: n.id })) });
 
   const [hh, mm] = (alertTime || '09:00').split(':').map(Number) as [number, number];
   const now = Date.now();

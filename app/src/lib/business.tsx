@@ -1,4 +1,5 @@
 import { IonSpinner } from '@ionic/react';
+import { scheduleShopAlerts } from './alerts';
 import { DEFAULT_STAFF_PERMISSIONS, type StaffAccess } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -117,6 +118,27 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (actor && deliveryKey !== undefined && alertTime) void scheduleDeliveryAlerts(actor, alertTime).catch(() => undefined);
   }, [actor, deliveryKey, alertTime]);
+
+  // Shop alerts (low stock, overdue, day summary): re-planned a few seconds after things change.
+  const shopKey = useLiveQuery(
+    async () =>
+      [
+        await db.invoices.where('businessId').equals(businessId).count(),
+        (await db.invoices.orderBy('updatedAt').last())?.updatedAt ?? '',
+        (await db.payments.orderBy('updatedAt').last())?.updatedAt ?? '',
+        (await db.items.orderBy('updatedAt').last())?.updatedAt ?? '',
+        await db.stockMoves.where('businessId').equals(businessId).count(),
+        await db.purchases.where('businessId').equals(businessId).count(),
+      ].join('|'),
+    [businessId],
+  );
+  const canSeeMoney = !!value && (value.isOwner || value.perms.viewReports) && value.perms.access !== 'warehouse';
+  const storeName = value?.profile.name ?? '';
+  useEffect(() => {
+    if (!actor || shopKey === undefined) return;
+    const timer = setTimeout(() => void scheduleShopAlerts(actor, { canSeeMoney, storeName }), 4000);
+    return () => clearTimeout(timer);
+  }, [actor, shopKey, canSeeMoney, storeName]);
 
   // Bills from before payment entries: turn their paid amount into an entry (once, same id everywhere).
   const actorForConvert = value?.actor;

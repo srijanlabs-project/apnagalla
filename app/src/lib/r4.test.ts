@@ -226,3 +226,21 @@ describe('R4.7 stores and staff', () => {
     expect(out).toBe(s.earned);
   });
 });
+
+describe('R4.8 phone alerts', () => {
+  it('morning: low stock; evening: today’s summary (generic when it is for tomorrow)', async () => {
+    const { shopAlerts, nextAt, DEFAULT_ALERTS } = await import('./alerts');
+    const { setOpeningStock } = await import('./stock');
+    const now = new Date(2026, 10, 25, 12, 0);
+    expect(nextAt('09:30', now).getDate()).toBe(26);
+    expect(nextAt('21:00', now).getDate()).toBe(25);
+    const item = await putRecord('items', owner, { id: 'it2', name: 'Bulb', unit: 'pcs', rate: 10000, taxPct: 0, lowStock: 5 } as never);
+    await setOpeningStock(owner, item as never, 2);
+    const list = await shopAlerts(owner, DEFAULT_ALERTS, { canSeeMoney: true, storeName: 'Test Co', now });
+    const low = list.find((a) => a.id === 101);
+    expect(low?.body).toContain('Bulb');
+    expect(list.find((a) => a.id === 103)?.title).toContain('Today');
+    const late = await shopAlerts(owner, DEFAULT_ALERTS, { canSeeMoney: false, storeName: '', now: new Date(2026, 10, 25, 22, 0) });
+    expect(late.map((a) => a.id)).toEqual([101]);
+  });
+});
