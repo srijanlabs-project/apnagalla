@@ -117,7 +117,7 @@ Built in this order; each step is tested and committed before the next.
 | R1.4 Counter | Quick-sale screen, camera barcode, sq ft / running ft billing, dated part-payments with modes and split, on-screen UPI QR, returns, delivery date + day-before alert | Done |
 | R1.5 Catalogue | Category tree, item barcode / HSN / purchase price / MRP, Excel import of items and customers, GSTIN check via the client's GST API | Done |
 | R1.6 Print and languages | Bluetooth thermal printing (2" / 3"), English / Hindi / Gujarati / Punjabi | Done (translations to be reviewed; printing to be tried on real printers) |
-| R1.7 Admin and security | Admin panel (create / suspend stores), app PIN, secure token storage, tenant-isolation tests, rate limits, backups, monitoring | |
+| R1.7 Admin and security | Admin panel (create / suspend stores), app PIN, secure token storage, tenant-isolation tests, rate limits, backups, monitoring | Done (lock and fingerprint to be tried on a phone) |
 
 Known gaps after R1.2:
 - A phone signed out because the same login was used on a new phone loses changes it had not
@@ -219,3 +219,20 @@ R1.6 decisions (25 Nov 2026) and gaps:
   back with `node scripts/i18n.mjs import FILE.csv` (placeholders are checked).
 - Not yet: text sent to customers on WhatsApp / share stays English; Indian-language PDFs;
   printing untested on real printers.
+
+R1.7 decisions (25 Nov 2026) and gaps:
+- ApnaGalla admins are the phone numbers in the server variable `ADMIN_PHONES`, web only
+  (/admin): list and search stores, create a store for an owner's number, suspend / reactivate
+  (everyone in the store is blocked at once; the app shows "Store suspended"), and each store's
+  audit log (team changes, voids, refunds, cancelled or edited bills, price and store changes).
+- App lock (Android): 4–6 digit PIN plus optional fingerprint, asked on opening and after 5 minutes
+  in the background; 5 wrong tries → verify with OTP (bills on the phone are kept). Optional for
+  everyone, required for staff when the owner turns on Invoice settings → "Staff must lock the app".
+- Login tokens are kept in Android's encrypted storage. Web sessions last 7 days of inactivity.
+- Server: rate limit per login (600 requests a minute), security headers, only our own app
+  origins in production, every store route tested against an outsider.
+- Backups: Railway's daily / weekly / monthly Postgres backups plus point-in-time recovery.
+  Restore steps and monitoring are in docs/operations.md (GitHub checks /health every 10 minutes).
+- The Railway server and database run in US East (Virginia), not Singapore. Moving is possible later.
+- Not yet: lock, fingerprint and secure storage untested on a real phone; `OTP_FIXED_CODE` must be
+  removed before real users.

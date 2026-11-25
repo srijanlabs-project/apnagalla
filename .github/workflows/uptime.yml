@@ -1,0 +1,26 @@
+# Uptime check for the API on Railway. Runs every 10 minutes; a failed run makes GitHub email
+# the repository's admins (Settings → Notifications → Actions). /health also checks the database.
+name: Uptime
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check /health (two tries, 30 s apart)
+        run: |
+          for i in 1 2; do
+            body=$(curl -s -m 15 https://invoiceserver-production.up.railway.app/health || true)
+            echo "try $i: $body"
+            case "$body" in *'"ok":true'*) exit 0;; esac
+            sleep 30
+          done
+          echo "::error::ApnaGalla API is down or its database is unreachable"
+          exit 1

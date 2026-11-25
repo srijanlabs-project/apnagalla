@@ -114,7 +114,7 @@ The Android package ID is **`in.apnagalla.app`** (in `app/capacitor.config.ts` a
 ## Deploy the API to Railway
 1. Create a Railway project.
 2. Add a **PostgreSQL** database.
-3. Add a service from this repo. `railway.json` sets the build and start commands and the `/health` check.
+3. Add a service from this repo and set its build / start commands and `/health` check as listed in `docs/operations.md` (there is no `railway.json`).
 4. Set these service variables:
    - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
    - `NODE_ENV` = `production`
