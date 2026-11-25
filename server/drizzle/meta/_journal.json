@@ -57,6 +57,13 @@
       "when": 1795593909279,
       "tag": "0007_member_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795594746671,
+      "tag": "0008_plans",
+      "breakpoints": true
     }
   ]
 }

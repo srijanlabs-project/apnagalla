@@ -55,6 +55,22 @@ const schema = z.object({
   DROPBOX_APP_SECRET: z.string().optional().transform((v) => (v ? v : undefined)),
   /** This server's public address (for the cloud sign-in to come back to). */
   PUBLIC_URL: z.string().default('https://invoiceserver-production.up.railway.app'),
+  /** Plans: Razorpay payment links; limits only when PLANS_ENFORCED=true. */
+  RAZORPAY_KEY_ID: z.string().optional().transform((v) => (v ? v : undefined)),
+  RAZORPAY_KEY_SECRET: z.string().optional().transform((v) => (v ? v : undefined)),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional().transform((v) => (v ? v : undefined)),
+  PLANS_ENFORCED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true'),
+  TRIAL_DAYS: z.coerce.number().int().min(0).default(30),
+  GRACE_DAYS: z.coerce.number().int().min(0).default(7),
+  REFERRAL_DISCOUNT_PCT: z.coerce.number().min(0).max(100).default(10),
+  /** On the GST invoice ApnaGalla gives each paying store. */
+  APNAGALLA_LEGAL_NAME: z.string().default('ApnaGalla'),
+  APNAGALLA_GSTIN: z.string().optional().transform((v) => (v ? v : undefined)),
+  APNAGALLA_ADDRESS: z.string().default(''),
+  PLAN_SAC: z.string().default('997331'),
   /** Run the nightly Excel job in this process (off in tests). */
   EXPORT_SCHEDULER: z
     .string()

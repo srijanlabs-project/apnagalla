@@ -20,6 +20,9 @@ import type {
   SyncPushResponse,
   StaffPermissions,
   TeamResponse,
+  BillingStatusDto,
+  PlanDto,
+  PlatformInvoiceDto,
   VerifyOtpResponse,
 } from '@invoice/shared';
 import { API_URL } from '../config';
@@ -157,6 +160,17 @@ export const api = {
   adminReactivate: (id: string) => request<void>('POST', `/v1/admin/stores/${id}/reactivate`),
   adminAudit: (id: string) => request<{ entries: AuditEntryDto[] }>('GET', `/v1/admin/stores/${id}/audit`),
   features: () => request<{ scanBill: boolean }>('GET', '/v1/features'),
+  billing: (id: string) => request<{ status: BillingStatusDto; plans: PlanDto[] }>('GET', `/v1/businesses/${id}/billing`),
+  billingQuote: (id: string, body: { planId: string; period: 'month' | 'year'; code?: string | null }) =>
+    request<{ amount: number; gst: number; total: number; code: string | null; extraDays: number; note: string | null }>('POST', `/v1/businesses/${id}/billing/quote`, body),
+  billingPay: (id: string, body: { planId: string; period: 'month' | 'year'; code?: string | null }) => request<{ url: string }>('POST', `/v1/businesses/${id}/billing/pay`, body, { timeoutMs: 30_000 }),
+  billingInvoices: (id: string) => request<{ invoices: PlatformInvoiceDto[] }>('GET', `/v1/businesses/${id}/billing/invoices`),
+  adminPlans: () => request<{ plans: PlanDto[] }>('GET', '/v1/admin/plans'),
+  adminSavePlan: (p: PlanDto & { sort?: number }) => request<{ plans: PlanDto[] }>('PUT', '/v1/admin/plans', p),
+  adminCoupons: () => request<{ coupons: { code: string; kind: string; value: number; partner: string | null; used: number; maxUses: number | null; validTo: string | null }[] }>('GET', '/v1/admin/coupons'),
+  adminCreateCoupon: (c: { code: string; kind: 'pct' | 'amount' | 'days'; value: number; partner?: string | null; maxUses?: number | null }) => request<unknown>('POST', '/v1/admin/coupons', c),
+  adminStoreBilling: (id: string) => request<{ status: BillingStatusDto }>('GET', `/v1/admin/stores/${id}/billing`),
+  adminSetStorePlan: (id: string, planId: string, days: number) => request<{ status: BillingStatusDto }>('POST', `/v1/admin/stores/${id}/plan`, { planId, days }),
   scanBill: (id: string, image: string, mediaType: 'image/jpeg') =>
     request<{ bill: ScannedBillDto }>('POST', `/v1/businesses/${id}/scan-bill`, { image, mediaType }, { timeoutMs: 120_000 }),
   exportSettings: (id: string) => request<ExportSettingsDto>('GET', `/v1/businesses/${id}/exports`),

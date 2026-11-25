@@ -14,6 +14,9 @@ import {
   reserveNumbersBody,
   returnNumbersBody,
   setSeriesCodeBody,
+  couponBody,
+  payPlanBody,
+  planBody,
   staffPermissionsBody,
   syncPushBody,
   updateMeBody,
@@ -34,6 +37,7 @@ import type { Database } from './db/client';
 import type { Env } from './env';
 import { HttpError, badRequest, forbidden, tooMany, unauthorized } from './errors';
 import { ExportService } from './exports/exportService';
+import { BillingService } from './billing/billing';
 import { CLOUD_PROVIDERS, type CloudProvider } from './exports/delivery';
 import { ScanError, billScannerFromEnv, type BillScanner, type ScannedBill } from './scan/billScanner';
 import { AccountService } from './services/accounts';
@@ -227,6 +231,7 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
 
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/invites', authed, async (req, reply) => {
     await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
+    await billing.checkStaff(req.params.businessId);
     const { phone, role } = parse(createInviteBody, req.body);
     const invite = await accounts.createInvite(req.params.businessId, uid(req), phone, role);
     await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: 'team.invited', detail: { phone, role } });
@@ -298,9 +303,11 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/sync/push', { ...authed, bodyLimit: 8_000_000 }, async (req): Promise<SyncPushResponse> => {
     const role = await accounts.requireRole(uid(req), req.params.businessId);
     const { changes } = parse(syncPushBody, req.body);
+    if (!(await billing.writable(req.params.businessId))) throw new HttpError(402, 'plan_expired', 'Your ApnaGalla plan has ended. The owner can renew it in More → Plan.');
     const seriesCode = await accounts.seriesCodeOf(req.params.businessId, uid(req));
     const hideCost = role === 'staff' && !(await seesCost(req.params.businessId, uid(req)));
-    const results = await syncService.push({ businessId: req.params.businessId, userId: uid(req), role, client: req.auth!.client, seriesCode, hideCost }, changes);
+    const billsLeft = changes.some((c) => c.table === 'invoices') ? await billing.billsLeft(req.params.businessId) : undefined;
+    const results = await syncService.push({ businessId: req.params.businessId, userId: uid(req), role, client: req.auth!.client, seriesCode, hideCost, billsLeft }, changes);
     return { results };
   });
 
@@ -350,7 +357,7 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
       const counted = await db.execute<{ n: number }>(
         sql`select count(*)::int as n from audit_log where business_id = ${req.params.businessId} and action = 'bill.scanned' and at > now() - interval '1 day'`,
       );
-      if (Number(counted.rows[0]?.n ?? 0) >= env.SCAN_PER_DAY) throw tooMany('Today’s bill scans are used up. Enter the bill by hand or try tomorrow.', 3600);
+      if (Number(counted.rows[0]?.n ?? 0) >= (await billing.scansPerDay(req.params.businessId, env.SCAN_PER_DAY))) throw tooMany('Today’s bill scans are used up. Enter the bill by hand or try tomorrow.', 3600);
       try {
         const bill = await scanner.scan({ mediaType, base64: req.body.image });
         await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: 'bill.scanned', detail: { lines: bill.lines.length, provider: scanner.name } });
@@ -411,6 +418,48 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     timer.unref();
     app.addHook('onClose', async () => clearInterval(timer));
   }
+
+  /* ---------- plans and billing ---------- */
+  const billing = new BillingService(db, env);
+  await billing.seedPlans();
+  app.get<{ Params: BizParams }>('/v1/businesses/:businessId/billing', authed, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId);
+    return { status: await billing.status(req.params.businessId), plans: await billing.listPlans() };
+  });
+  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/billing/quote', authed, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
+    const b = parse(payPlanBody, req.body);
+    return billing.quote(req.params.businessId, b.planId, b.period, b.code);
+  });
+  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/billing/pay', authed, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
+    const b = parse(payPlanBody, req.body);
+    return billing.createPaymentLink(req.params.businessId, uid(req), b.planId, b.period, b.code);
+  });
+  app.get<{ Params: BizParams }>('/v1/businesses/:businessId/billing/invoices', authed, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
+    return { invoices: await billing.invoices(req.params.businessId) };
+  });
+  // Razorpay's webhook: the signature is over the raw body, so this route reads it as text.
+  await app.register(async (raw) => {
+    raw.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => done(null, body));
+    raw.post('/v1/billing/razorpay-webhook', async (req) => ({ result: await billing.webhook(String(req.body ?? ''), req.headers['x-razorpay-signature'] as string | undefined) }));
+  });
+  app.get('/v1/admin/plans', adminOnly, async () => ({ plans: await billing.listPlans(true) }));
+  app.put('/v1/admin/plans', adminOnly, async (req) => {
+    await billing.upsertPlan(parse(planBody, req.body));
+    return { plans: await billing.listPlans(true) };
+  });
+  app.get('/v1/admin/coupons', adminOnly, async () => ({ coupons: await billing.listCoupons() }));
+  app.post('/v1/admin/coupons', adminOnly, async (req) => {
+    await billing.createCoupon(parse(couponBody, req.body));
+    return { coupons: await billing.listCoupons() };
+  });
+  app.get<{ Params: BizParams }>('/v1/admin/stores/:businessId/billing', adminOnly, async (req) => ({ status: await billing.status(req.params.businessId) }));
+  app.post<{ Params: BizParams; Body: { planId?: string; days?: number } }>('/v1/admin/stores/:businessId/plan', adminOnly, async (req) => {
+    await billing.setPlan(uid(req), req.params.businessId, String(req.body?.planId ?? ''), Number(req.body?.days ?? 0));
+    return { status: await billing.status(req.params.businessId) };
+  });
 
   /* ---------- invites (as the invited user) ---------- */
   app.post<{ Params: { inviteId: string } }>('/v1/invites/:inviteId/accept', authed, async (req) => {

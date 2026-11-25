@@ -33,6 +33,8 @@ export interface SyncActor {
   seriesCode?: string;
   /** Staff of a store that keeps purchase prices from staff. */
   hideCost?: boolean;
+  /** Plan limit: new saved bills this push may still add this month (undefined = no limit). */
+  billsLeft?: number;
 }
 
 /** Item fields staff never receive when the store hides cost. */
@@ -142,6 +144,10 @@ export class SyncService {
 
     const denied = this.checkPermission(actor, table, data, existing);
     if (denied) return reject(denied);
+    if (table === 'invoices' && data.status === 'saved' && existing?.status !== 'saved' && actor.billsLeft !== undefined) {
+      if (actor.billsLeft <= 0) return reject('Your plan’s bills for this month are used up. The owner can upgrade in More → Plan.');
+      actor.billsLeft--;
+    }
     const clash = await this.numberClash(tx, actor.businessId, table, id, data, existing);
     if (clash) return reject(clash);
 

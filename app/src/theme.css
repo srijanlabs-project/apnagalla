@@ -267,3 +267,5 @@
 .photo-cell ion-icon { position: absolute; top: 2px; right: 2px; font-size: 22px; color: #fff; filter: drop-shadow(0 0 2px #000); }
 .photo-add { aspect-ratio: 1; border: 2px dashed var(--ion-color-medium); border-radius: 8px; background: none; font-size: 28px; color: var(--ion-color-medium); }
 .switch-help summary { cursor: pointer; font-weight: 600; margin: 8px 0; }
+.renew-banner { background: var(--ion-color-warning); color: var(--ion-color-warning-contrast); padding: 10px 12px; border-radius: 10px; margin: 8px 0; font-weight: 600; }
+.admin-plan { border: 1px solid var(--ion-color-light-shade); border-radius: 10px; padding: 8px; margin: 10px 0; }

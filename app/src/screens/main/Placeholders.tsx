@@ -1,4 +1,7 @@
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonRouterLink, useIonRouter } from '@ionic/react';
+import type { BillingStatusDto } from '@invoice/shared';
+import { useEffect, useState } from 'react';
+import { api } from '../../lib/api';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { addOutline, cartOutline, clipboardOutline } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
@@ -20,8 +23,16 @@ export function HomeScreen() {
   const router = useIonRouter();
   // Overdue, today and tomorrow (later ones only get the phone alert).
   const deliveries = useLiveQuery(async () => (await deliveriesFor(actor)).filter((d) => d.when !== 'later'), [actor]);
-  const { perms, ledger } = useBusiness();
+  const { perms, ledger, isOwner } = useBusiness();
   const canBuy = perms.seeCost;
+  const [renew, setRenew] = useState<BillingStatusDto | null>(null);
+  useEffect(() => {
+    if (!isOwner) return;
+    void api
+      .billing(actor.businessId)
+      .then(({ status }) => setRenew((status.state === 'trial' || status.state === 'active' || status.state === 'grace') && (status.daysLeft ?? 99) <= 7 ? status : null))
+      .catch(() => setRenew(null));
+  }, [actor.businessId, isOwner]);
   const today = useLiveQuery(() => todaySummary(actor.businessId, canBuy), [actor.businessId, canBuy, ledger]);
   const recent = useLiveQuery(
     () =>
@@ -58,6 +69,13 @@ export function HomeScreen() {
       </div>
       {!CAN_CREATE_INVOICES && <p className="section-note">{webInvoiceNote()}</p>}
 
+      {renew && (
+        <IonRouterLink routerLink="/tabs/more/plan">
+          <p className="renew-banner">
+            {renew.state === 'grace' ? t('Your ApnaGalla plan has ended. Renew in {n} days to keep it.', { n: renew.daysLeft ?? 0 }) : t('Your ApnaGalla plan ends in {n} days. Renew now.', { n: renew.daysLeft ?? 0 })}
+          </p>
+        </IonRouterLink>
+      )}
       {today && (
         <div className="dash-grid">
           <IonRouterLink routerLink="/tabs/reports/sales" className="dash-card">

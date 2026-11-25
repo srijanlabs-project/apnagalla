@@ -211,3 +211,72 @@ export interface ApiErrorBody {
   error: string;
   message: string;
 }
+
+/* ---------- plans and billing (ApnaGalla charging stores) ---------- */
+
+export interface PlanLimits {
+  stores?: number;
+  staff?: number;
+  billsPerMonth?: number;
+  scansPerDay?: number;
+}
+
+export interface PlanDto {
+  id: string;
+  name: string;
+  /** Before GST, paise. */
+  priceMonthly: number;
+  priceYearly: number;
+  limits: PlanLimits;
+  active: boolean;
+}
+
+export interface BillingStatusDto {
+  planId: string;
+  planName: string;
+  state: 'trial' | 'active' | 'grace' | 'expired' | 'free';
+  until: string | null;
+  daysLeft: number | null;
+  limits: PlanLimits;
+  /** Limits are applied (the client switched it on). */
+  enforced: boolean;
+  /** Give this to other shops: they get a discount. */
+  referralCode: string;
+  /** Online payment is set up. */
+  canPay: boolean;
+}
+
+export interface PlatformInvoiceDto {
+  id: string;
+  invoiceNo: string;
+  date: string;
+  planId: string;
+  period: string;
+  amount: number;
+  gst: number;
+  gstPct: number;
+  total: number;
+  seller: { name: string; gstin: string | null; address: string; sac: string };
+  buyer: { name: string; place: string };
+}
+
+export const payPlanBody = z.object({ planId: z.string().min(1), period: z.enum(['month', 'year']), code: z.string().trim().max(30).optional().nullable() });
+
+export const planBody = z.object({
+  id: z.string().trim().regex(/^[a-z0-9-]{2,20}$/),
+  name: z.string().trim().min(1).max(40),
+  priceMonthly: z.number().int().min(0),
+  priceYearly: z.number().int().min(0),
+  limits: z.object({ stores: z.number().int().min(0).optional(), staff: z.number().int().min(0).optional(), billsPerMonth: z.number().int().min(0).optional(), scansPerDay: z.number().int().min(0).optional() }),
+  active: z.boolean(),
+  sort: z.number().int().optional(),
+});
+
+export const couponBody = z.object({
+  code: z.string().trim().regex(/^[A-Za-z0-9-]{3,20}$/),
+  kind: z.enum(['pct', 'amount', 'days']),
+  value: z.number().int().min(1),
+  partner: z.string().trim().max(40).optional().nullable(),
+  maxUses: z.number().int().min(1).optional().nullable(),
+  validTo: z.string().optional().nullable(),
+});

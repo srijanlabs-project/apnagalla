@@ -17,6 +17,7 @@ import {
   useIonAlert,
   useIonToast,
 } from '@ionic/react';
+import AdminBilling from './AdminBilling';
 import { formatIndianMobile, type AdminStoreDto, type AuditEntryDto } from '@invoice/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { TextField } from '../../components/Fields';
@@ -30,6 +31,9 @@ const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('en-IN'
  * with its owner and activity; create a store for an owner; suspend / reactivate; audit trail.
  */
 export default function AdminScreen() {
+  const [billing, setBilling] = useState(false);
+  const [planFor, setPlanFor] = useState<AdminStoreDto | null>(null);
+  const [planForm, setPlanForm] = useState({ planId: 'basic', days: 30 });
   const [toast] = useIonToast();
   const [alert] = useIonAlert();
   const [q, setQ] = useState('');
@@ -90,6 +94,7 @@ export default function AdminScreen() {
           <IonTitle>{t('ApnaGalla admin')}</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={() => setCreating(true)}>{t('New store')}</IonButton>
+            <IonButton onClick={() => setBilling(true)}>{t('Plans and codes')}</IonButton>
             <IonButton href="/">{t('Back to app')}</IonButton>
           </IonButtons>
         </IonToolbar>
@@ -120,6 +125,9 @@ export default function AdminScreen() {
                     {s.suspendedReason && <p className="text-danger">{s.suspendedReason}</p>}
                   </IonLabel>
                   <IonButtons slot="end">
+                    <IonButton size="small" onClick={() => setPlanFor(s)}>
+                      {t('Plan')}
+                    </IonButton>
                     <IonButton
                       size="small"
                       onClick={() =>
@@ -147,6 +155,28 @@ export default function AdminScreen() {
           </>
         )}
 
+        <AdminBilling isOpen={billing} onClose={() => setBilling(false)} />
+        <IonModal isOpen={!!planFor} onDidDismiss={() => setPlanFor(null)} initialBreakpoint={0.6} breakpoints={[0, 0.6, 1]}>
+          <IonContent className="ion-padding">
+            <h2>{planFor?.name}</h2>
+            <p className="section-note">{t('For a store that paid another way (cash, bank). 0 days ends the paid period.')}</p>
+            <TextField label={t('Plan id (free, basic, pro…)')} value={planForm.planId} onChange={(planId) => setPlanForm((f) => ({ ...f, planId: planId.trim().toLowerCase() }))} />
+            <TextField label={t('Days from today')} inputmode="numeric" value={String(planForm.days)} onChange={(d) => setPlanForm((f) => ({ ...f, days: Number(d.replace(/\D/g, '')) || 0 }))} />
+            <IonButton
+              expand="block"
+              disabled={!planForm.planId}
+              onClick={() =>
+                void api
+                  .adminSetStorePlan(planFor!.id, planForm.planId, planForm.days)
+                  .then((r) => toast({ message: t('{plan}: {state}, {n} days left', { plan: r.status.planName, state: r.status.state, n: r.status.daysLeft ?? 0 }), duration: 2500 }))
+                  .then(() => setPlanFor(null))
+                  .catch(fail)
+              }
+            >
+              {t('Save')}
+            </IonButton>
+          </IonContent>
+        </IonModal>
         <IonModal isOpen={creating} onDidDismiss={() => setCreating(false)}>
           <IonHeader>
             <IonToolbar>

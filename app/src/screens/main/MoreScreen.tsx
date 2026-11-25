@@ -4,6 +4,7 @@ import {
   businessOutline,
   languageOutline,
   barChartOutline,
+  ribbonOutline,
   documentTextOutline,
   constructOutline,
   cloudUploadOutline,
@@ -150,6 +151,10 @@ export default function MoreScreen() {
         <IonItem routerLink="/tabs/estimates" detail lines="full">
           <IonIcon icon={clipboardOutline} slot="start" />
           <IonLabel>{t('Estimates')}</IonLabel>
+        </IonItem>
+        <IonItem routerLink="/tabs/more/plan" detail lines="full">
+          <IonIcon icon={ribbonOutline} slot="start" />
+          <IonLabel>{t('Plan and billing')}</IonLabel>
         </IonItem>
         {isOwner && (
           <IonItem routerLink="/tabs/more/backup" detail lines="full">

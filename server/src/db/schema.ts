@@ -233,3 +233,69 @@ export const storeExports = pgTable('store_exports', {
   lastError: text('last_error'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/* ---------- plans and subscriptions (ApnaGalla charging stores) ---------- */
+
+/** A plan the client offers. Prices before GST, in paise; limits as JSON (see PlanLimits). */
+export const plans = pgTable('plans', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  priceMonthly: integer('price_monthly').notNull().default(0),
+  priceYearly: integer('price_yearly').notNull().default(0),
+  limits: jsonb('limits').$type<Record<string, unknown>>().notNull().default({}),
+  active: boolean('active').notNull().default(true),
+  sort: integer('sort').notNull().default(0),
+});
+
+export const subscriptions = pgTable('subscriptions', {
+  businessId: uuid('business_id')
+    .primaryKey()
+    .references(() => businesses.id, { onDelete: 'cascade' }),
+  planId: text('plan_id').notNull(),
+  /** Trial until this time (then the plan has to be paid, or it falls back to free). */
+  trialEnd: timestamp('trial_end', { withTimezone: true }),
+  /** Paid until this time. */
+  periodEnd: timestamp('period_end', { withTimezone: true }),
+  /** Code used when signing up / paying: a coupon, another store's referral code, a partner code. */
+  referredBy: text('referred_by'),
+  partnerCode: text('partner_code'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const coupons = pgTable('coupons', {
+  code: text('code').primaryKey(),
+  /** pct: % off; amount: paise off; days: free days added. */
+  kind: text('kind').notNull(),
+  value: integer('value').notNull(),
+  /** Distributor / partner this code belongs to (for their commission). */
+  partner: text('partner'),
+  maxUses: integer('max_uses'),
+  used: integer('used').notNull().default(0),
+  validTo: timestamp('valid_to', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** What stores paid ApnaGalla; each paid one gets a GST invoice number. */
+export const platformPayments = pgTable(
+  'platform_payments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    businessId: uuid('business_id')
+      .notNull()
+      .references(() => businesses.id, { onDelete: 'cascade' }),
+    planId: text('plan_id').notNull(),
+    period: text('period').notNull(),
+    /** Before GST, after the code's discount (paise). */
+    amount: integer('amount').notNull(),
+    gst: integer('gst').notNull(),
+    total: integer('total').notNull(),
+    code: text('code'),
+    linkId: text('link_id'),
+    linkUrl: text('link_url'),
+    status: text('status').notNull().default('created'),
+    invoiceNo: text('invoice_no'),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('platform_payments_business_idx').on(t.businessId), index('platform_payments_link_idx').on(t.linkId)],
+);
