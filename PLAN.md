@@ -265,32 +265,49 @@ R4 decisions (defaults):
   customer / supplier name (walk-ins to Cash). Payments are not exported yet. The CA should check
   the ledger names once before the first import.
 
-### Release 5 (proposed) — global product reference
-Agreed in outline 25 Nov 2026; details to settle before building. Barcodes are out of scope.
+### Release 5 — global product reference
+Agreed in outline 25 Nov 2026; plan and first decisions 26 Nov 2026. Barcodes are out of scope.
 
 Goal: when a shop adds an item, it picks from a shared product list instead of typing everything.
 A shop with its own catalogue mostly sees its own items; the shared list stays out of the way.
 
-- Global data kept by ApnaGalla: categories, generic items (Wheat Atta), brands and their other
-  spellings, pack sizes (quantity + unit), regional names (आटा, gehun ka atta → Wheat Atta), default
-  HSN / GST rate. Product = generic item + brand + pack (Aashirvaad Wheat Atta 5 kg).
+How it works:
+- Global data kept by ApnaGalla: categories, generic items (Wheat Atta) with other names (आटा,
+  gehun atta, ਆਟਾ), unit, HSN and GST rate; brands with common misspellings; pack sizes. Product =
+  generic item + brand + pack (Aashirvaad Wheat Atta 5 kg). No prices: prices are always the shop's.
 - Three things never mixed: generic item, product, the shop's own item (with its prices and stock).
-- At onboarding the owner picks the store's categories (several allowed, changeable later in
-  settings; existing stores choose there). Each category's list is one small download (about
-  0.5–2 MB) to every phone of the store's team, updated with changes only. Works offline.
-- It is a read-only suggestion list, never added to the shop's items in bulk. Picking a suggestion
-  copies name, unit, category, HSN and GST into a new item of the shop; the shop adds price, cost,
-  MRP and stock. Later changes to the global list don't change the shop's items.
-- Typing "fortune oil 1" matches brand, generic item, quantity and unit on the phone; the shop's own
-  items are suggested first, so nothing is duplicated.
-- A shop's own items stay private. Only the ApnaGalla team edits the global list (admin panel, by
-  hand or Excel). Later: names many shops added but missing from the global list, for the team to
-  review (needs consent in the terms).
+- The owner picks the store's categories when the store is created, or later in Settings →
+  Product list (several allowed). Each category's list downloads to every phone of the store's
+  team (about 0.5–2 MB), then only changes; it works offline.
+- A read-only suggestion list, never added to the shop's items in bulk. Picking a suggestion copies
+  name, unit, category, HSN and GST into a new item of the shop; the shop adds price, cost, MRP
+  and opening stock. Later changes to the global list don't change the shop's items.
+- Typing "fortune oil 1" matches brand, generic item, size and unit on the phone (spelling
+  mistakes and Indian-language names too); the shop's own items come first, so nothing is
+  duplicated. A shop can switch suggestions off.
+- A shop's own items stay private. Only the ApnaGalla team edits the global list (admin console,
+  by hand or Excel).
 - Starts inside the ApnaGalla server (own tables and download); a separate service for Quicksy and
   others when a second product needs it.
-- Open: who makes the first list (draft by us for client review, or the client's list); which store
-  categories first (kirana only, or all five shop types); suggestions also while billing / purchases
-  and in Excel import, or the New item screen only; someone to keep the data clean over time.
+
+Decisions (26 Nov 2026):
+- First data: ApnaGalla drafts a starter list (Excel) for the client to review before upload.
+- First store categories: Kirana, Hardware (with electrical) and Garments.
+- Suggestions appear in New item, and when an item not in the shop's catalogue is typed while
+  billing (invoice, estimate, counter) or on a purchase bill.
+
+| Step | Scope | Status |
+|---|---|---|
+| R5.1 Data store | Server tables (categories, generic items, other names, brands, packs, products), admin screens, Excel upload / download | |
+| R5.2 Download | Each phone gets its store's categories, then only changes; kept offline | |
+| R5.3 Search | Offline matching on the phone: brand + item + size + unit, misspellings, Hindi / Gujarati / Punjabi names; shop's items first | |
+| R5.4 New item and onboarding | Suggestions fill New item; store categories at sign-up and in Settings; switch off | |
+| R5.5 Billing and purchases | Suggestions for items not yet in the catalogue while billing and on purchase bills (saved as a new item) | |
+| R5.6 Starter data | Draft list for Kirana, Hardware, Garments with HSN / GST for the client's review | |
+
+Still open: someone on the client side to keep the list clean over time; "learning" from names
+many shops type that aren't in the list (later, needs consent in the terms); Excel import filling
+missing HSN / GST from the list (later).
 
 Pending (not scheduled yet):
 - **iPhone app.** Needs an Apple Developer account ($99/yr), a Mac or cloud Mac builds, and an iPhone to
