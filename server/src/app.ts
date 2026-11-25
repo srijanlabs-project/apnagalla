@@ -14,6 +14,7 @@ import {
   reserveNumbersBody,
   returnNumbersBody,
   setSeriesCodeBody,
+  staffPermissionsBody,
   syncPushBody,
   updateMeBody,
   type ReserveNumbersResponse,
@@ -253,6 +254,14 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     return accounts.getTeam(req.params.businessId);
   });
 
+  app.post<{ Params: BizParams & { userId: string } }>('/v1/businesses/:businessId/members/:userId/permissions', authed, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
+    const permissions = parse(staffPermissionsBody, req.body);
+    await accounts.setPermissions(req.params.businessId, req.params.userId, permissions);
+    await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: 'team.permissions', detail: { userId: req.params.userId, ...permissions } });
+    return accounts.getTeam(req.params.businessId);
+  });
+
   for (const [action, active] of [['deactivate', false], ['activate', true]] as const) {
     app.post<{ Params: BizParams & { userId: string } }>(`/v1/businesses/:businessId/members/:userId/${action}`, authed, async (req) => {
       await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
@@ -282,12 +291,15 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
   });
   app.get<{ Params: BizParams }>('/v1/admin/stores/:businessId/audit', adminOnly, async (req) => ({ entries: await admin.auditTrail(req.params.businessId) }));
 
+  /** May this staff member see costs and purchases? Their own setting, else the store's. */
+  const seesCost = async (businessId: string, userId: string) => (await accounts.permissionsOf(businessId, userId))?.seeCost ?? (await syncService.staffSeeCost(businessId));
+
   /* ---------- sync ---------- */
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/sync/push', { ...authed, bodyLimit: 8_000_000 }, async (req): Promise<SyncPushResponse> => {
     const role = await accounts.requireRole(uid(req), req.params.businessId);
     const { changes } = parse(syncPushBody, req.body);
     const seriesCode = await accounts.seriesCodeOf(req.params.businessId, uid(req));
-    const hideCost = role === 'staff' && !(await syncService.staffSeeCost(req.params.businessId));
+    const hideCost = role === 'staff' && !(await seesCost(req.params.businessId, uid(req)));
     const results = await syncService.push({ businessId: req.params.businessId, userId: uid(req), role, client: req.auth!.client, seriesCode, hideCost }, changes);
     return { results };
   });
@@ -296,7 +308,7 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     const role = await accounts.requireRole(uid(req), req.params.businessId);
     const since = Math.max(0, Number.parseInt(req.query.since ?? '0', 10) || 0);
     const schema = Number.parseInt(req.query.schema ?? '1', 10) || 1;
-    const hideCost = role === 'staff' && !(await syncService.staffSeeCost(req.params.businessId));
+    const hideCost = role === 'staff' && !(await seesCost(req.params.businessId, uid(req)));
     return syncService.pull(req.params.businessId, since, undefined, { hideCost, schema });
   });
 
@@ -330,7 +342,7 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     { ...authed, bodyLimit: 12_000_000 },
     async (req): Promise<{ bill: ScannedBill }> => {
       const role = await accounts.requireRole(uid(req), req.params.businessId);
-      if (role === 'staff' && !(await syncService.staffSeeCost(req.params.businessId))) throw forbidden('Only the owner handles purchases in this store');
+      if (role === 'staff' && !(await seesCost(req.params.businessId, uid(req)))) throw forbidden('Only the owner handles purchases in this store');
       if (!scanner) throw badRequest('scan_off', 'Bill scanning is not set up yet');
       const mediaType = req.body?.mediaType;
       if (!req.body?.image || (mediaType !== 'image/jpeg' && mediaType !== 'image/png' && mediaType !== 'image/webp')) throw badRequest('bad_image', 'Send a JPEG, PNG or WebP photo');

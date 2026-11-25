@@ -72,6 +72,29 @@ export interface UserDto {
   name: string | null;
 }
 
+/** What a staff member may do in a store (the owner may do everything). */
+export interface StaffPermissions {
+  /** Purchase prices, purchases, suppliers, profit. Missing = the store's "staff can see costs" setting. */
+  seeCost?: boolean;
+  /** Most discount % on a bill (100 = no limit). Offers made by the owner don't count. */
+  maxDiscountPct?: number;
+  viewReports?: boolean;
+  /** Change catalogue items (prices, details). */
+  editItems?: boolean;
+  /** Delete draft bills, customers and suppliers. */
+  deleteRecords?: boolean;
+}
+
+export const DEFAULT_STAFF_PERMISSIONS: Required<Omit<StaffPermissions, 'seeCost'>> = { maxDiscountPct: 100, viewReports: true, editItems: false, deleteRecords: false };
+
+export const staffPermissionsBody = z.object({
+  seeCost: z.boolean().optional(),
+  maxDiscountPct: z.number().min(0).max(100).optional(),
+  viewReports: z.boolean().optional(),
+  editItems: z.boolean().optional(),
+  deleteRecords: z.boolean().optional(),
+});
+
 export interface MembershipDto {
   businessId: string;
   businessName: string;
@@ -85,6 +108,8 @@ export interface MembershipDto {
   seriesCode: string;
   /** ApnaGalla suspended the whole store: nobody can use it until it is reactivated. */
   suspended?: boolean;
+  /** Staff: what this person may do (owner: none, may do everything). */
+  permissions?: StaffPermissions | null;
 }
 
 export interface InviteDto {
@@ -158,6 +183,7 @@ export interface MemberDto {
   joinedAt: string;
   active: boolean;
   seriesCode: string;
+  permissions?: StaffPermissions | null;
 }
 
 export const setSeriesCodeBody = z.object({ code: z.string().trim().toUpperCase().regex(/^[A-Z]{1,2}$/, 'Use one or two letters') });

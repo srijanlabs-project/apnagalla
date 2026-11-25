@@ -112,7 +112,7 @@ export function CustomerForm({ value: c, update }: { value: Customer; update: (f
 
 export default function CustomerEditScreen() {
   const { id } = useParams<{ id: string }>();
-  const { actor, isOwner } = useBusiness();
+  const { actor, isOwner, perms } = useBusiness();
   const isNew = !id || id === 'new';
   const existing = useLiveQuery(() => (isNew ? undefined : db.customers.get(id!)), [id]);
   const initial = useMemo(() => (isNew ? blankCustomer(actor) : existing), [isNew, existing, actor]);
@@ -145,7 +145,7 @@ export default function CustomerEditScreen() {
       <FormSection title={t('Credit limit')} note={t('Warns before billing on credit beyond this amount. Leave empty for no limit.')}>
         <MoneyField label={t('Credit limit')} value={c.creditLimit ?? null} onChange={(v) => patch({ creditLimit: v || null })} disabled={!isOwner} />
       </FormSection>
-      {!isNew && isOwner && (
+      {!isNew && perms.deleteRecords && (
         <IonButton
           color="danger"
           fill="clear"

@@ -20,8 +20,8 @@ export function HomeScreen() {
   const router = useIonRouter();
   // Overdue, today and tomorrow (later ones only get the phone alert).
   const deliveries = useLiveQuery(async () => (await deliveriesFor(actor)).filter((d) => d.when !== 'later'), [actor]);
-  const { isOwner, settings, ledger } = useBusiness();
-  const canBuy = isOwner || settings.staffSeeCost;
+  const { perms, ledger } = useBusiness();
+  const canBuy = perms.seeCost;
   const today = useLiveQuery(() => todaySummary(actor.businessId, canBuy), [actor.businessId, canBuy, ledger]);
   const recent = useLiveQuery(
     () =>

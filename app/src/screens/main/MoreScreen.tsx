@@ -32,7 +32,7 @@ import { appLanguage, setAppLanguage, t } from '../../lib/i18n';
 
 export default function MoreScreen() {
   const { me, membership, logout } = useSession();
-  const { profile, settings } = useBusiness();
+  const { profile, perms } = useBusiness();
   const [alert] = useIonAlert();
   const isOwner = membership?.role === 'owner';
   const storeCount = me?.memberships.length ?? 0;
@@ -90,15 +90,17 @@ export default function MoreScreen() {
           <IonIcon icon={constructOutline} slot="start" />
           <IonLabel>{t('Jobs and repairs')}</IonLabel>
         </IonItem>
-        <IonItem routerLink="/tabs/reports" detail lines="full">
-          <IonIcon icon={barChartOutline} slot="start" />
-          <IonLabel>{t('Reports')}</IonLabel>
-        </IonItem>
+        {perms.viewReports && (
+          <IonItem routerLink="/tabs/reports" detail lines="full">
+            <IonIcon icon={barChartOutline} slot="start" />
+            <IonLabel>{t('Reports')}</IonLabel>
+          </IonItem>
+        )}
         <IonItem routerLink="/tabs/cash-book" detail lines="full">
           <IonIcon icon={cashOutline} slot="start" />
           <IonLabel>{t('Cash book')}</IonLabel>
         </IonItem>
-        {(isOwner || settings.staffSeeCost) && (
+        {perms.seeCost && (
           <>
             <IonItem routerLink="/tabs/purchases" detail lines="full">
               <IonIcon icon={cartOutline} slot="start" />

@@ -16,7 +16,8 @@ import {
   useIonAlert,
   useIonToast,
 } from '@ionic/react';
-import { formatIndianMobile, normalizeIndianMobile, type TeamResponse } from '@invoice/shared';
+import PermissionsSheet from '../../components/PermissionsSheet';
+import { formatIndianMobile, normalizeIndianMobile, type MemberDto, type TeamResponse } from '@invoice/shared';
 import { useCallback, useEffect, useState } from 'react';
 import PageShell from '../../components/PageShell';
 import { api, errorMessage } from '../../lib/api';
@@ -34,6 +35,8 @@ export default function TeamScreen() {
   const [phone, setPhone] = useState('');
   const [busy, setBusy] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [editingPerms, setEditingPerms] = useState<MemberDto | null>(null);
+  const { settings } = useBusiness();
   const [alert] = useIonAlert();
   const [toast] = useIonToast();
   const perPerson = useBusiness().settings.numberingMode !== 'shared';
@@ -203,6 +206,11 @@ export default function TeamScreen() {
                     </IonButton>
                   )}
                   {m.role !== 'owner' && (
+                    <IonButton slot="end" size="small" fill="clear" onClick={() => setEditingPerms(m)}>
+                      {t('Permissions')}
+                    </IonButton>
+                  )}
+                  {m.role !== 'owner' && (
                     <IonButton
                       slot="end"
                       size="small"
@@ -241,6 +249,7 @@ export default function TeamScreen() {
           )}
         </>
       )}
+      <PermissionsSheet businessId={businessId!} member={editingPerms} storeSeeCost={settings.staffSeeCost} onClose={() => setEditingPerms(null)} onSaved={setTeam} />
     </PageShell>
   );
 }

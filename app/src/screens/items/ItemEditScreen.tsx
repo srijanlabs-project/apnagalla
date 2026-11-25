@@ -169,7 +169,7 @@ export function ItemForm({
 
 export default function ItemEditScreen() {
   const { id } = useParams<{ id: string }>();
-  const { actor, settings, isOwner } = useBusiness();
+  const { actor, settings, isOwner, perms } = useBusiness();
   const isNew = !id || id === 'new';
   const existing = useLiveQuery(() => (isNew ? undefined : db.items.get(id!)), [id]);
   const prefill = new URLSearchParams(useLocation().search);
@@ -184,14 +184,14 @@ export default function ItemEditScreen() {
   const [alert] = useIonAlert();
   const router = useIonRouter();
   if (!it) return null;
-  const priceLocked = !isNew && !isOwner;
+  const priceLocked = !isNew && !perms.editItems;
 
   return (
     <FormPage
       title={isNew ? t('New item') : t('Edit item')}
       backHref="/tabs/items"
       onSave={
-        isNew || isOwner
+        isNew || perms.editItems
           ? () =>
               save(
                 async () => {
@@ -206,7 +206,7 @@ export default function ItemEditScreen() {
       saving={saving}
       canSave={!!it.name.trim()}
     >
-      {!isNew && !isOwner && <p className="section-note">{t('Only the owner can edit catalogue items.')}</p>}
+      {!isNew && !perms.editItems && <p className="section-note">{t('Only the owner can edit catalogue items.')}</p>}
       {!isNew && tracksStock(it) && stock !== undefined && (
         <IonItem routerLink={`/tabs/items/${it.id}/stock`} detail lines="full" className="stock-link">
           <IonIcon icon={layersOutline} slot="start" />
@@ -216,7 +216,7 @@ export default function ItemEditScreen() {
           </IonNote>
         </IonItem>
       )}
-      <ItemForm value={it} onChange={patch} settings={settings} priceLocked={priceLocked} showCost={isOwner || settings.staffSeeCost} />
+      <ItemForm value={it} onChange={patch} settings={settings} priceLocked={priceLocked} showCost={perms.seeCost} />
       {!it.hasVariants && <PriceLevelsSection it={it} patch={patch} disabled={priceLocked} />}
       {!it.hasVariants && <UnitsSection it={it} patch={patch} disabled={priceLocked} />}
       <SerialSection it={it} patch={patch} disabled={priceLocked} />

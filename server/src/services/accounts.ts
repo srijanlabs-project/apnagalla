@@ -1,5 +1,5 @@
 import { and, asc, count, eq, isNull, like, or } from 'drizzle-orm';
-import { MAX_OWNED_STORES, nextSeriesCode, type BusinessDto, type CreateBusinessInput, type InviteDto, type MeResponse, type MemberDto, type Role, type TeamResponse } from '@invoice/shared';
+import { MAX_OWNED_STORES, nextSeriesCode, type BusinessDto, type CreateBusinessInput, type InviteDto, type MeResponse, type MemberDto, type Role, type StaffPermissions, type TeamResponse } from '@invoice/shared';
 import type { DB } from '../db/client';
 import { businesses, invites, memberships, numberCounters, users } from '../db/schema';
 import { badRequest, conflict, forbidden, notFound } from '../errors';
@@ -46,6 +46,7 @@ export class AccountService {
         role: memberships.role,
         deactivatedAt: memberships.deactivatedAt,
         seriesCode: memberships.seriesCode,
+        permissions: memberships.permissions,
         suspendedAt: businesses.suspendedAt,
       })
       .from(memberships)
@@ -57,7 +58,7 @@ export class AccountService {
 
     return {
       user: { id: user.id, phone: user.phone, name: user.name },
-      memberships: ms.map(({ deactivatedAt, suspendedAt, ...m }) => ({ ...m, active: !deactivatedAt, suspended: !!suspendedAt })),
+      memberships: ms.map(({ deactivatedAt, suspendedAt, permissions, ...m }) => ({ ...m, active: !deactivatedAt, suspended: !!suspendedAt, permissions: (permissions as StaffPermissions | null) ?? null })),
       invites: pending,
       ...(this.adminPhones.has(user.phone) ? { isAdmin: true } : {}),
     };
@@ -126,12 +127,13 @@ export class AccountService {
           joinedAt: memberships.createdAt,
           deactivatedAt: memberships.deactivatedAt,
           seriesCode: memberships.seriesCode,
+          permissions: memberships.permissions,
         })
         .from(memberships)
         .innerJoin(users, eq(users.id, memberships.userId))
         .where(and(eq(memberships.businessId, businessId), isNull(memberships.removedAt)))
         .orderBy(asc(memberships.createdAt))
-    ).map(({ deactivatedAt, ...m }) => ({ ...m, joinedAt: m.joinedAt.toISOString(), active: !deactivatedAt }));
+    ).map(({ deactivatedAt, permissions, ...m }) => ({ ...m, joinedAt: m.joinedAt.toISOString(), active: !deactivatedAt, permissions: (permissions as StaffPermissions | null) ?? null }));
     return { members, invites: await this.openInvites(eq(invites.businessId, businessId)) };
   }
 
@@ -196,6 +198,23 @@ export class AccountService {
   }
 
   /** This person's series letter in a store ("" for the owner). */
+  /** Staff permissions in a store (null = defaults). */
+  async permissionsOf(businessId: string, userId: string): Promise<StaffPermissions | null> {
+    const [row] = await this.db
+      .select({ permissions: memberships.permissions })
+      .from(memberships)
+      .where(and(eq(memberships.businessId, businessId), eq(memberships.userId, userId), isNull(memberships.removedAt)))
+      .limit(1);
+    return (row?.permissions as StaffPermissions | null) ?? null;
+  }
+
+  async setPermissions(businessId: string, memberUserId: string, permissions: StaffPermissions) {
+    const m = await this.membershipIn(businessId, memberUserId);
+    if (!m) throw notFound('Member not found');
+    if (m.role === 'owner') throw badRequest('owner', 'The owner may do everything');
+    await this.db.update(memberships).set({ permissions: permissions as Record<string, unknown> }).where(eq(memberships.id, m.id));
+  }
+
   async seriesCodeOf(businessId: string, userId: string): Promise<string> {
     return (await this.membershipIn(businessId, userId))?.seriesCode ?? '';
   }

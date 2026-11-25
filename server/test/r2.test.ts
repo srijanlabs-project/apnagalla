@@ -157,3 +157,23 @@ describe('nightly Excel', () => {
     expect(unseal('k', seal('k', 'x'))).toBe('x');
   });
 });
+
+describe('staff permissions', () => {
+  it('the owner sets them; seeing costs follows the person, not only the store', async () => {
+    const { biz, oH, sH } = await store('987031030');
+    const team = (await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/team`, headers: oH })).json<{ members: { userId: string; role: string }[] }>();
+    const staffId = team.members.find((m) => m.role === 'staff')!.userId;
+    const set = (h: Record<string, string>, payload: Record<string, unknown>) => app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/members/${staffId}/permissions`, headers: h, payload });
+    expect((await set(sH, { seeCost: true })).statusCode).toBe(403);
+    const pushSupplier = () =>
+      app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/sync/push`, headers: sH, payload: { changes: [{ table: 'suppliers', id: 's1', data: { id: 's1', name: 'X', address: {}, openingBalance: 0, updatedAt: new Date().toISOString() } }] } });
+    expect((await pushSupplier()).json().results[0].status).toBe('rejected');
+    const r = await set(oH, { seeCost: true, maxDiscountPct: 10 });
+    expect(r.statusCode).toBe(200);
+    expect(r.json().members.find((m: { userId: string }) => m.userId === staffId).permissions).toEqual({ seeCost: true, maxDiscountPct: 10 });
+    expect((await pushSupplier()).json().results[0].status).toBe('ok');
+    const me = (await app.inject({ method: 'GET', url: '/v1/me', headers: sH })).json<{ memberships: { businessId: string; permissions: unknown }[] }>();
+    expect(me.memberships.find((m) => m.businessId === biz.id)!.permissions).toEqual({ seeCost: true, maxDiscountPct: 10 });
+  });
+});
+

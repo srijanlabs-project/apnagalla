@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db, type Customer } from './db';
 import { jobAdvance, newJob, nextStage, saveJob, setStage, settleJobAdvance, takeAdvance } from './jobs';
 import { khataOf } from './khata';
-import { billMoney, convertEstimate, ensureBusinessRecords, newInvoiceDraft, putRecord, saveInvoice, type Actor } from './repo';
+import { PermissionError, biggestDiscountPct, billMoney, convertEstimate, ensureBusinessRecords, newInvoiceDraft, putRecord, saveInvoice, type Actor } from './repo';
 import { createVariants, priceFor, repriceLines, unitOptions, variantsOf } from './pricing';
 import { newPurchaseDraft, purchaseLineFromItem, savePurchase } from './purchases';
 import { stockLevels, tracksStock } from './stock';
@@ -166,6 +166,19 @@ describe('offers, bulk prices, reorder', () => {
     expect(speed).toBe(1);
     expect(daysLeft(5, speed)).toBe(5);
     expect(orderFor(5, speed, 15)).toBe(10);
+  });
+});
+
+describe('staff permissions', () => {
+  it('a staff bill with more discount than allowed needs the owner; offers do not count', async () => {
+    const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Staff', role: 'staff', seriesCode: 'A', maxDiscountPct: 10 };
+    const d = await newInvoiceDraft(staff);
+    const lines = [{ id: 'l', name: 'Bag', qty: 1, unit: 'pcs', rate: 100000, rateIncludesTax: false, taxPct: 0, discount: { type: 'pct' as const, value: 15 } }];
+    expect(biggestDiscountPct({ ...d, lines })).toBe(15);
+    await expect(saveInvoice(staff, { ...d, lines }, { finalize: true })).rejects.toBeInstanceOf(PermissionError);
+    await expect(saveInvoice(staff, { ...d, lines: [{ ...lines[0]!, offer: 'Diwali' }] }, { finalize: true })).resolves.toBeTruthy();
+    const d2 = await newInvoiceDraft(staff);
+    expect(biggestDiscountPct({ ...d2, lines: [{ ...lines[0]!, discount: null }], overallDiscount: { type: 'amount', value: 5000 } })).toBe(5);
   });
 });
 

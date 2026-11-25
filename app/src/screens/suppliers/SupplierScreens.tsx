@@ -22,8 +22,7 @@ import { gstinProblemText } from '../customers/CustomerEditScreen';
 
 /** Owner, or staff when the store lets staff see purchase prices. */
 export function useCanBuy(): boolean {
-  const { isOwner, settings } = useBusiness();
-  return isOwner || settings.staffSeeCost;
+  return useBusiness().perms.seeCost;
 }
 
 export function NoAccess() {
@@ -106,7 +105,7 @@ function supplierProblem(s: Supplier): string | null {
 
 export function SupplierEditScreen() {
   const { id } = useParams<{ id: string }>();
-  const { actor, isOwner } = useBusiness();
+  const { actor, isOwner, perms } = useBusiness();
   const canBuy = useCanBuy();
   const isNew = !id || id === 'new';
   const existing = useLiveQuery(() => (isNew ? undefined : db.suppliers.get(id!)), [id]);
@@ -159,7 +158,7 @@ export function SupplierEditScreen() {
         <MoneyField label={t('Amount you owe')} value={s.openingBalance || null} onChange={(v) => patch({ openingBalance: v ?? 0 })} disabled={!isNew && !isOwner} />
         <TextArea label={t('Notes')} value={s.notes} onChange={(notes) => patch({ notes })} />
       </FormSection>
-      {!isNew && isOwner && (
+      {!isNew && perms.deleteRecords && (
         <IonButton
           color="danger"
           fill="clear"

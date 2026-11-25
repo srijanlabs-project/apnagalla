@@ -18,6 +18,7 @@ import type {
   SyncPullResponse,
   SyncPushBody,
   SyncPushResponse,
+  StaffPermissions,
   TeamResponse,
   VerifyOtpResponse,
 } from '@invoice/shared';
@@ -164,6 +165,7 @@ export const api = {
   disconnectExport: (id: string) => request<ExportSettingsDto>('DELETE', `/v1/businesses/${id}/exports/connect`),
   sendExportNow: (id: string) => request<ExportSettingsDto>('POST', `/v1/businesses/${id}/exports/send-now`, undefined, { timeoutMs: 60_000 }),
   setSeriesCode: (id: string, userId: string, code: string) => request<TeamResponse>('POST', `/v1/businesses/${id}/members/${userId}/series-code`, { code }),
+  setPermissions: (id: string, userId: string, permissions: StaffPermissions) => request<TeamResponse>('POST', `/v1/businesses/${id}/members/${userId}/permissions`, permissions),
 
   acceptInvite: (inviteId: string) => request<MeResponse>('POST', `/v1/invites/${inviteId}/accept`),
   declineInvite: (inviteId: string) => request<MeResponse>('POST', `/v1/invites/${inviteId}/decline`),

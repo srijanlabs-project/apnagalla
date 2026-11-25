@@ -44,6 +44,26 @@ export interface Actor {
   role: 'owner' | 'staff';
   /** Letter of this person's own number series in the store ("" / missing for the owner). */
   seriesCode?: string;
+  /** Staff: most discount % allowed on a bill (missing / 100 = no limit). */
+  maxDiscountPct?: number;
+}
+
+/**
+ * The biggest discount on a bill as a % of its value before discounts: each line's own discount,
+ * and the discount on the whole bill. Discounts from offers (set by the owner) don't count.
+ */
+export function biggestDiscountPct(doc: Pick<DocBase, 'lines' | 'overallDiscount' | 'charges' | 'roundOff' | 'targetTotal' | 'taxMode'>): number {
+  const totals = computeTotals(doc);
+  let most = 0;
+  doc.lines.forEach((l, i) => {
+    const r = totals.lines[i];
+    if (!r || !r.gross || l.offer) return;
+    most = Math.max(most, (r.lineDiscount / r.gross) * 100);
+  });
+  const net = totals.lines.reduce((a, r) => a + r.net, 0);
+  const overall = totals.lines.reduce((a, r) => a + r.overallShare, 0);
+  if (net > 0) most = Math.max(most, (overall / net) * 100);
+  return Math.round(most * 100) / 100;
 }
 
 export function newId(): string {
@@ -416,6 +436,9 @@ async function numberFor(kind: DocKind, actor: Actor, doc: DocBase): Promise<Pic
  * freezes business details). Staff may not edit an invoice once it is saved.
  */
 export async function saveInvoice(actor: Actor, inv: Invoice, opts: { finalize: boolean; editNote?: string }): Promise<Invoice> {
+  if (opts.finalize && actor.role === 'staff' && (actor.maxDiscountPct ?? 100) < 100 && biggestDiscountPct(inv) > (actor.maxDiscountPct ?? 100) + 0.001) {
+    throw new PermissionError(t('Discount above {pct}% needs the owner', { pct: actor.maxDiscountPct ?? 100 }));
+  }
   const existing = await db.invoices.get(inv.id);
   if (existing && existing.status !== 'draft' && actor.role !== 'owner') throw new PermissionError(t('Only the owner can edit a saved invoice'));
   if (existing?.status === 'cancelled') throw new PermissionError(t('Cancelled invoices cannot be edited'));

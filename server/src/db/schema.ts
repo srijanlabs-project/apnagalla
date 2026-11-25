@@ -98,6 +98,8 @@ export const memberships = pgTable(
     removedAt: timestamp('removed_at', { withTimezone: true }),
     /** Letter(s) of this person's own number series in the store ("" for the owner). Kept after removal. */
     seriesCode: text('series_code').notNull().default(''),
+    /** Staff permissions set by the owner (see StaffPermissions). */
+    permissions: jsonb('permissions').$type<Record<string, unknown>>(),
   },
   (t) => [
     index('memberships_business_idx').on(t.businessId),

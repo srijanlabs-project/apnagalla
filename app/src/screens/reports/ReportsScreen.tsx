@@ -23,8 +23,8 @@ const GROUPS: { id: ReportInfo['group']; title: () => string }[] = [
 
 /** Reports this person may open. */
 function useAllowed() {
-  const { isOwner, settings } = useBusiness();
-  return (r: ReportInfo) => (!r.ownerOnly || isOwner) && (!r.cost || isOwner || settings.staffSeeCost);
+  const { isOwner, perms } = useBusiness();
+  return (r: ReportInfo) => perms.viewReports && (!r.ownerOnly || isOwner) && (!r.cost || perms.seeCost);
 }
 
 export function ReportsScreen() {

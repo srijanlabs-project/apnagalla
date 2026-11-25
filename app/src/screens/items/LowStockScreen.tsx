@@ -11,8 +11,8 @@ import { daysLeft, isLow, orderFor, qtyText, salesSpeed, stockLevels, suggestedO
 
 /** Items at or below their low-stock level, to reorder from suppliers. */
 export default function LowStockScreen() {
-  const { actor, isOwner, settings } = useBusiness();
-  const canOrder = isOwner || settings.staffSeeCost;
+  const { actor, perms } = useBusiness();
+  const canOrder = perms.seeCost;
   const data = useLiveQuery(async () => {
     const [items, stock, speed] = await Promise.all([db.items.where('businessId').equals(actor.businessId).toArray(), stockLevels(actor.businessId), salesSpeed(actor.businessId)]);
     // Low by the set level, or running out within a week at the last 30 days' sales.

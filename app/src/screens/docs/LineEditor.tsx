@@ -67,7 +67,7 @@ interface Props {
 }
 
 export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDelete, level = 'retail' }: Props) {
-  const { actor, settings } = useBusiness();
+  const { actor, settings, perms } = useBusiness();
   const [l, setL] = useState<DocLine | null>(line);
   const [picking, setPicking] = useState(false);
   const [q, setQ] = useState('');
@@ -335,7 +335,7 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
                 </IonSegmentButton>
               </IonSegment>
               {(l.discount?.type ?? 'pct') === 'pct' ? (
-                <NumberField label={t('Discount %')} value={l.discount?.value || null} onChange={(v) => set({ discount: v ? { type: 'pct', value: v } : null, offer: null })} min={0} max={100} suffix="%" />
+                <NumberField label={t('Discount %')} value={l.discount?.value || null} onChange={(v) => set({ discount: v ? { type: 'pct', value: v } : null, offer: null })} min={0} max={perms.maxDiscountPct} suffix="%" />
               ) : (
                 <MoneyField label={t('Discount ₹ (whole line)')} value={l.discount?.value || null} onChange={(v) => set({ discount: v ? { type: 'amount', value: v } : null, offer: null })} />
               )}

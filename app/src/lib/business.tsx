@@ -1,4 +1,5 @@
 import { IonSpinner } from '@ionic/react';
+import { DEFAULT_STAFF_PERMISSIONS } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { db, type BankAccount, type BusinessProfile, type BusinessSettings, type UpiId } from './db';
@@ -9,9 +10,19 @@ import { convertLegacyPayments, ensureBusinessRecords, withDefaults, type Actor 
 import { useSession } from './session';
 import { useSyncTriggers } from './useSync';
 
+/** What this person may do here (the owner: everything). */
+export interface Perms {
+  seeCost: boolean;
+  maxDiscountPct: number;
+  viewReports: boolean;
+  editItems: boolean;
+  deleteRecords: boolean;
+}
+
 interface BusinessValue {
   actor: Actor;
   isOwner: boolean;
+  perms: Perms;
   profile: BusinessProfile;
   settings: BusinessSettings;
   bankAccounts: BankAccount[];
@@ -61,13 +72,26 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<BusinessValue | null>(() => {
     if (!ready || !profile || !actor || !membership || !ledger) return null;
+    const merged = withDefaults(businessId, settings);
+    const p = membership.permissions ?? {};
+    const perms: Perms =
+      membership.role === 'owner'
+        ? { seeCost: true, maxDiscountPct: 100, viewReports: true, editItems: true, deleteRecords: true }
+        : {
+            seeCost: p.seeCost ?? merged.staffSeeCost,
+            maxDiscountPct: p.maxDiscountPct ?? DEFAULT_STAFF_PERMISSIONS.maxDiscountPct,
+            viewReports: p.viewReports ?? DEFAULT_STAFF_PERMISSIONS.viewReports,
+            editItems: p.editItems ?? DEFAULT_STAFF_PERMISSIONS.editItems,
+            deleteRecords: p.deleteRecords ?? DEFAULT_STAFF_PERMISSIONS.deleteRecords,
+          };
     return {
-      actor,
+      actor: { ...actor, maxDiscountPct: perms.maxDiscountPct },
       ledger,
+      perms,
       isOwner: membership.role === 'owner',
       profile,
       // Merge so settings added in later versions always have a value.
-      settings: withDefaults(businessId, settings),
+      settings: merged,
       bankAccounts: bankAccounts ?? [],
       upiIds: upiIds ?? [],
     };
