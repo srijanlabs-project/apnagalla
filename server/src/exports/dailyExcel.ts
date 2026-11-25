@@ -1,3 +1,4 @@
+import { runCustomReport, type ReportSpec } from '@invoice/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import writeXlsxFile from 'write-excel-file/node';
 import type { DB } from '../db/client';
@@ -18,6 +19,31 @@ async function records(db: DB, businessId: string, table: string, date: string):
     .from(syncRecords)
     .where(and(eq(syncRecords.businessId, businessId), eq(syncRecords.tableName, table), eq(syncRecords.deleted, false), sql`${syncRecords.data}->>'date' = ${date}`));
   return rows.map((r) => r.data);
+}
+
+async function all(db: DB, businessId: string, table: string): Promise<Data[]> {
+  const rows = await db
+    .select({ data: syncRecords.data })
+    .from(syncRecords)
+    .where(and(eq(syncRecords.businessId, businessId), eq(syncRecords.tableName, table), eq(syncRecords.deleted, false)));
+  return rows.map((r) => r.data);
+}
+
+/** The owner's saved reports marked for the nightly Excel, one sheet each. */
+async function savedReportSheets(db: DB, businessId: string, date: string) {
+  const reports = (await all(db, businessId, 'savedReports')).filter((r) => r.nightly && r.spec);
+  if (!reports.length) return [];
+  const [invoices, payments, purchases, expenses, items, categories] = await Promise.all(
+    ['invoices', 'payments', 'purchases', 'expenses', 'items', 'categories'].map((t) => all(db, businessId, t)),
+  );
+  return reports.slice(0, 10).map((r, i) => {
+    const res = runCustomReport(r.spec as ReportSpec, { invoices: invoices!, payments: payments!, purchases: purchases!, expenses: expenses!, items, categories }, date);
+    const cell = (v: string | number | null, kind: string) => (kind === 'money' && typeof v === 'number' ? money(v) : typeof v === 'number' ? { value: v, type: Number } : text(v));
+    const data = [res.columns.map((c) => bold(c.label)), ...res.rows.map((row) => row.map((v, j) => cell(v, res.columns[j]!.kind))), res.foot.map((v, j) => ({ ...cell(v, res.columns[j]!.kind), fontWeight: 'bold' as const }))];
+    // Sheet names: 31 characters, no []:*?/\ and unique.
+    const name = `${i + 1}. ${String(r.name ?? 'Report')}`.replace(/[[\]:*?/\\]/g, ' ').slice(0, 31);
+    return { data: data as never, sheet: name, columns: res.columns.map(() => ({ width: 18 })) };
+  });
 }
 
 export async function buildDailyExcel(db: DB, businessId: string, storeName: string, date: string): Promise<{ fileName: string; buffer: Buffer; summary: string }> {
@@ -79,6 +105,7 @@ export async function buildDailyExcel(db: DB, businessId: string, storeName: str
     { data: payRows as never, sheet: 'Payments', columns: [{ width: 16 }, { width: 16 }, { width: 14 }, { width: 20 }, { width: 18 }] },
     { data: buyRows as never, sheet: 'Purchases', columns: [{ width: 24 }, { width: 16 }, { width: 10 }, { width: 14 }] },
     { data: expRows as never, sheet: 'Expenses', columns: [{ width: 18 }, { width: 14 }, { width: 14 }, { width: 30 }] },
+    ...(await savedReportSheets(db, businessId, date)),
   ]).toBuffer();
   const safe = storeName.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'Store';
   return {

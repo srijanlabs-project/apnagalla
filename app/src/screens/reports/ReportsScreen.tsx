@@ -1,6 +1,7 @@
 import { IonButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonSegment, IonSegmentButton, IonSpinner, useIonToast } from '@ionic/react';
 import { financialYearLabel, formatPaise, todayISO } from '@invoice/shared';
 import { documentOutline, gridOutline } from 'ionicons/icons';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { SelectField } from '../../components/Fields';
@@ -29,9 +30,23 @@ function useAllowed() {
 
 export function ReportsScreen() {
   const allowed = useAllowed();
-  const { isOwner } = useBusiness();
+  const { isOwner, actor } = useBusiness();
+  const mine = useLiveQuery(() => db.savedReports.where('businessId').equals(actor.businessId).filter((r) => !r.deleted).toArray(), [actor.businessId]);
   return (
     <PageShell title={t('Reports')} backHref="/tabs/more" padded={false}>
+      {isOwner && (
+        <IonList inset>
+          <IonListHeader>
+            <IonLabel>{t('My reports')}</IonLabel>
+            <IonButton routerLink="/tabs/reports/custom/new">{t('New report')}</IonButton>
+          </IonListHeader>
+          {(mine ?? []).map((r) => (
+            <IonItem key={r.id} routerLink={`/tabs/reports/custom/${r.id}`} detail>
+              <IonLabel>{r.name}</IonLabel>
+            </IonItem>
+          ))}
+        </IonList>
+      )}
       {GROUPS.map((g) => {
         const list = REPORTS.filter((r) => r.group === g.id && allowed(r));
         if (!list.length) return null;
@@ -182,42 +197,39 @@ export function ReportScreen() {
           <IonSpinner />
         </div>
       ) : table ? (
-        <>
-          {table.subtitle?.map((s) => (
-            <p key={s} className="section-note">
-              {s}
-            </p>
-          ))}
-          <div className="report-scroll">
-            <table className="report-table">
-              <thead>
-                <tr>
-                  {table.columns.map((c, i) => (
-                    <th key={i} className={c.kind === 'money' || c.kind === 'qty' ? 'num' : undefined}>
-                      {c.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {table.rows.length === 0 && (
+        <ReportTableView table={table} />
+      ) : null}
+    </PageShell>
+  );
+}
+
+/** A report table as shown on screen (subtitle, table with totals, notes). */
+export function ReportTableView({ table }: { table: ExportTable }) {
+  return (
+          <>
+            {table.subtitle?.map((s) => (
+              <p key={s} className="section-note">
+                {s}
+              </p>
+            ))}
+            <div className="report-scroll">
+              <table className="report-table">
+                <thead>
                   <tr>
-                    <td colSpan={table.columns.length}>{t('Nothing in this period.')}</td>
-                  </tr>
-                )}
-                {table.rows.map((r, i) => (
-                  <tr key={i}>
-                    {r.map((v, j) => (
-                      <td key={j} className={table.columns[j]?.kind === 'money' || table.columns[j]?.kind === 'qty' ? 'num' : undefined}>
-                        {cell(v, table.columns[j]?.kind)}
-                      </td>
+                    {table.columns.map((c, i) => (
+                      <th key={i} className={c.kind === 'money' || c.kind === 'qty' ? 'num' : undefined}>
+                        {c.label}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-              {table.foot && table.rows.length > 0 && (
-                <tfoot>
-                  {table.foot.map((r, i) => (
+                </thead>
+                <tbody>
+                  {table.rows.length === 0 && (
+                    <tr>
+                      <td colSpan={table.columns.length}>{t('Nothing in this period.')}</td>
+                    </tr>
+                  )}
+                  {table.rows.map((r, i) => (
                     <tr key={i}>
                       {r.map((v, j) => (
                         <td key={j} className={table.columns[j]?.kind === 'money' || table.columns[j]?.kind === 'qty' ? 'num' : undefined}>
@@ -226,17 +238,27 @@ export function ReportScreen() {
                       ))}
                     </tr>
                   ))}
-                </tfoot>
-              )}
-            </table>
-          </div>
-          {table.after?.map((s) => (
-            <p key={s} className="section-note">
-              {s}
-            </p>
-          ))}
-        </>
-      ) : null}
-    </PageShell>
+                </tbody>
+                {table.foot && table.rows.length > 0 && (
+                  <tfoot>
+                    {table.foot.map((r, i) => (
+                      <tr key={i}>
+                        {r.map((v, j) => (
+                          <td key={j} className={table.columns[j]?.kind === 'money' || table.columns[j]?.kind === 'qty' ? 'num' : undefined}>
+                            {cell(v, table.columns[j]?.kind)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tfoot>
+                )}
+              </table>
+            </div>
+            {table.after?.map((s) => (
+              <p key={s} className="section-note">
+                {s}
+              </p>
+            ))}
+          </>
   );
 }

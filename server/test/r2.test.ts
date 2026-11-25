@@ -121,7 +121,15 @@ describe('nightly Excel', () => {
         ],
       },
     });
+    const without = (await buildDailyExcel(database.db, biz.id, 'Store 987031010', date)).buffer.length;
+    await app.inject({
+      method: 'POST',
+      url: `/v1/businesses/${biz.id}/sync/push`,
+      headers: oH,
+      payload: { changes: [{ table: 'savedReports', id: 'r1', data: { id: 'r1', name: 'Sales by staff', nightly: true, spec: { source: 'bills', columns: ['total'], groupBy: 'staff', period: 'month' }, updatedAt: new Date().toISOString() } }] },
+    });
     const file = await buildDailyExcel(database.db, biz.id, 'Store 987031010', date);
+    expect(file.buffer.length).toBeGreaterThan(without);
     expect(file.buffer.length).toBeGreaterThan(1000);
     expect(file.fileName).toBe(`ApnaGalla-Store-987031010-${date}.xlsx`);
     expect(file.summary).toContain('1 bills, sales ₹1050.00, received ₹1050.00');
