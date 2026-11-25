@@ -4,7 +4,7 @@ import { Fragment, useRef, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
-import { db, type Customer, type Item } from '../../lib/db';
+import { db, type Customer, type Item, type Supplier } from '../../lib/db';
 import { rupees } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { COLUMNS, MAX_IMPORT_ROWS, applyImport, buildPreview, readRows, templateCsv, type ImportKind, type ImportResult, type Preview } from '../../lib/importer';
@@ -22,16 +22,18 @@ function rich(text: string, nodes: Record<string, ReactNode>): ReactNode[] {
 export default function ImportScreen() {
   const { actor, isOwner, settings } = useBusiness();
   const [toast] = useIonToast();
-  const initialKind = new URLSearchParams(useLocation().search).get('kind') === 'customers' ? 'customers' : 'items';
+  const asked = new URLSearchParams(useLocation().search).get('kind');
+  const initialKind: ImportKind = asked === 'customers' || asked === 'suppliers' ? asked : 'items';
   const [kind, setKind] = useState<ImportKind>(initialKind);
   const [fileName, setFileName] = useState('');
-  const [preview, setPreview] = useState<Preview<Item> | Preview<Customer> | null>(null);
+  const [preview, setPreview] = useState<Preview<Item> | Preview<Customer> | Preview<Supplier> | null>(null);
   const [onMatch, setOnMatch] = useState<'update' | 'skip' | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ImportResult | null>(null);
   const input = useRef<HTMLInputElement | null>(null);
-  const back = kind === 'items' ? '/tabs/items' : '/tabs/customers';
+  const back = kind === 'items' ? '/tabs/items' : kind === 'customers' ? '/tabs/customers' : '/tabs/suppliers';
+  const what = (items: string, customers: string, suppliers: string) => (kind === 'items' ? items : kind === 'customers' ? customers : suppliers);
 
   if (!isOwner) {
     return (
@@ -54,7 +56,7 @@ export default function ImportScreen() {
     const csv = templateCsv(kind);
     const blob = new Blob([csv], { type: 'text/csv' });
     const base64 = btoa(unescape(encodeURIComponent(csv)));
-    await sharePdf(`ApnaGalla-${kind}-template.csv`, { base64, blob }, kind === 'items' ? t('Fill this in and import it into ApnaGalla (items).') : t('Fill this in and import it into ApnaGalla (customers).'));
+    await sharePdf(`ApnaGalla-${kind}-template.csv`, { base64, blob }, what(t('Fill this in and import it into ApnaGalla (items).'), t('Fill this in and import it into ApnaGalla (customers).'), t('Fill this in and import it into ApnaGalla (suppliers).')));
   }
 
   async function onFile(file: File | undefined) {
@@ -65,8 +67,9 @@ export default function ImportScreen() {
       const rows = await readRows(file);
       if (rows.length < 2) throw new Error(t('The file has no rows under the headings.'));
       if (rows.length - 1 > MAX_IMPORT_ROWS) void toast({ message: t('Only the first {count} rows are imported at a time.', { count: MAX_IMPORT_ROWS }), duration: 3000 });
-      const existing = kind === 'items' ? await db.items.where('businessId').equals(actor.businessId).filter((i) => !i.deleted).toArray() : await db.customers.where('businessId').equals(actor.businessId).filter((c) => !c.deleted).toArray();
-      setPreview(kind === 'items' ? buildPreview('items', rows, existing as Item[]) : buildPreview('customers', rows, existing as Customer[]));
+      if (kind === 'items') setPreview(buildPreview('items', rows, await db.items.where('businessId').equals(actor.businessId).filter((i) => !i.deleted).toArray()));
+      else if (kind === 'customers') setPreview(buildPreview('customers', rows, await db.customers.where('businessId').equals(actor.businessId).filter((c) => !c.deleted).toArray()));
+      else setPreview(buildPreview('suppliers', rows, await db.suppliers.where('businessId').equals(actor.businessId).filter((c) => !c.deleted).toArray()));
       setFileName(file.name);
     } catch (e) {
       void toast({ message: e instanceof Error ? e.message : t('Could not read that file'), duration: 3500, color: 'danger' });
@@ -95,13 +98,16 @@ export default function ImportScreen() {
   const blocked = !!preview?.missing.length;
 
   return (
-    <PageShell title={kind === 'items' ? t('Import items') : t('Import customers')} backHref={back}>
+    <PageShell title={what(t('Import items'), t('Import customers'), t('Import suppliers'))} backHref={back}>
       <IonSegment value={kind} onIonChange={sync((e) => reset(e.detail.value as ImportKind))}>
         <IonSegmentButton value="items">
           <IonLabel>{t('Items')}</IonLabel>
         </IonSegmentButton>
         <IonSegmentButton value="customers">
           <IonLabel>{t('Customers')}</IonLabel>
+        </IonSegmentButton>
+        <IonSegmentButton value="suppliers">
+          <IonLabel>{t('Suppliers')}</IonLabel>
         </IonSegmentButton>
       </IonSegment>
 
@@ -114,7 +120,7 @@ export default function ImportScreen() {
               : t('{added} added · {updated} updated · {skipped} skipped', { added: result.added, updated: result.updated, skipped: result.skipped })}
           </p>
           <div className="detail-actions">
-            <IonButton routerLink={back}>{kind === 'items' ? t('Open items') : t('Open customers')}</IonButton>
+            <IonButton routerLink={back}>{what(t('Open items'), t('Open customers'), t('Open suppliers'))}</IonButton>
             <IonButton fill="outline" onClick={() => reset()}>
               {t('Import another file')}
             </IonButton>
@@ -122,6 +128,12 @@ export default function ImportScreen() {
         </div>
       ) : (
         <>
+          <details className="section-note switch-help">
+            <summary>{t('Moving from Vyapar or Khatabook?')}</summary>
+            <p>{t('Vyapar: Items → ⋮ → Export items to Excel, and Parties → ⋮ → Export parties to Excel. Import the parties file as Customers, and again as Suppliers for the ones you buy from.')}</p>
+            <p>{t('Khatabook: Reports → Customer list → Download Excel (and the supplier list the same way).')}</p>
+            <p>{t('Their column names and balances (“Dr / Cr”, “You’ll get / You’ll give”) are read as they are. Stock in the file becomes opening stock.')}</p>
+          </details>
           <p className="section-note">
             {t('Use an Excel (.xlsx) or CSV file with a heading row. Columns can be in any order: {columns}.', {
               columns: COLUMNS[kind].map((c) => (c.required ? `${c.label}*` : c.label)).join(', '),
@@ -145,9 +157,11 @@ export default function ImportScreen() {
               ) : (
                 <p>
                   {rich(
-                    kind === 'items'
-                      ? t('{fresh} new · {matches} match existing items · {bad} with problems (skipped)')
-                      : t('{fresh} new · {matches} match existing customers · {bad} with problems (skipped)'),
+                    what(
+                      t('{fresh} new · {matches} match existing items · {bad} with problems (skipped)'),
+                      t('{fresh} new · {matches} match existing customers · {bad} with problems (skipped)'),
+                      t('{fresh} new · {matches} match existing suppliers · {bad} with problems (skipped)'),
+                    ),
                     { fresh: <strong>{fresh}</strong>, matches: <strong>{matches}</strong>, bad: <strong className={bad ? 'text-danger' : undefined}>{bad}</strong> },
                   )}
                 </p>
@@ -156,7 +170,13 @@ export default function ImportScreen() {
 
               {matches > 0 && !blocked && (
                 <>
-                  <p>{kind === 'items' ? t('When a row matches an existing item (same barcode, code or name):') : t('When a row matches an existing customer (same mobile, GSTIN or name):')}</p>
+                  <p>
+                    {what(
+                      t('When a row matches an existing item (same barcode, code or name):'),
+                      t('When a row matches an existing customer (same mobile, GSTIN or name):'),
+                      t('When a row matches an existing supplier (same mobile, GSTIN or name):'),
+                    )}
+                  </p>
                   <IonSegment value={onMatch ?? undefined} onIonChange={sync((e) => setOnMatch(e.detail.value as 'update' | 'skip'))}>
                     <IonSegmentButton value="update">
                       <IonLabel>{t('Update it from the file')}</IonLabel>
@@ -176,9 +196,11 @@ export default function ImportScreen() {
               >
                 {busy
                   ? t('Importing {done} / {total}…', { done: progress, total: rows.length })
-                  : kind === 'items'
-                    ? t('Import {count} items', { count: fresh + (onMatch === 'skip' ? 0 : matches) })
-                    : t('Import {count} customers', { count: fresh + (onMatch === 'skip' ? 0 : matches) })}
+                  : what(
+                      t('Import {count} items', { count: fresh + (onMatch === 'skip' ? 0 : matches) }),
+                      t('Import {count} customers', { count: fresh + (onMatch === 'skip' ? 0 : matches) }),
+                      t('Import {count} suppliers', { count: fresh + (onMatch === 'skip' ? 0 : matches) }),
+                    )}
               </IonButton>
 
               <IonList>

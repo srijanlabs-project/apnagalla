@@ -1,7 +1,8 @@
 import { checkGstin, checkHsn, normalizeIndianMobile, parseRupees, stateName } from '@invoice/shared';
 import { INDIAN_STATES } from './format';
 import { ensureCategoryPath } from './categories';
-import { db, type Category, type Customer, type Item } from './db';
+import { db, type Category, type Customer, type Item, type Supplier } from './db';
+import { blankSupplier } from './purchases';
 import { t } from './i18n';
 import { newId, putRecord, type Actor } from './repo';
 import { adjustStock, setOpeningStock, tracksStock } from './stock';
@@ -12,7 +13,7 @@ import { adjustStock, setOpeningStock, tracksStock } from './stock';
  * records first; the owner sees the preview and chooses to update or skip matching records.
  */
 
-export type ImportKind = 'items' | 'customers';
+export type ImportKind = 'items' | 'customers' | 'suppliers';
 export type Cell = string | number | boolean | Date | null;
 
 interface Column {
@@ -26,33 +27,49 @@ interface Column {
 
 export const COLUMNS: Record<ImportKind, Column[]> = {
   items: [
-    { key: 'name', label: 'Name', names: ['name', 'itemname', 'item', 'product', 'productname'], required: true, example: 'Asian Paints Apex 20L' },
-    { key: 'price', label: 'Price', names: ['price', 'rate', 'sellingprice', 'saleprice', 'salesprice'], required: true, example: '4500' },
-    { key: 'unit', label: 'Unit', names: ['unit', 'uom'], example: 'pcs' },
-    { key: 'tax', label: 'GST %', names: ['gst', 'gst%', 'tax', 'tax%', 'gstrate', 'taxrate'], example: '18' },
-    { key: 'incl', label: 'Price includes tax', names: ['priceincludestax', 'inclusive', 'incltax', 'taxinclusive'], example: 'no' },
-    { key: 'hsn', label: 'HSN', names: ['hsn', 'hsncode', 'sac', 'hsnsac'], example: '3209' },
-    { key: 'category', label: 'Category', names: ['category', 'group', 'categorypath'], example: 'Paints > Exterior' },
-    { key: 'code', label: 'Item code', names: ['code', 'itemcode', 'sku'], example: 'AP-APX-20' },
+    { key: 'name', label: 'Name', names: ['name', 'itemname', 'item', 'product', 'productname', 'itemdescription', 'particulars'], required: true, example: 'Asian Paints Apex 20L' },
+    { key: 'price', label: 'Price', names: ['price', 'rate', 'sellingprice', 'saleprice', 'salesprice', 'salepriceinr', 'salepricewithouttax', 'mrpsaleprice'], required: true, example: '4500' },
+    { key: 'unit', label: 'Unit', names: ['unit', 'uom', 'baseunit', 'primaryunit', 'unitname'], example: 'pcs' },
+    { key: 'tax', label: 'GST %', names: ['gst', 'gst%', 'tax', 'tax%', 'gstrate', 'taxrate', 'taxrate%', 'gstrate%', 'taxpercent', 'gstpercent'], example: '18' },
+    { key: 'incl', label: 'Price includes tax', names: ['priceincludestax', 'inclusive', 'incltax', 'taxinclusive', 'salepricetaxinclusive', 'inclusiveoftax', 'taxtype'], example: 'no' },
+    { key: 'hsn', label: 'HSN', names: ['hsn', 'hsncode', 'sac', 'hsnsac', 'hsnsaccode'], example: '3209' },
+    { key: 'category', label: 'Category', names: ['category', 'group', 'categorypath', 'itemcategory', 'itemgroup', 'stockgroup'], example: 'Paints > Exterior' },
+    { key: 'code', label: 'Item code', names: ['code', 'itemcode', 'sku', 'productcode', 'partno'], example: 'AP-APX-20' },
     { key: 'barcode', label: 'Barcode', names: ['barcode', 'ean', 'upc'], example: '8901234567890' },
     { key: 'mrp', label: 'MRP', names: ['mrp'], example: '5600' },
-    { key: 'cost', label: 'Purchase price', names: ['purchaseprice', 'cost', 'costprice', 'buyprice'], example: '3900' },
+    { key: 'cost', label: 'Purchase price', names: ['purchaseprice', 'cost', 'costprice', 'buyprice', 'purchasepriceinr', 'purchasepricewithouttax'], example: '3900' },
     { key: 'priced', label: 'Priced per', names: ['pricedper', 'priced', 'pricing'], example: 'unit' },
-    { key: 'stock', label: 'Stock', names: ['stock', 'openingstock', 'qty', 'quantity', 'stockqty', 'closingstock', 'balanceqty'], example: '24' },
-    { key: 'low', label: 'Low stock at', names: ['lowstockat', 'lowstock', 'reorderlevel', 'minstock', 'minimumstock'], example: '5' },
+    { key: 'stock', label: 'Stock', names: ['stock', 'openingstock', 'qty', 'quantity', 'stockqty', 'closingstock', 'balanceqty', 'currentstockquantity', 'openingstockquantity', 'stockquantity', 'currentstock', 'qtyinstock', 'closingquantity'], example: '24' },
+    { key: 'low', label: 'Low stock at', names: ['lowstockat', 'lowstock', 'reorderlevel', 'minstock', 'minimumstock', 'minimumstockquantity', 'minstockqty'], example: '5' },
     { key: 'description', label: 'Description', names: ['description', 'details'], example: '' },
   ],
   customers: [
     { key: 'name', label: 'Name', names: ['name', 'customer', 'customername', 'party', 'partyname'], required: true, example: 'Patel Traders' },
-    { key: 'mobile', label: 'Mobile', names: ['mobile', 'phone', 'mobileno', 'phoneno', 'contact', 'mobilenumber'], example: '9876543210' },
-    { key: 'gstin', label: 'GSTIN', names: ['gstin', 'gst', 'gstno', 'gstnumber'], example: '24AABCP1234K1ZP' },
+    { key: 'mobile', label: 'Mobile', names: ['mobile', 'phone', 'mobileno', 'phoneno', 'contact', 'mobilenumber', 'contactno', 'phonenumber', 'contactnumber'], example: '9876543210' },
+    { key: 'gstin', label: 'GSTIN', names: ['gstin', 'gst', 'gstno', 'gstnumber', 'gstinno', 'gstinuin'], example: '24AABCP1234K1ZP' },
     { key: 'email', label: 'Email', names: ['email', 'emailid'], example: '' },
-    { key: 'line1', label: 'Address line 1', names: ['addressline1', 'address', 'address1'], example: '12 Station Road' },
+    { key: 'line1', label: 'Address line 1', names: ['addressline1', 'address', 'address1', 'billingaddress'], example: '12 Station Road' },
     { key: 'line2', label: 'Address line 2', names: ['addressline2', 'address2', 'area'], example: '' },
     { key: 'city', label: 'City', names: ['city', 'town'], example: 'Ahmedabad' },
     { key: 'state', label: 'State', names: ['state'], example: 'Gujarat' },
     { key: 'pin', label: 'PIN', names: ['pin', 'pincode', 'zip', 'postalcode'], example: '380001' },
-    { key: 'opening', label: 'Opening balance', names: ['openingbalance', 'opening', 'balance', 'due', 'outstanding'], example: '0' },
+    { key: 'opening', label: 'Opening balance', names: ['openingbalance', 'opening', 'balance', 'due', 'outstanding', 'receivablebalance', 'currentbalance', 'closingbalance', 'netbalance', 'youllget', 'youwillget', 'tocollect', 'receivable', 'totalreceivable'], example: '0' },
+    // Khatabook / Vyapar: money the shop owes this party (counted against the balance).
+    { key: 'give', label: 'You will give', names: ['payablebalance', 'youllgive', 'youwillgive', 'payable', 'togive', 'advancereceived'], example: '' },
+  ],
+  suppliers: [
+    { key: 'name', label: 'Name', names: ['name', 'supplier', 'suppliername', 'party', 'partyname', 'vendor', 'vendorname'], required: true, example: 'Shree Traders' },
+    { key: 'mobile', label: 'Mobile', names: ['mobile', 'phone', 'mobileno', 'phoneno', 'contact', 'mobilenumber', 'contactno', 'phonenumber', 'contactnumber'], example: '9876543210' },
+    { key: 'gstin', label: 'GSTIN', names: ['gstin', 'gst', 'gstno', 'gstnumber', 'gstinno', 'gstinuin'], example: '24AAACS1234A1Z5' },
+    { key: 'email', label: 'Email', names: ['email', 'emailid'], example: '' },
+    { key: 'line1', label: 'Address line 1', names: ['addressline1', 'address', 'address1', 'billingaddress'], example: 'GIDC Estate' },
+    { key: 'line2', label: 'Address line 2', names: ['addressline2', 'address2', 'area'], example: '' },
+    { key: 'city', label: 'City', names: ['city', 'town'], example: 'Surat' },
+    { key: 'state', label: 'State', names: ['state'], example: 'Gujarat' },
+    { key: 'pin', label: 'PIN', names: ['pin', 'pincode', 'zip', 'postalcode'], example: '395010' },
+    { key: 'opening', label: 'Opening balance (you owe)', names: ['openingbalance', 'opening', 'balance', 'due', 'outstanding', 'payablebalance', 'currentbalance', 'closingbalance', 'netbalance', 'youllgive', 'youwillgive', 'topay', 'payable', 'totalpayable'], example: '0' },
+    // Money the supplier owes the shop (an advance paid to them).
+    { key: 'get', label: 'You will get', names: ['receivablebalance', 'youllget', 'youwillget', 'receivable', 'toget', 'advancepaid'], example: '' },
   ],
 };
 
@@ -114,6 +131,30 @@ const money = (v: Cell | undefined): number | null | 'bad' => {
   if (typeof v === 'number') return Math.round(v * 100);
   return parseRupees(s) ?? 'bad';
 };
+/**
+ * A balance as Vyapar, Khatabook and accounting sheets write it: "1,200.00", "₹1,200 Dr",
+ * "1200 Cr", "(1200)", "-1200". Dr (or a plain positive number) = owed to the shop's side the
+ * column describes; Cr, brackets or a minus sign = the other way.
+ */
+export function signedMoney(v: Cell | undefined): number | null | 'bad' {
+  if (typeof v === 'number') return Math.round(v * 100);
+  let s = text(v).replace(/₹|rs\.?|inr/gi, '').trim();
+  if (!s) return null;
+  let sign = 1;
+  if (/\bcr\.?$/i.test(s)) sign = -1;
+  s = s.replace(/\b(dr|cr)\.?$/i, '').trim();
+  if (/^\(.*\)$/.test(s)) {
+    sign = -sign;
+    s = s.slice(1, -1);
+  }
+  if (s.startsWith('-')) {
+    sign = -sign;
+    s = s.slice(1);
+  }
+  const p = parseRupees(s.replace(/,/g, ''));
+  return p == null ? 'bad' : sign * p;
+}
+
 const yes = (v: Cell | undefined) => /^(y|yes|true|1|incl|inclusive)$/i.test(text(v));
 
 export interface PreviewRow<T> {
@@ -142,7 +183,8 @@ export interface Preview<T> {
 /** Finds the columns, checks every row and matches it with existing records. */
 export function buildPreview(kind: 'items', rows: Cell[][], existing: Item[]): Preview<Item>;
 export function buildPreview(kind: 'customers', rows: Cell[][], existing: Customer[]): Preview<Customer>;
-export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item | Customer)[]): Preview<Item | Customer> {
+export function buildPreview(kind: 'suppliers', rows: Cell[][], existing: Supplier[]): Preview<Supplier>;
+export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item | Customer | Supplier)[]): Preview<Item | Customer | Supplier> {
   const cols = COLUMNS[kind];
   const headings = (rows[0] ?? []).map((h) => text(h));
   const index = new Map<string, number>();
@@ -155,7 +197,7 @@ export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item |
   const missing = cols.filter((c) => c.required && !index.has(c.key)).map((c) => c.label);
   const get = (r: Cell[], key: string) => (index.has(key) ? r[index.get(key)!] : undefined);
   const body = rows.slice(1, MAX_IMPORT_ROWS + 1);
-  const out: PreviewRow<Item | Customer>[] = [];
+  const out: PreviewRow<Item | Customer | Supplier>[] = [];
   const seen = new Set<string>();
 
   body.forEach((r, i) => {
@@ -251,18 +293,19 @@ export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item |
       if (stateRaw && !state) errors.push(t('State "{value}" is not an Indian state name', { value: stateRaw }));
       const address = { line1: text(get(r, 'line1')) || undefined, line2: text(get(r, 'line2')) || undefined, city: text(get(r, 'city')) || undefined, state, pin: text(get(r, 'pin')) || undefined };
       if (Object.values(address).some(Boolean)) values.billingAddress = address;
-      const opening = money(get(r, 'opening'));
-      if (opening === 'bad') errors.push(t('Opening balance is not a number'));
-      else if (opening != null) values.openingBalance = opening;
+      const opening = signedMoney(get(r, 'opening'));
+      const other = signedMoney(get(r, kind === 'suppliers' ? 'get' : 'give'));
+      if (opening === 'bad' || other === 'bad') errors.push(t('Opening balance is not a number'));
+      else if (opening != null || other != null) values.openingBalance = (opening ?? 0) - (other ?? 0);
 
-      const customers = existing as Customer[];
+      const customers = existing as (Customer | Supplier)[];
       const match =
         (values.phone && customers.find((x) => x.phone === values.phone)) ||
         (values.taxId && customers.find((x) => x.taxId === values.taxId)) ||
         customers.find((x) => x.name.toLowerCase() === name.toLowerCase()) ||
         undefined;
       const key = (values.phone || values.taxId || name).toLowerCase();
-      if (name && seen.has(key)) errors.push(t('Same customer appears earlier in the file'));
+      if (name && seen.has(key)) errors.push(kind === 'suppliers' ? t('Same supplier appears earlier in the file') : t('Same customer appears earlier in the file'));
       seen.add(key);
       out.push({ line, name, errors, values, match });
     }
@@ -284,7 +327,7 @@ export interface ImportResult {
  */
 export async function applyImport(
   actor: Actor,
-  preview: Preview<Item> | Preview<Customer>,
+  preview: Preview<Item> | Preview<Customer> | Preview<Supplier>,
   onMatch: 'update' | 'skip',
   defaults: { unit: string; taxPct: number },
   progress?: (done: number) => void,
@@ -293,7 +336,7 @@ export async function applyImport(
   const result: ImportResult = { added: 0, updated: 0, skipped: 0, failed: 0 };
   const cats: Category[] = await db.categories.where('businessId').equals(actor.businessId).filter((c) => !c.deleted).toArray();
   let n = 0;
-  for (const row of preview.rows as PreviewRow<Item | Customer>[]) {
+  for (const row of preview.rows as PreviewRow<Item | Customer | Supplier>[]) {
     progress?.(++n);
     if (row.errors.length) {
       result.failed++;
@@ -325,6 +368,19 @@ export async function applyImport(
         if (row.match) await adjustStock(actor, saved, { kind: 'count', counted: stock, note: t('Excel import') });
         else if (stock !== 0) await setOpeningStock(actor, saved, stock);
       }
+    } else if (preview.kind === 'suppliers') {
+      const v = row.values as Partial<Customer>;
+      const base: Supplier = (row.match as unknown as Supplier | undefined) ?? { ...blankSupplier(actor), name: '' };
+      const address = v.billingAddress ? { ...base.address, ...Object.fromEntries(Object.entries(v.billingAddress).filter(([, x]) => x)) } : base.address;
+      await putRecord('suppliers', actor, {
+        ...base,
+        name: v.name ?? base.name,
+        phone: v.phone ?? base.phone,
+        email: v.email ?? base.email,
+        taxId: v.taxId ?? base.taxId,
+        address,
+        openingBalance: v.openingBalance ?? base.openingBalance,
+      });
     } else {
       const values = row.values as Partial<Customer>;
       const base: Customer = (row.match as Customer | undefined) ?? {

@@ -2,7 +2,8 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { flattenCategories } from './categories';
 import { db } from './db';
-import { applyImport, buildPreview, parseCsv, templateCsv } from './importer';
+import { applyImport, buildPreview, parseCsv, signedMoney, templateCsv } from './importer';
+import { stockLevels } from './stock';
 import { ensureBusinessRecords, putRecord, type Actor } from './repo';
 
 const owner: Actor = { businessId: 'b1', userId: 'u1', userName: 'Owner', role: 'owner' };
@@ -82,3 +83,50 @@ describe('customers import', () => {
     expect(await db.customers.get('c1')).toMatchObject({ name: 'Patel Traders', billingAddress: { city: 'Ahmedabad', state: 'Gujarat' } });
   });
 });
+
+describe('switching from Vyapar / Khatabook', () => {
+  it('reads balances written as Dr / Cr, brackets and minus signs', () => {
+    expect(signedMoney('1,200.50 Dr')).toBe(120050);
+    expect(signedMoney('₹ 800 Cr')).toBe(-80000);
+    expect(signedMoney('(250)')).toBe(-25000);
+    expect(signedMoney('-75')).toBe(-7500);
+    expect(signedMoney(42)).toBe(4200);
+    expect(signedMoney('')).toBeNull();
+    expect(signedMoney('abc')).toBe('bad');
+  });
+
+  it('imports a Vyapar item export with opening stock', async () => {
+    const rows = [
+      ['Item Name', 'Item Code', 'HSN', 'Sale Price', 'Purchase Price', 'Tax Rate', 'Opening Stock Quantity', 'Minimum Stock Quantity', 'Item Category'],
+      ['Fevicol 1kg', 'FV1', '3506', '450', '380', '18', '12', '3', 'Adhesives'],
+    ];
+    const preview = buildPreview('items', rows, []);
+    expect(preview.missing).toEqual([]);
+    await applyImport(owner, preview, 'skip', defaults);
+    const item = (await db.items.toArray())[0]!;
+    expect(item).toMatchObject({ name: 'Fevicol 1kg', code: 'FV1', rate: 45000, purchasePrice: 38000, taxPct: 18, lowStock: 3 });
+    expect((await stockLevels('b1')).get(item.id)).toBe(12);
+  });
+
+  it('imports Khatabook customers (you will get / give) and suppliers', async () => {
+    const customers = [
+      ['Name', 'Phone Number', "You'll Get", "You'll Give"],
+      ['Ramesh', '9876543210', '1,500', ''],
+      ['Suresh', '9876543211', '', '200'],
+    ];
+    await applyImport(owner, buildPreview('customers', customers, []), 'skip', defaults);
+    const list = (await db.customers.toArray()).sort((a, b) => a.name.localeCompare(b.name));
+    expect(list.map((c) => [c.name, c.openingBalance])).toEqual([
+      ['Ramesh', 150000],
+      ['Suresh', -20000],
+    ]);
+    const suppliers = [
+      ['Party Name', 'Contact No.', 'GSTIN', 'Payable Balance'],
+      ['Shree Traders', '9876500000', '27AAPFU0939F1ZV', '12,000.00'],
+    ];
+    await applyImport(owner, buildPreview('suppliers', suppliers, []), 'skip', defaults);
+    const s = (await db.suppliers.toArray())[0]!;
+    expect(s).toMatchObject({ name: 'Shree Traders', taxId: '27AAPFU0939F1ZV', openingBalance: 1200000 });
+  });
+});
+

@@ -35,7 +35,7 @@ export function NoAccess() {
 }
 
 export function SuppliersScreen() {
-  const { actor } = useBusiness();
+  const { actor, isOwner } = useBusiness();
   const canBuy = useCanBuy();
   const [q, setQ] = useState('');
   const suppliers = useLiveQuery(() => db.suppliers.where('businessId').equals(actor.businessId).filter((s) => !s.deleted).toArray(), [actor.businessId]);
@@ -50,6 +50,13 @@ export function SuppliersScreen() {
   return (
     <PageShell title={t('Suppliers')} backHref="/tabs/more" padded={false}>
       <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search name or mobile')} />
+      {isOwner && (
+        <div className="filter-chips">
+          <IonButton size="small" fill="clear" routerLink="/tabs/items/import?kind=suppliers">
+            {t('Import')}
+          </IonButton>
+        </div>
+      )}
       {total !== 0 && (
         <p className="section-note ion-padding-horizontal">
           {t('You owe suppliers {amount} in all', { amount: rupees(total) })}
