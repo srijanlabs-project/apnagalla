@@ -30,6 +30,7 @@ import { HomeScreen } from './Placeholders';
 import TeamScreen from './TeamScreen';
 import ExpensesScreen from '../expenses/ExpensesScreen';
 import CashBookScreen from '../cash/CashBookScreen';
+import { JobScreen, JobsScreen } from '../jobs/JobScreens';
 import { ReportScreen, ReportsScreen } from '../reports/ReportsScreen';
 import { PurchaseDetailScreen, PurchaseEditScreen, PurchaseOrderScreen, PurchasesScreen } from '../purchases/PurchaseScreens';
 import { SupplierDetailScreen, SupplierEditScreen, SuppliersScreen } from '../suppliers/SupplierScreens';
@@ -79,6 +80,9 @@ export default function MainTabs() {
           <Route path="purchase-orders/:id" element={<PurchaseOrderScreen />} />
           <Route path="expenses" element={<ExpensesScreen />} />
           <Route path="cash-book" element={<CashBookScreen />} />
+          <Route path="jobs" element={<JobsScreen />} />
+          <Route path="jobs/new" element={<JobScreen />} />
+          <Route path="jobs/:id" element={<JobScreen />} />
           <Route path="reports" element={<ReportsScreen />} />
           <Route path="reports/:id" element={<ReportScreen />} />
 

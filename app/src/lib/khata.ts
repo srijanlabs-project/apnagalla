@@ -113,14 +113,14 @@ export async function receiveKhataPayment(actor: Actor, customer: Customer, inpu
 }
 
 /** Pays a bill from the customer's advance (two entries: out of the account, onto the bill). */
-export async function applyAdvance(actor: Actor, customer: Customer, invoice: Invoice, amount: number): Promise<void> {
+export async function applyAdvance(actor: Actor, customer: Customer, invoice: Invoice, amount: number, jobId?: string): Promise<void> {
   const k = await khataOf(actor.businessId, customer);
   const pending = k.pendingBills.find((b) => b.invoice.id === invoice.id)?.pending ?? 0;
   const amt = Math.min(amount, k.advance, pending);
   if (amt <= 0) return;
   const receiptId = newId();
   const base = { mode: 'advance' as const, date: todayISO(), receivedBy: actor.userId, receivedByName: actor.userName, customerId: customer.id, receiptId };
-  await putRecord('payments', actor, { id: newId(), ...base, kind: 'refund', invoiceId: '', amount: amt, note: t('Used on bill {number}', { number: invoice.number }) } as PaymentEntry);
+  await putRecord('payments', actor, { id: newId(), ...base, kind: 'refund', invoiceId: '', amount: amt, jobId: jobId ?? null, note: t('Used on bill {number}', { number: invoice.number }) } as PaymentEntry);
   await putRecord('payments', actor, { id: newId(), ...base, kind: 'payment', invoiceId: invoice.id, amount: amt } as PaymentEntry);
 }
 

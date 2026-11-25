@@ -44,6 +44,9 @@ export function subscribeSyncState(fn: (s: SyncState) => void): () => void {
 }
 
 const table = (name: SyncTable) => db.table(name) as Table<SyncedRecord, string>;
+/** Most bytes in one upload (the server takes up to 8 MB). */
+const MAX_PUSH_BYTES = 4_000_000;
+
 const cursorKey = (businessId: string) => `sync.cursor:${businessId}`;
 const schemaKey = (businessId: string) => `sync.schema:${businessId}`;
 
@@ -98,10 +101,22 @@ async function pushStore(businessId: string) {
 
     const changes: { table: SyncTable; id: string; data: Record<string, unknown> }[] = [];
     const missing: number[] = [];
+    // Photos make some records big: keep one upload under ~4 MB (always at least one record).
+    let bytes = 0;
+    let cut = false;
     for (const e of entries) {
       const rec = await table(e.table).get(e.recordId);
-      if (rec) changes.push({ table: e.table, id: e.recordId, data: rec as unknown as Record<string, unknown> });
-      else missing.push(e.seq!);
+      if (!rec) {
+        missing.push(e.seq!);
+        continue;
+      }
+      const size = JSON.stringify(rec).length;
+      if (changes.length && bytes + size > MAX_PUSH_BYTES) {
+        cut = true;
+        break;
+      }
+      bytes += size;
+      changes.push({ table: e.table, id: e.recordId, data: rec as unknown as Record<string, unknown> });
     }
     if (missing.length) await db.outbox.bulkDelete(missing);
     if (!changes.length) continue;
@@ -128,7 +143,7 @@ async function pushStore(businessId: string) {
       }
     });
     if (rejected.length) setState({ rejected: [...rejected, ...state.rejected].slice(0, 50) });
-    if (entries.length < SYNC_PUSH_MAX) return;
+    if (!cut && entries.length < SYNC_PUSH_MAX) return;
   }
 }
 

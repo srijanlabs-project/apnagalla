@@ -261,3 +261,8 @@
 .strike { text-decoration: line-through; opacity: 0.6; }
 .bill-photo { max-width: 100%; border-radius: 8px; margin: 8px 0; }
 .po-line-name { flex: 1; min-width: 0; }
+.photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.photo-cell { position: relative; aspect-ratio: 1; }
+.photo-cell img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+.photo-cell ion-icon { position: absolute; top: 2px; right: 2px; font-size: 22px; color: #fff; filter: drop-shadow(0 0 2px #000); }
+.photo-add { aspect-ratio: 1; border: 2px dashed var(--ion-color-medium); border-radius: 8px; background: none; font-size: 28px; color: var(--ion-color-medium); }

@@ -4,6 +4,7 @@ import {
   businessOutline,
   languageOutline,
   barChartOutline,
+  constructOutline,
   cloudUploadOutline,
   busOutline,
   cartOutline,
@@ -85,6 +86,10 @@ export default function MoreScreen() {
         <IonListHeader>
           <IonLabel>{t('Money and stock')}</IonLabel>
         </IonListHeader>
+        <IonItem routerLink="/tabs/jobs" detail lines="full">
+          <IonIcon icon={constructOutline} slot="start" />
+          <IonLabel>{t('Jobs and repairs')}</IonLabel>
+        </IonItem>
         <IonItem routerLink="/tabs/reports" detail lines="full">
           <IonIcon icon={barChartOutline} slot="start" />
           <IonLabel>{t('Reports')}</IonLabel>

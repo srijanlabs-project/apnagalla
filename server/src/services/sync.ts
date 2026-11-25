@@ -255,8 +255,10 @@ export class SyncService {
     }
 
     if (table === 'estimates' && actor.role === 'staff' && existing && existing.status !== 'draft' && existing.createdBy !== actor.userId) {
-      // Staff may still mark someone else's order delivered.
-      if (stable(without(data, PAYMENT_FIELDS)) !== stable(without(existing, PAYMENT_FIELDS))) return 'Only the owner can edit this estimate';
+      // Staff may still mark someone else's order delivered, move a job along (stage, photos) or
+      // make its bill; prices and lines stay the owner's (or the maker's).
+      const staffMay = [...PAYMENT_FIELDS, 'job', ...(data.status === 'converted' ? ['status', 'convertedInvoiceId'] : [])];
+      if (stable(without(data, staffMay)) !== stable(without(existing, staffMay))) return 'Only the owner can edit this estimate';
     }
     return null;
   }

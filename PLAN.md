@@ -159,6 +159,52 @@ R2 decisions (defaults):
 - Not yet (R3 or later): GSTR-1 JSON export, custom saved reports, cheque bounce handling, auto UPI
   confirmation, credit limit blocking (it only warns), customer groups and price levels.
 
+### Release 3 — shop types, plans, growth
+Started 25 Nov 2026, built without stopping for each design question (owner's call), using the
+defaults below. Each can still be changed.
+
+| Step | Scope | Status |
+|---|---|---|
+| R3.1 Jobs | Job-work orders (measurement → quote → advance → in progress → ready → delivered, photos, due date) and repair job cards (device, IMEI, problem, accessories, technician); bill from the job with the advance used | |
+| R3.2 Switching | Import items, customers, suppliers and balances from Vyapar, Khatabook or any Excel | |
+| R3.3 Items | Variants (size / colour, own stock, barcode and price), several units per item (box = 12 pcs), price levels (retail / wholesale / special) by customer type | |
+| R3.4 Electronics | Serial / IMEI per unit (in on purchase, out on sale), warranty dates, serial search, finance / EMI payment mode | |
+| R3.5 Selling | Offers (category % off, buy X get Y, combo price), bulk price update with history, reorder suggestions from sales speed, barcode labels and price stickers | |
+| R3.6 Control | Staff permissions per person, credit limit that can block, delivery challan, exchange in one bill, cheque tracking (pending / cleared / bounced), GSTR-1 export, custom saved reports | |
+| R3.7 Plans | Free / paid plans, trial, coupon / referral / partner codes, payment link, GST invoice to the shop, renewal reminders, grace period; scan the shop's paper sales bills; photos on items and bills | |
+| R3.8 Security | Scope and checklist for the external penetration test (the test itself is done by an outside firm) | |
+
+R3 decisions (defaults):
+- Jobs are estimates with a job stage (work or repair), so quotes, area pricing, PDFs and "make
+  bill" are shared. The advance is a khata payment on account tagged with the job, and is used on
+  the bill automatically. Photos are small JPEGs (up to 6 per job); sync sends records in batches
+  of at most ~4 MB so photos never make one upload too big.
+- Variants are separate items grouped under a parent (e.g. "Shirt" → "Shirt · M · Red"), so stock,
+  barcode and price per variant reuse everything items already do.
+- Several units: an item has its base unit (stock is kept in it) and other units with a factor
+  (box = 12 pcs) and their own price. A bill or purchase line in boxes moves 12 × the quantity.
+- Price levels: retail (the item price), wholesale and special. A customer has a type (retail,
+  wholesale, special); their bills use that level's price when the item has one.
+- Serials: an item can "keep serial / IMEI numbers". Purchases record the numbers that came in,
+  sales pick from the ones in stock; the bill prints them with the warranty end date.
+- Offers apply themselves on the counter screen and in the bill editor as line discounts, shown as
+  "Offer: …"; the cashier can remove one. Only the owner makes offers.
+- Bulk price update: by category, ±% or ±₹, rounded to ₹1 / ₹5 / ₹10, preview first; each item keeps
+  its last 20 price changes.
+- Staff permissions per person: see costs and purchases, most discount %, view reports, edit items,
+  delete drafts / customers. "Staff can see purchases and cost prices" becomes the starting value.
+- Delivery challan: its own number series (DC); goods leave stock on the challan, and the bill made
+  from it doesn't take them out again.
+- Exchange: a return credit note on the old bill and the new bill in one step; the returned value
+  pays the new bill (no cash moves unless there is a difference).
+- Cheques: a cheque payment counts as received; it is listed as pending until marked cleared; a
+  bounced cheque is voided by the owner and the bill is pending again.
+- GSTR-1 export in the GST offline tool's JSON (B2B, B2C small, credit notes, HSN, documents) plus
+  Excel; check with the CA before filing.
+- Plans: the mechanism is built; the client sets plan names, prices and limits in the admin panel.
+  Limits are not enforced until the client switches them on (`PLANS_ENFORCED`). Payment by
+  Razorpay payment link (keys needed); UPI autopay comes after the Razorpay account is ready.
+
 ### Release 5 (proposed) — global product reference
 Agreed in outline 25 Nov 2026; details to settle before building. Barcodes are out of scope.
 

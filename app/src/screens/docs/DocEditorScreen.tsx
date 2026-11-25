@@ -50,6 +50,7 @@ import {
 import { PAYMENT_TERMS } from '../settings/InvoiceSettingsScreen';
 import CustomerPicker, { snapshotOf } from './CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
+import { settleJobAdvance } from '../../lib/jobs';
 import LineEditor from './LineEditor';
 import { sync } from '../../lib/sync';
 import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
@@ -231,6 +232,8 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
           : kind === 'estimate'
             ? await saveEstimate(actor, doc as Estimate, { finalize })
             : await saveCreditNote(actor, doc as CreditNote, { finalize });
+      // A job's bill: its advance pays it.
+      if (kind === 'invoice' && finalize) await settleJobAdvance(actor, saved as Invoice).catch(() => 0);
       const message =
         finalize || !wasDraft
           ? byKind(t('Invoice {number} saved', { number: saved.number }), t('Estimate {number} saved', { number: saved.number }), t('Credit note {number} saved', { number: saved.number }))

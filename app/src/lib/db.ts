@@ -282,6 +282,8 @@ export interface PaymentEntry extends SyncedRecord {
   customerId?: string | null;
   /** Entries split from one khata payment share this. */
   receiptId?: string | null;
+  /** An advance taken for this job (estimate id); used on the job's bill. */
+  jobId?: string | null;
   /** Set for a refund made because of a return. */
   creditNoteId?: string | null;
   kind: 'payment' | 'refund';
@@ -314,6 +316,27 @@ export interface Estimate extends DocBase {
   status: 'draft' | 'open' | 'accepted' | 'declined' | 'converted';
   convertedInvoiceId?: string | null;
   businessSnapshot?: Omit<BusinessProfile, keyof SyncedRecord> | null;
+  /** Set when this estimate is a job (work order or repair): its quote is the estimate's lines. */
+  job?: JobInfo | null;
+}
+
+export type WorkStage = 'measure' | 'quoted' | 'confirmed' | 'in_progress' | 'ready' | 'delivered' | 'cancelled';
+export type RepairStage = 'received' | 'diagnosing' | 'waiting_parts' | 'repaired' | 'delivered' | 'returned';
+export type JobStage = WorkStage | RepairStage;
+
+export interface JobInfo {
+  kind: 'work' | 'repair';
+  stage: JobStage;
+  /** "Living room painting", "Shop board 8×4". For repairs: the device. */
+  title: string;
+  /** Sizes and notes taken at the site. */
+  measurements?: string;
+  device?: { brand?: string; model?: string; imei?: string; problem?: string; accessories?: string; condition?: string };
+  /** Who does the work / repair. */
+  assignee?: { userId: string; name: string } | null;
+  /** Small JPEG data URLs, at most 6. */
+  photos: string[];
+  stageHistory: { stage: JobStage; at: string; byName?: string }[];
 }
 
 /* ---------- R2: stock, purchases, money ---------- */
