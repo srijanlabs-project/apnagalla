@@ -298,12 +298,18 @@ Decisions (26 Nov 2026):
 
 | Step | Scope | Status |
 |---|---|---|
-| R5.1 Data store | Server tables (categories, generic items, other names, brands, packs, products), admin screens, Excel upload / download | |
-| R5.2 Download | Each phone gets its store's categories, then only changes; kept offline | |
-| R5.3 Search | Offline matching on the phone: brand + item + size + unit, misspellings, Hindi / Gujarati / Punjabi names; shop's items first | |
-| R5.4 New item and onboarding | Suggestions fill New item; store categories at sign-up and in Settings; switch off | |
-| R5.5 Billing and purchases | Suggestions for items not yet in the catalogue while billing and on purchase bills (saved as a new item) | |
+| R5.1 Data store | Server tables (categories, generic items, other names, brands, packs, products), admin screens, Excel upload / download | Done |
+| R5.2 Download | Each phone gets its store's categories, then only changes; kept offline | Done |
+| R5.3 Search | Offline matching on the phone: brand + item + size + unit, misspellings, Hindi / Gujarati / Punjabi names; shop's items first | Done |
+| R5.4 New item and onboarding | Suggestions fill New item; store categories at sign-up and in Settings; switch off | Done |
+| R5.5 Billing and purchases | Suggestions for items not yet in the catalogue while billing and on purchase bills (saved as a new item) | Done |
 | R5.6 Starter data | Draft list for Kirana, Hardware, Garments with HSN / GST for the client's review | |
+
+How to load the list: admin console (web, /admin) → Product list → pick the section → Upload
+sheet (.xlsx or .csv with the columns Category, Item, Brand, Size, Size unit, Sell unit, HSN, GST %,
+Other names, Notes; other names separated by ";"). Re-uploading updates rows by item + brand + size;
+"Replace the whole section" also removes rows not in the sheet. Other spellings: a two-column
+sheet (Word, Means). Phones pick changes up within a few hours, or at once from More → Product list.
 
 Still open: someone on the client side to keep the list clean over time; "learning" from names
 many shops type that aren't in the list (later, needs consent in the terms); Excel import filling
