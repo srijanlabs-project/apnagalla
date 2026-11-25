@@ -83,6 +83,8 @@ export interface MembershipDto {
   active: boolean;
   /** This person's series letter in the store ("" for the owner). */
   seriesCode: string;
+  /** ApnaGalla suspended the whole store: nobody can use it until it is reactivated. */
+  suspended?: boolean;
 }
 
 export interface InviteDto {
@@ -100,6 +102,43 @@ export interface MeResponse {
   memberships: MembershipDto[];
   /** Pending invites addressed to this user's phone number */
   invites: InviteDto[];
+  /** ApnaGalla staff who may use the admin panel (web only). */
+  isAdmin?: boolean;
+}
+
+/* ---------- admin panel (ApnaGalla staff) ---------- */
+
+export interface AdminStoreDto {
+  id: string;
+  name: string;
+  city: string | null;
+  createdAt: string;
+  ownerName: string | null;
+  ownerPhone: string | null;
+  members: number;
+  bills: number;
+  /** Last time any phone synced a change. */
+  lastActivity: string | null;
+  suspendedAt: string | null;
+  suspendedReason: string | null;
+}
+
+export const adminCreateStoreBody = z.object({
+  name: z.string().trim().min(1, 'Store name is required').max(120),
+  ownerPhone: phoneField,
+  city: z.string().trim().max(80).optional(),
+  state: z.string().trim().max(80).optional(),
+});
+export type AdminCreateStoreBody = z.input<typeof adminCreateStoreBody>;
+
+export const suspendStoreBody = z.object({ reason: z.string().trim().min(1, 'Give a reason').max(300) });
+
+export interface AuditEntryDto {
+  at: string;
+  actorName: string | null;
+  actorPhone: string | null;
+  action: string;
+  detail: Record<string, unknown> | null;
 }
 
 export interface BusinessDto {

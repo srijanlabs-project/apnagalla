@@ -61,7 +61,25 @@ export const businesses = pgTable('businesses', {
     .notNull()
     .references(() => users.id),
   createdAt: createdAt(),
+  /** Suspended by ApnaGalla (admin panel): every request for the store is refused. */
+  suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+  suspendedReason: text('suspended_reason'),
 });
+
+/** Who did what, for sensitive actions (staff paused, payment voided, store suspended…). */
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    /** null for platform actions not tied to a store. */
+    businessId: uuid('business_id').references(() => businesses.id, { onDelete: 'cascade' }),
+    actorUserId: uuid('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+    action: text('action').notNull(),
+    detail: jsonb('detail').$type<Record<string, unknown>>(),
+  },
+  (t) => [index('audit_log_business_at_idx').on(t.businessId, t.at)],
+);
 
 export const memberships = pgTable(
   'memberships',

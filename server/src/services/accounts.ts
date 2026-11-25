@@ -6,7 +6,18 @@ import { badRequest, conflict, forbidden, notFound } from '../errors';
 
 /** Accounts: users, businesses, memberships and staff invites. */
 export class AccountService {
-  constructor(private readonly db: DB) {}
+  /** `adminPhones`: E.164 numbers of ApnaGalla staff allowed into the admin panel. */
+  constructor(
+    private readonly db: DB,
+    private readonly adminPhones: ReadonlySet<string> = new Set(),
+  ) {}
+
+  /** ApnaGalla admin (by phone number, from ADMIN_PHONES)? */
+  async isAdmin(userId: string): Promise<boolean> {
+    if (!this.adminPhones.size) return false;
+    const [u] = await this.db.select({ phone: users.phone }).from(users).where(eq(users.id, userId)).limit(1);
+    return !!u && this.adminPhones.has(u.phone);
+  }
 
   async upsertUserByPhone(phone: string): Promise<string> {
     const [existing] = await this.db.select({ id: users.id }).from(users).where(eq(users.phone, phone)).limit(1);
@@ -35,6 +46,7 @@ export class AccountService {
         role: memberships.role,
         deactivatedAt: memberships.deactivatedAt,
         seriesCode: memberships.seriesCode,
+        suspendedAt: businesses.suspendedAt,
       })
       .from(memberships)
       .innerJoin(businesses, eq(businesses.id, memberships.businessId))
@@ -45,8 +57,9 @@ export class AccountService {
 
     return {
       user: { id: user.id, phone: user.phone, name: user.name },
-      memberships: ms.map(({ deactivatedAt, ...m }) => ({ ...m, active: !deactivatedAt })),
+      memberships: ms.map(({ deactivatedAt, suspendedAt, ...m }) => ({ ...m, active: !deactivatedAt, suspended: !!suspendedAt })),
       invites: pending,
+      ...(this.adminPhones.has(user.phone) ? { isAdmin: true } : {}),
     };
   }
 
@@ -57,11 +70,13 @@ export class AccountService {
   /** Returns the caller's active role in a business, or throws 403. */
   async requireRole(userId: string, businessId: string, allowed: Role[] = ['owner', 'staff']): Promise<Role> {
     const [m] = await this.db
-      .select({ role: memberships.role, deactivatedAt: memberships.deactivatedAt })
+      .select({ role: memberships.role, deactivatedAt: memberships.deactivatedAt, suspendedAt: businesses.suspendedAt })
       .from(memberships)
+      .innerJoin(businesses, eq(businesses.id, memberships.businessId))
       .where(and(eq(memberships.userId, userId), eq(memberships.businessId, businessId), isNull(memberships.removedAt)))
       .limit(1);
     if (!m) throw forbidden('You are not a member of this business');
+    if (m.suspendedAt) throw forbidden('This store has been suspended. Please contact ApnaGalla.', 'store_suspended');
     if (m.deactivatedAt) throw forbidden('The owner has paused your access to this store', 'member_inactive');
     if (!allowed.includes(m.role)) throw forbidden('Only the owner can do this');
     return m.role;

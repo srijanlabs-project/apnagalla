@@ -17,6 +17,7 @@ import {
 } from '@invoice/shared';
 import type { DB } from '../db/client';
 import { numberCounters, returnedNumbers, syncRecords } from '../db/schema';
+import { audit } from './audit';
 
 export interface SyncActor {
   businessId: string;
@@ -146,6 +147,8 @@ export class SyncService {
 
     const used = usedNumber(table, data);
     if (used) await this.bumpCounter(tx, actor.businessId, used.series, used.seq);
+    const event = auditEvent(table, data, existing);
+    if (event) await audit(tx, { businessId: actor.businessId, actorUserId: actor.userId, ...event });
     return { table, id, status: 'ok' };
   }
 
@@ -341,4 +344,34 @@ function usedNumber(table: SyncTable, data: Data): { series: string; seq: number
   if (table !== 'invoices' && table !== 'estimates') return null;
   const parsed = parseDocNumber(data.number);
   return parsed ? { series: `${table === 'invoices' ? 'invoice' : 'estimate'}:${parsed.period}`, seq: parsed.seq } : null;
+}
+
+const STORE_DETAIL_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds'];
+
+/** Sensitive changes worth a line in the audit log (who voided a payment, cancelled a bill…). */
+function auditEvent(table: SyncTable, data: Data, existing: Data | undefined): { action: string; detail: Record<string, unknown> } | null {
+  const num = (d: Data | undefined) => (typeof d?.number === 'string' ? d.number : undefined);
+  if (table === 'payments' && existing && !existing.voidedAt && data.voidedAt) {
+    return { action: 'payment.voided', detail: { invoiceId: data.invoiceId, amount: data.amount, mode: data.mode, reason: data.voidReason } };
+  }
+  if (table === 'payments' && !existing && data.kind === 'refund') {
+    return { action: 'payment.refunded', detail: { invoiceId: data.invoiceId, amount: data.amount, mode: data.mode } };
+  }
+  if (table === 'invoices' && existing?.status === 'saved') {
+    if (data.status === 'cancelled') return { action: 'invoice.cancelled', detail: { number: num(data) } };
+    if (data.status === 'saved' && stable(without(data, PAYMENT_FIELDS)) !== stable(without(existing, PAYMENT_FIELDS))) {
+      return { action: 'invoice.edited', detail: { number: num(data) } };
+    }
+  }
+  if (table === 'creditNotes') {
+    if (existing?.status === 'saved' && data.status === 'cancelled') return { action: 'credit_note.cancelled', detail: { number: num(data) } };
+    if (existing?.status !== 'saved' && data.status === 'saved') return { action: 'credit_note.saved', detail: { number: num(data), invoiceId: data.invoiceId } };
+  }
+  if (STORE_DETAIL_TABLES.includes(table) && existing && stable(without(data, ['updatedAt', 'updatedBy'])) !== stable(without(existing, ['updatedAt', 'updatedBy']))) {
+    return { action: 'store.details_changed', detail: { table } };
+  }
+  if (table === 'items' && existing && (existing.rate !== data.rate || (data.purchasePrice !== undefined && existing.purchasePrice !== data.purchasePrice))) {
+    return { action: 'item.price_changed', detail: { name: data.name, from: existing.rate, to: data.rate } };
+  }
+  return null;
 }

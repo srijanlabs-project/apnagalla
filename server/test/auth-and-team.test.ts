@@ -143,7 +143,7 @@ describe('business and team', () => {
     const accepted = await app.inject({ method: 'POST', url: `/v1/invites/${staff.me.invites[0]!.id}/accept`, headers: staffH });
     expect(accepted.statusCode).toBe(200);
     expect(accepted.json<MeResponse>().memberships).toEqual([
-      { businessId: biz.id, businessName: 'Asha Traders', businessCity: 'Pune', businessState: null, role: 'staff', active: true, seriesCode: 'B' },
+      { businessId: biz.id, businessName: 'Asha Traders', businessCity: 'Pune', businessState: null, role: 'staff', active: true, seriesCode: 'B', suspended: false },
     ]);
 
     // Staff can read the business but not manage the team.

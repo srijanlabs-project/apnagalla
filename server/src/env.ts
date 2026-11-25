@@ -34,6 +34,10 @@ const schema = z.object({
   GST_API_KEY: z.string().optional().transform((v) => (v ? v : undefined)),
   GST_API_VERSION: z.string().default('1.0'),
   GST_API_TIMEOUT_MS: z.coerce.number().int().positive().default(12000),
+  /** Requests per minute per login (or per IP when not signed in), across the API. */
+  RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(600),
+  /** ApnaGalla admins: comma-separated mobile numbers allowed into the admin panel (web only). */
+  ADMIN_PHONES: z.string().default(''),
   /** Most GSTIN lookups per store per day (each may cost money). */
   GST_LOOKUPS_PER_DAY: z.coerce.number().int().positive().default(200),
 });

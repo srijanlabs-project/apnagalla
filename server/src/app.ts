@@ -1,4 +1,7 @@
+import { createHash } from 'node:crypto';
 import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import { sql } from 'drizzle-orm';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { ZodError, type ZodType } from 'zod';
@@ -17,8 +20,13 @@ import {
   type SyncPushResponse,
   type VerifyOtpResponse,
   type GstinInfo,
+  adminCreateStoreBody,
+  suspendStoreBody,
+  normalizeIndianMobile,
 } from '@invoice/shared';
 import { OtpService } from './auth/otp';
+import { AdminService } from './services/admin';
+import { audit } from './services/audit';
 import { GstLookupService, createGstProvider, type GstProvider } from './gst/lookup';
 import { TokenService, type AuthContext } from './auth/tokens';
 import type { Database } from './db/client';
@@ -35,7 +43,18 @@ declare module 'fastify' {
 }
 
 /** Origins that can always call the API: Capacitor Android WebView and the Vite dev server. */
-const BUILTIN_ORIGINS = ['https://localhost', 'http://localhost', 'capacitor://localhost', 'http://localhost:5173', 'http://127.0.0.1:5173'];
+/** The Android app's own origins (Capacitor WebView). */
+const APP_ORIGINS = ['https://localhost', 'http://localhost', 'capacitor://localhost'];
+/** Local development only. */
+const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    /** Registered routes (method + URL pattern). */
+    routeList: { method: string; url: string }[];
+  }
+}
 
 export interface BuildAppOptions {
   env: Env;
@@ -54,13 +73,44 @@ export async function buildApp({ env, database, otpSender, gstProvider, logger =
     bodyLimit: 1_000_000,
   });
 
+  // Every route, so tests can check that none of them leaks another store's data.
+  const routes: { method: string; url: string }[] = [];
+  app.decorate('routeList', routes);
+  app.addHook('onRoute', (r) => {
+    for (const m of [r.method].flat()) if (m !== 'HEAD' && m !== 'OPTIONS') routes.push({ method: m, url: r.url });
+  });
+
   const db = database.db;
   const tokens = new TokenService(db, env.JWT_SECRET);
   const otp = new OtpService(db, otpSender ?? createOtpSender(env, app.log), env.JWT_SECRET, env.OTP_PROVIDER === 'console' ? env.OTP_FIXED_CODE : undefined);
-  const accounts = new AccountService(db);
+  const adminPhones = new Set(
+    env.ADMIN_PHONES.split(',')
+      .map((p) => normalizeIndianMobile(p.trim()))
+      .filter((p): p is string => !!p),
+  );
+  const accounts = new AccountService(db, adminPhones);
+  const admin = new AdminService(db);
   const syncService = new SyncService(db);
 
-  const allowedOrigins = new Set([...BUILTIN_ORIGINS, ...env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)]);
+  const allowedOrigins = new Set([
+    ...APP_ORIGINS,
+    ...(env.NODE_ENV === 'production' ? [] : DEV_ORIGINS),
+    ...env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
+  ]);
+  // Standard protective headers (no-sniff, HSTS, frame denial…); the API serves JSON only.
+  await app.register(helmet, { contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } });
+  await app.register(rateLimit, {
+    // Signed-in requests count per login (many phones share one mobile-network IP); others per IP.
+    // OTP has its own stricter limits.
+    max: env.RATE_LIMIT_PER_MINUTE,
+    keyGenerator: (req) => {
+      const auth = req.headers.authorization;
+      return auth?.startsWith('Bearer ') ? `t:${createHash('sha256').update(auth).digest('base64url').slice(0, 22)}` : `ip:${req.ip}`;
+    },
+    timeWindow: '1 minute',
+    allowList: (req) => req.url === '/health',
+    errorResponseBuilder: (_req, ctx) => ({ statusCode: 429, error: 'rate_limited', message: `Too many requests. Try again in ${Math.ceil(ctx.ttl / 1000)} seconds.` }),
+  });
   await app.register(cors, {
     origin: (origin, cb) => cb(null, !origin || allowedOrigins.has(origin)),
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
@@ -78,6 +128,7 @@ export async function buildApp({ env, database, otpSender, gstProvider, logger =
       return reply.status(409).send({ error: 'conflict', message: 'This was already done. Refresh and try again.' });
     }
     const status = (err as { statusCode?: number }).statusCode;
+    if (status === 429) return reply.status(429).send({ error: 'rate_limited', message: (err as Error).message });
     if (status && status < 500) {
       return reply.status(status).send({ error: 'bad_request', message: (err as Error).message });
     }
@@ -171,7 +222,9 @@ export async function buildApp({ env, database, otpSender, gstProvider, logger =
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/invites', authed, async (req, reply) => {
     await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
     const { phone, role } = parse(createInviteBody, req.body);
-    return reply.status(201).send(await accounts.createInvite(req.params.businessId, uid(req), phone, role));
+    const invite = await accounts.createInvite(req.params.businessId, uid(req), phone, role);
+    await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: 'team.invited', detail: { phone, role } });
+    return reply.status(201).send(invite);
   });
 
   app.delete<{ Params: BizParams & { inviteId: string } }>('/v1/businesses/:businessId/invites/:inviteId', authed, async (req, reply) => {
@@ -183,6 +236,7 @@ export async function buildApp({ env, database, otpSender, gstProvider, logger =
   app.delete<{ Params: BizParams & { userId: string } }>('/v1/businesses/:businessId/members/:userId', authed, async (req, reply) => {
     await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
     await accounts.removeMember(req.params.businessId, uid(req), req.params.userId);
+    await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: 'team.removed', detail: { userId: req.params.userId } });
     return reply.status(204).send();
   });
 
@@ -190,6 +244,7 @@ export async function buildApp({ env, database, otpSender, gstProvider, logger =
     await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
     const { code } = parse(setSeriesCodeBody, req.body);
     await accounts.setSeriesCode(req.params.businessId, req.params.userId, code);
+    await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: 'team.series_code', detail: { userId: req.params.userId, code } });
     return accounts.getTeam(req.params.businessId);
   });
 
@@ -197,9 +252,30 @@ export async function buildApp({ env, database, otpSender, gstProvider, logger =
     app.post<{ Params: BizParams & { userId: string } }>(`/v1/businesses/:businessId/members/:userId/${action}`, authed, async (req) => {
       await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
       await accounts.setMemberActive(req.params.businessId, uid(req), req.params.userId, active);
+      await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: active ? 'team.reactivated' : 'team.paused', detail: { userId: req.params.userId } });
       return accounts.getTeam(req.params.businessId);
     });
   }
+
+  /* ---------- admin panel (ApnaGalla staff; web only) ---------- */
+  async function requireAdmin(req: FastifyRequest) {
+    await requireAuth(req);
+    if (req.auth!.client !== 'web') throw forbidden('The admin panel works on the web only', 'admin_web_only');
+    if (!(await accounts.isAdmin(uid(req)))) throw forbidden('Admins only', 'not_admin');
+  }
+  const adminOnly = { preHandler: requireAdmin };
+
+  app.get<{ Querystring: { q?: string } }>('/v1/admin/stores', adminOnly, async (req) => ({ stores: await admin.listStores(req.query.q), activeDevices: await admin.activeSessions() }));
+  app.post('/v1/admin/stores', adminOnly, async (req, reply) => reply.status(201).send(await admin.createStore(uid(req), parse(adminCreateStoreBody, req.body))));
+  app.post<{ Params: BizParams }>('/v1/admin/stores/:businessId/suspend', adminOnly, async (req, reply) => {
+    await admin.setSuspended(uid(req), req.params.businessId, true, parse(suspendStoreBody, req.body).reason);
+    return reply.status(204).send();
+  });
+  app.post<{ Params: BizParams }>('/v1/admin/stores/:businessId/reactivate', adminOnly, async (req, reply) => {
+    await admin.setSuspended(uid(req), req.params.businessId, false);
+    return reply.status(204).send();
+  });
+  app.get<{ Params: BizParams }>('/v1/admin/stores/:businessId/audit', adminOnly, async (req) => ({ entries: await admin.auditTrail(req.params.businessId) }));
 
   /* ---------- sync ---------- */
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/sync/push', { ...authed, bodyLimit: 8_000_000 }, async (req): Promise<SyncPushResponse> => {

@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNull, ne } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, ne, sql } from 'drizzle-orm';
 import { SignJWT, jwtVerify } from 'jose';
 import type { AuthTokens, ClientKind, SessionDto } from '@invoice/shared';
 import type { DB } from '../db/client';
@@ -8,6 +8,9 @@ import { generateRefreshToken, hashToken } from './crypto';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 export const REFRESH_TOKEN_TTL_DAYS = 90;
+/** A browser login ends after this many days without use (shared office PCs). */
+export const WEB_REFRESH_TOKEN_TTL_DAYS = 7;
+const ttlDays = (client: ClientKind) => (client === 'web' ? WEB_REFRESH_TOKEN_TTL_DAYS : REFRESH_TOKEN_TTL_DAYS);
 
 export type RevokeReason = 'logout' | 'signed_in_elsewhere' | 'signed_out_remotely';
 
@@ -75,7 +78,7 @@ export class TokenService {
           deviceName: deviceName ?? null,
           client,
           refreshTokenHash: hashToken(refreshToken),
-          expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_DAYS * 86_400_000),
+          expiresAt: new Date(Date.now() + ttlDays(client) * 86_400_000),
         })
         .returning({ id: sessions.id });
       return created!;
@@ -97,7 +100,8 @@ export class TokenService {
       .set({
         refreshTokenHash: hashToken(next),
         lastSeenAt: now,
-        expiresAt: new Date(now.getTime() + REFRESH_TOKEN_TTL_DAYS * 86_400_000),
+        // Sliding expiry: each use extends it (7 days for a browser, 90 for the phone).
+        expiresAt: sql`${now.toISOString()}::timestamptz + (case when ${sessions.client} = 'web' then ${`${WEB_REFRESH_TOKEN_TTL_DAYS} days`}::interval else ${`${REFRESH_TOKEN_TTL_DAYS} days`}::interval end)`,
       })
       .where(and(eq(sessions.refreshTokenHash, hash), isNull(sessions.revokedAt), gt(sessions.expiresAt, now)))
       .returning({ id: sessions.id, userId: sessions.userId });
