@@ -51,6 +51,7 @@ import { repriceLines, sellable } from '../../lib/pricing';
 import { useScanToBill } from '../../lib/useScanToBill';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from '../docs/LineEditor';
+import { addOrMerge } from '../../lib/mergeLines';
 
 /** What the counter shows after a sale is saved. */
 interface Done {
@@ -559,7 +560,7 @@ export default function SaleScreen() {
         noTax={bill.taxMode === 'none'}
         onClose={() => setEditing(null)}
         onSave={(line) => {
-          patch((cur) => ({ lines: cur.lines.some((l) => l.id === line.id) ? cur.lines.map((l) => (l.id === line.id ? line : l)) : [...cur.lines, line] }));
+          patch((cur) => ({ lines: cur.lines.some((l) => l.id === line.id) ? cur.lines.map((l) => (l.id === line.id ? line : l)) : addOrMerge(cur.lines, line) }));
           setEditing(null);
         }}
         onDelete={(lineId) => {

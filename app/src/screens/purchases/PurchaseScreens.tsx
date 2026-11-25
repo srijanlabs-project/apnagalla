@@ -18,6 +18,7 @@ import {
   IonSpinner,
   useIonToast,
 } from '@ionic/react';
+import { addOrMerge } from '../../lib/mergeLines';
 import { todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { add, addOutline, cartOutline, cashOutline, clipboardOutline, closeCircleOutline, createOutline, returnDownBackOutline, scanOutline, shareSocialOutline, trashOutline } from 'ionicons/icons';
@@ -397,7 +398,7 @@ export function PurchaseEditScreen() {
           onClose={() => setPicking(false)}
           businessId={actor.businessId}
           showCost
-          onPick={(item) => patch({ lines: [...p.lines, purchaseLineFromItem(item)] })}
+          onPick={(item) => patch({ lines: addOrMerge(p.lines, purchaseLineFromItem(item)) })}
           onNew={
             isReturn
               ? undefined

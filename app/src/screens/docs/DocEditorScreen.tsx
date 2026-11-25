@@ -58,6 +58,7 @@ import { creditOverLimit } from '../../lib/khata';
 import { repriceLines } from '../../lib/pricing';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from './LineEditor';
+import { addOrMerge } from '../../lib/mergeLines';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import { useScanToBill } from '../../lib/useScanToBill';
 import { sync } from '../../lib/sync';
@@ -153,7 +154,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
       if (isAreaPricing(it.pricing) || it.trackSerial) {
         setScanning(false);
         setEditing({ line, isNew: true });
-      } else setDoc((cur) => (cur ? { ...cur, lines: [...cur.lines, line] } : cur));
+      } else setDoc((cur) => (cur ? { ...cur, lines: addOrMerge(cur.lines, line) } : cur));
     },
     addOne: (lineId) => setDoc((cur) => (cur ? { ...cur, lines: cur.lines.map((l) => (l.id === lineId ? { ...l, qty: l.qty + 1 } : l)) } : cur)),
     unknown: (code) => {
@@ -661,7 +662,8 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         onClose={() => setEditing(null)}
         onSave={(line) => {
           const exists = doc.lines.some((l) => l.id === line.id);
-          patch({ lines: exists ? doc.lines.map((l) => (l.id === line.id ? line : l)) : [...doc.lines, line] });
+          // The same item again (same price, unit, tax, discount) adds to its line instead of a new one.
+          patch({ lines: exists ? doc.lines.map((l) => (l.id === line.id ? line : l)) : addOrMerge(doc.lines, line) });
           setEditing(null);
         }}
         onDelete={(lineId) => {

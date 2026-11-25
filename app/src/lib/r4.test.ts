@@ -245,3 +245,15 @@ describe('R4.8 phone alerts', () => {
     expect(late.map((a) => a.id)).toEqual([101]);
   });
 });
+
+describe('same item twice', () => {
+  it('adds to the existing line unless price, size, serials or discount differ', async () => {
+    const { addOrMerge } = await import('./mergeLines');
+    const a: Parameters<typeof addOrMerge>[1] = { id: 'a', itemId: 'i1', qty: 2, rate: 100, unit: 'pcs', taxPct: 18 };
+    expect(addOrMerge([a], { ...a, id: 'b', qty: 3 })).toEqual([{ ...a, qty: 5 }]);
+    expect(addOrMerge([a], { ...a, id: 'b', rate: 90 })).toHaveLength(2);
+    expect(addOrMerge([a], { ...a, id: 'b', discount: { type: 'pct', value: 5 } })).toHaveLength(2);
+    expect(addOrMerge([a], { ...a, id: 'b', serials: ['IMEI9'] })).toHaveLength(2);
+    expect(addOrMerge([a], { ...a, id: 'b', itemId: null })).toHaveLength(2);
+  });
+});
