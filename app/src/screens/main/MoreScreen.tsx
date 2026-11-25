@@ -4,6 +4,7 @@ import {
   businessOutline,
   languageOutline,
   barChartOutline,
+  documentTextOutline,
   constructOutline,
   cloudUploadOutline,
   busOutline,
@@ -99,6 +100,10 @@ export default function MoreScreen() {
         <IonItem routerLink="/tabs/cash-book" detail lines="full">
           <IonIcon icon={cashOutline} slot="start" />
           <IonLabel>{t('Cash book')}</IonLabel>
+        </IonItem>
+        <IonItem routerLink="/tabs/cheques" detail lines="full">
+          <IonIcon icon={documentTextOutline} slot="start" />
+          <IonLabel>{t('Cheques')}</IonLabel>
         </IonItem>
         {perms.seeCost && (
           <>

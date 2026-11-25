@@ -91,6 +91,7 @@ export async function takeAdvance(actor: Actor, est: Estimate, input: { amount: 
     note: input.note?.trim() || t('Advance for {job}', { job: est.number || est.job?.title || '' }),
     receivedBy: actor.userId,
     receivedByName: actor.userName,
+    ...(input.mode === 'cheque' ? { chequeStatus: 'pending' as const } : {}),
   } as PaymentEntry);
 }
 

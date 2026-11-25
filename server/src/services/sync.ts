@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, ne, sql } from 'drizzle-orm';
 import {
   APPEND_ONLY_TABLES,
+  CHEQUE_FIELDS,
   COST_TABLES,
   OWNER_ONLY_TABLES,
   R2_TABLES,
@@ -230,8 +231,11 @@ export class SyncService {
         const bad = newEntryProblem(table, data);
         if (bad) return bad;
       } else {
-        if (stable(without(data, PAYMENT_VOID_FIELDS)) !== stable(without(existing, PAYMENT_VOID_FIELDS))) return `A recorded ${what} cannot be changed; void it instead`;
-        if (actor.role !== 'owner') return `Only the owner can void a ${what}`;
+        const mutable = [...PAYMENT_VOID_FIELDS, ...CHEQUE_FIELDS];
+        if (stable(without(data, mutable)) !== stable(without(existing, mutable))) return `A recorded ${what} cannot be changed; void it instead`;
+        const voidFields = PAYMENT_VOID_FIELDS.filter((f) => f !== 'updatedAt' && f !== 'updatedBy');
+        const voiding = voidFields.some((f) => stable(data[f] ?? null) !== stable(existing[f] ?? null));
+        if (voiding && actor.role !== 'owner') return `Only the owner can void a ${what}`;
       }
     }
 

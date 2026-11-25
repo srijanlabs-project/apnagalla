@@ -2,8 +2,9 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db, type Customer } from './db';
 import { jobAdvance, newJob, nextStage, saveJob, setStage, settleJobAdvance, takeAdvance } from './jobs';
-import { khataOf } from './khata';
-import { PermissionError, biggestDiscountPct, newEstimateDraft, saveEstimate, billMoney, convertEstimate, ensureBusinessRecords, newInvoiceDraft, putRecord, saveInvoice, type Actor } from './repo';
+import { applyExchange, khataOf } from './khata';
+import { cheques, markBounced, markCleared } from './cheques';
+import { PermissionError, biggestDiscountPct, newCreditNoteDraft as newNote, newEstimateDraft, recordPayments, saveCreditNote as saveNote, saveEstimate, billMoney, convertEstimate, ensureBusinessRecords, newInvoiceDraft, putRecord, saveInvoice, type Actor } from './repo';
 import { createVariants, priceFor, repriceLines, unitOptions, variantsOf } from './pricing';
 import { newPurchaseDraft, purchaseLineFromItem, savePurchase } from './purchases';
 import { stockLevels, tracksStock } from './stock';
@@ -195,6 +196,40 @@ describe('delivery challan', () => {
     const bill = await saveInvoice(owner, await convertEstimate(owner, ch.id), { finalize: true });
     expect(bill.fromEstimateId).toBe(ch.id);
     expect((await stockLevels('b1')).get('cem')).toBe(30);
+  });
+});
+
+describe('exchange and cheques', () => {
+  const pay = (id: string, rate: number) => [{ id, name: 'Kurta', qty: 1, unit: 'pcs', rate, rateIncludesTax: false, taxPct: 0 }];
+
+  it('exchange: the returned value pays the new bill, no cash moves', async () => {
+    const d = await newInvoiceDraft(owner);
+    const old = await saveInvoice(owner, { ...d, billTo: { customerId: 'c1', name: 'Mehta', address: {} }, lines: pay('a', 100000) }, { finalize: true });
+    await recordPayments(owner, old.id, [{ mode: 'cash', amount: 100000 }], { date: TODAY });
+    const note = await newNote(owner, old.id);
+    await saveNote(owner, { ...note, reason: 'return' }, { finalize: true });
+    expect((await billMoney(old.id)).refundDue).toBe(100000);
+    const d2 = await newInvoiceDraft(owner);
+    const fresh = await saveInvoice(owner, { ...d2, billTo: old.billTo, lines: pay('b', 130000) }, { finalize: true });
+    expect(await applyExchange(owner, old.id, fresh)).toBe(100000);
+    expect((await billMoney(old.id)).refundDue).toBe(0);
+    expect((await billMoney(fresh.id)).pending).toBe(30000);
+  });
+
+  it('a cheque stays pending until cleared; bounced puts the bill back to pending', async () => {
+    const d = await newInvoiceDraft(owner);
+    const bill = await saveInvoice(owner, { ...d, lines: pay('a', 50000) }, { finalize: true });
+    await recordPayments(owner, bill.id, [{ mode: 'cheque', amount: 50000, reference: '000123' }], { date: TODAY });
+    let list = await cheques('b1');
+    expect(list).toMatchObject([{ status: 'pending', amount: 50000, number: '000123' }]);
+    await markCleared(owner, list[0]!);
+    expect((await cheques('b1'))[0]!.status).toBe('cleared');
+    const d2 = await newInvoiceDraft(owner);
+    const bill2 = await saveInvoice(owner, { ...d2, lines: pay('b', 20000) }, { finalize: true });
+    await recordPayments(owner, bill2.id, [{ mode: 'cheque', amount: 20000, reference: '999' }], { date: TODAY });
+    list = await cheques('b1');
+    await markBounced(owner, list.find((g) => g.number === '999')!);
+    expect((await billMoney(bill2.id)).pending).toBe(20000);
   });
 });
 

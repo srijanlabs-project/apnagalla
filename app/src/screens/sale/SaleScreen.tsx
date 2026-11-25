@@ -41,7 +41,8 @@ import { computeTotals, deleteDraft, effectiveGstType, newId, newInvoiceDraft, r
 import { sync } from '../../lib/sync';
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
-import { creditOverLimit } from '../../lib/khata';
+import { applyExchange, creditOverLimit } from '../../lib/khata';
+import { moneyOf } from '../../lib/ledger';
 import { repriceLines, sellable } from '../../lib/pricing';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from '../docs/LineEditor';
@@ -59,7 +60,7 @@ interface Done {
  * A bill can be held (kept as a draft) to serve the next customer and resumed later.
  */
 export default function SaleScreen() {
-  const { actor, profile, settings, upiIds } = useBusiness();
+  const { actor, profile, settings, upiIds, ledger } = useBusiness();
   const location = useLocation();
   const router = useIonRouter();
   const [toast] = useIonToast();
@@ -76,6 +77,13 @@ export default function SaleScreen() {
   const regular = effectiveGstType(profile) === 'regular';
 
   const heldId = new URLSearchParams(location.search).get('held');
+  // Exchange: goods returned on an old bill (credit note made) pay for this one.
+  const exchangeFrom = new URLSearchParams(location.search).get('exchange');
+  const exchange = useLiveQuery(async () => {
+    if (!exchangeFrom) return null;
+    const old = await db.invoices.get(exchangeFrom);
+    return old ? { old, credit: moneyOf(old, ledger).refundDue } : null;
+  }, [exchangeFrom, ledger]);
 
   // Start a fresh bill, or resume a held one.
   useEffect(() => {
@@ -83,11 +91,12 @@ export default function SaleScreen() {
       const held = heldId ? await db.invoices.get(heldId) : undefined;
       if (held && held.status === 'draft') return setBill(held);
       const d = await newInvoiceDraft(actor);
-      setBill({ ...d, billTo: WALK_IN, notes: '' });
+      const old = exchangeFrom ? await db.invoices.get(exchangeFrom) : undefined;
+      setBill({ ...d, billTo: old?.billTo ?? WALK_IN, notes: '' });
     })();
     // Only a new store or a different held bill starts over; never a sync or a payment elsewhere.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [heldId, actor.businessId]);
+  }, [heldId, exchangeFrom, actor.businessId]);
 
   const items = useLiveQuery(
     () =>
@@ -219,6 +228,7 @@ export default function SaleScreen() {
         if (over) throw new Error(t('Above the credit limit of {limit}: ask the owner, or take more payment now.', { limit: rupees(over.limit) }));
       }
       const saved = await saveInvoice(actor, { ...bill, held: false }, { finalize: true });
+      if (exchange) await applyExchange(actor, exchange.old.id, saved);
       const paid = parts.reduce((a, p) => a + p.amount, 0);
       if (paid > 0) await recordPayments(actor, saved.id, parts, { date });
       setPaying(false);
@@ -334,6 +344,9 @@ export default function SaleScreen() {
               <IonIcon icon={personCircleOutline} />
               <IonLabel>{walkIn && (!bill.billTo || bill.billTo.name === WALK_IN.name) ? t('Walk-in customer') : bill.billTo!.name}</IonLabel>
             </IonChip>
+            {exchange && exchange.credit > 0 && (
+              <p className="section-note text-success">{t('Exchange: {amount} from bill {number} is taken off', { amount: rupees(exchange.credit), number: exchange.old.number })}</p>
+            )}
             {!walkIn && <CreditLimitNote businessId={actor.businessId} customerId={bill.billTo?.customerId} billAmount={totals?.grandTotal ?? 0} />}
             {regular && (
               <IonSegment value={bill.taxMode ?? 'gst'} onIonChange={sync((e) => patch({ taxMode: e.detail.value as 'gst' | 'none' }))} className="sale-tax">
@@ -479,7 +492,7 @@ export default function SaleScreen() {
 
       <PaySheet
         isOpen={paying}
-        amount={totals.grandTotal}
+        amount={Math.max(0, totals.grandTotal - (exchange?.credit ?? 0))}
         upi={upi}
         qrNote={profile.name}
         requireFull={walkIn}

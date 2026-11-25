@@ -423,3 +423,15 @@ describe('R2 tables', () => {
   });
 });
 
+describe('cheques', () => {
+  it('anyone marks a cheque cleared; only the owner voids', async () => {
+    const { biz, oH, sH, staff } = await setupStore('987021020');
+    const p = { id: 'cq', invoiceId: 'i1', kind: 'payment', amount: 5000, mode: 'cheque', chequeStatus: 'pending', date: '2026-11-25', receivedBy: staff.me.user.id, updatedAt: at(0) };
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'cq', data: p }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'cq', data: { ...p, chequeStatus: 'cleared', chequeClearedAt: at(1), updatedAt: at(1) } }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'cq', data: { ...p, chequeStatus: 'cleared', voidedAt: at(2), updatedAt: at(2) } }]))[0]!.status).toBe('rejected');
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'cq', data: { ...p, amount: 1, chequeStatus: 'cleared', updatedAt: at(3) } }]))[0]!.status).toBe('rejected');
+    expect((await pushOk(biz.id, oH, [{ table: 'payments', id: 'cq', data: { ...p, chequeStatus: 'cleared', voidedAt: at(4), voidReason: 'Cheque bounced', updatedAt: at(4) } }]))[0]!.status).toBe('ok');
+  });
+});
+

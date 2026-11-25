@@ -17,7 +17,7 @@ import {
 } from '@ionic/react';
 import { formatDateIN } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { createOutline, ellipsisVertical, eyeOutline, logoWhatsapp, shareSocialOutline, walletOutline, printOutline } from 'ionicons/icons';
+import { createOutline, ellipsisVertical, eyeOutline, logoWhatsapp, shareSocialOutline, walletOutline, printOutline, swapHorizontalOutline } from 'ionicons/icons';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import PageShell from '../../components/PageShell';
@@ -335,6 +335,11 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
             {doc.deliveryDate && !doc.deliveredAt && (inv?.status === 'saved' || (est && est.status !== 'draft')) && (
               <IonButton fill="outline" color="success" onClick={() => void markDelivered(actor, kind as 'invoice' | 'estimate', doc.id).catch(fail)}>
                 {t('Mark delivered')}
+              </IonButton>
+            )}
+            {refundDue > 0 && CAN_CREATE_INVOICES && billForMoney && (
+              <IonButton fill="outline" color="success" routerLink={`/tabs/sale?exchange=${billForMoney.id}`}>
+                <IonIcon icon={swapHorizontalOutline} slot="start" /> {t('Exchange: new bill')}
               </IonButton>
             )}
             {refundDue > 0 && CAN_CREATE_INVOICES && (

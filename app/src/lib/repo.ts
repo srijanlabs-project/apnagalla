@@ -548,6 +548,7 @@ export async function recordPayments(
         note: p.note?.trim() || undefined,
         receivedBy: actor.userId,
         receivedByName: actor.userName,
+        ...(p.mode === 'cheque' && kind === 'payment' ? { chequeStatus: 'pending' as const } : {}),
       }),
     );
   }

@@ -315,6 +315,10 @@ export interface PaymentEntry extends SyncedRecord {
   receiptId?: string | null;
   /** An advance taken for this job (estimate id); used on the job's bill. */
   jobId?: string | null;
+  /** Cheque payments: pending until marked cleared (a bounced one is voided). */
+  chequeStatus?: 'pending' | 'cleared' | null;
+  chequeClearedAt?: string | null;
+  chequeClearedByName?: string;
   /** Set for a refund made because of a return. */
   creditNoteId?: string | null;
   kind: 'payment' | 'refund';

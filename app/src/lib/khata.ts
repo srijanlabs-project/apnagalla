@@ -97,6 +97,7 @@ export async function receiveKhataPayment(actor: Actor, customer: Customer, inpu
     receivedByName: actor.userName,
     customerId: customer.id,
     receiptId,
+    ...(input.mode === 'cheque' ? { chequeStatus: 'pending' as const } : {}),
   };
   const out: PaymentEntry[] = [];
   let onAccount = Math.min(rest, k.openingLeft);
@@ -196,4 +197,25 @@ export function reminderText(storeName: string, customer: Customer, balance: num
   return [t('Namaste {name},', { name: customer.name }), t('Your balance with {store} is ₹{amount}.', { store: storeName, amount }), upiLink ? t('Pay by UPI: {link}', { link: upiLink }) : '', t('Thank you.')]
     .filter(Boolean)
     .join('\n');
+}
+
+/**
+ * Exchange: what the shop owes back on the old bill (after its return credit note) pays the new
+ * bill instead of going back in cash. Two entries, mode "advance", so no cash moves.
+ */
+export async function applyExchange(actor: Actor, oldInvoiceId: string, newInvoice: Invoice): Promise<number> {
+  const [old, pays, notes] = await Promise.all([
+    db.invoices.get(oldInvoiceId),
+    db.payments.where('businessId').equals(actor.businessId).toArray(),
+    db.creditNotes.where('businessId').equals(actor.businessId).toArray(),
+  ]);
+  if (!old) return 0;
+  const ledger = buildLedger(pays, notes);
+  const amount = Math.min(moneyOf(old, ledger).refundDue, moneyOf(newInvoice, ledger).pending);
+  if (amount <= 0) return 0;
+  const receiptId = newId();
+  const base = { mode: 'advance' as const, date: todayISO(), receivedBy: actor.userId, receivedByName: actor.userName, customerId: newInvoice.billTo?.customerId ?? old.billTo?.customerId ?? null, receiptId, amount };
+  await putRecord('payments', actor, { id: newId(), ...base, kind: 'refund', invoiceId: old.id, note: t('Exchanged on bill {number}', { number: newInvoice.number }) } as PaymentEntry);
+  await putRecord('payments', actor, { id: newId(), ...base, kind: 'payment', invoiceId: newInvoice.id, note: t('Exchange from bill {number}', { number: old.number }) } as PaymentEntry);
+  return amount;
 }

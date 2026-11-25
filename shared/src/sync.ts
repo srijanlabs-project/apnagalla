@@ -56,6 +56,9 @@ export type PaymentMode = (typeof PAYMENT_MODES)[number];
 /** Fields of an added-only entry the owner may change afterwards (to void it); nothing else ever changes. */
 export const PAYMENT_VOID_FIELDS = ['voidedAt', 'voidedBy', 'voidedByName', 'voidReason', 'updatedAt', 'updatedBy'];
 
+/** A cheque payment's state: anyone may mark it cleared (a bounced cheque is voided by the owner). */
+export const CHEQUE_FIELDS = ['chequeStatus', 'chequeClearedAt', 'chequeClearedByName'];
+
 export const SYNC_PUSH_MAX = 100;
 export const SYNC_PULL_MAX = 500;
 
