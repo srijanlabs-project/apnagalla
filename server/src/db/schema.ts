@@ -38,7 +38,7 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     deviceName: text('device_name'),
-    /** App version last seen from this device ("R4-2026112601"). */
+    /** App version last seen from this device ("R4-11.26.26.2"). */
     appVersion: text('app_version'),
     /** 'mobile' (one active per user) or 'web' (can't create invoices). */
     client: text('client', { enum: ['mobile', 'web'] }).notNull().default('mobile'),

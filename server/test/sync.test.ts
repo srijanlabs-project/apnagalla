@@ -519,10 +519,10 @@ describe('R4 staff pay and transfers', () => {
 describe('app version', () => {
   it('the version a phone sends shows on its device', async () => {
     const s = await login('9870210801');
-    const r = await app.inject({ method: 'POST', url: '/v1/auth/refresh', headers: { 'x-app-version': 'R4-2026112601' }, payload: { refreshToken: s.refreshToken } });
+    const r = await app.inject({ method: 'POST', url: '/v1/auth/refresh', headers: { 'x-app-version': 'R4-11.26.26.2' }, payload: { refreshToken: s.refreshToken } });
     expect(r.statusCode).toBe(200);
     const list = await app.inject({ method: 'GET', url: '/v1/me/sessions', headers: bearer(r.json<{ accessToken: string }>().accessToken) });
-    expect(list.json<{ appVersion?: string }[]>()[0]!.appVersion).toBe('R4-2026112601');
+    expect(list.json<{ appVersion?: string }[]>()[0]!.appVersion).toBe('R4-11.26.26.2');
     const bad = await app.inject({ method: 'POST', url: '/v1/auth/refresh', headers: { 'x-app-version': '<script>' }, payload: { refreshToken: r.json<{ refreshToken: string }>().refreshToken } });
     expect(bad.statusCode).toBe(200);
   });
