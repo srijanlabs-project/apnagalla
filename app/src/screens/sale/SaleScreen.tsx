@@ -42,6 +42,8 @@ import { sync } from '../../lib/sync';
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
 import CouponField from '../../components/CouponField';
+import CreditPaySheet from '../../components/CreditPaySheet';
+import { payWithCredit } from '../../lib/credit';
 import { applyExchange, creditOverLimit } from '../../lib/khata';
 import { moneyOf } from '../../lib/ledger';
 import { repriceLines, sellable } from '../../lib/pricing';
@@ -79,6 +81,8 @@ export default function SaleScreen() {
   const regular = effectiveGstType(profile) === 'regular';
 
   const heldId = new URLSearchParams(location.search).get('held');
+  const [creditUse, setCreditUse] = useState<{ noteId: string; number: string; left: number } | null>(null);
+  const [creditPick, setCreditPick] = useState(false);
   // Exchange: goods returned on an old bill (credit note made) pay for this one.
   const exchangeFrom = new URLSearchParams(location.search).get('exchange');
   const exchange = useLiveQuery(async () => {
@@ -244,6 +248,8 @@ export default function SaleScreen() {
       }
       const saved = await saveInvoice(actor, { ...bill, held: false }, { finalize: true });
       if (exchange) await applyExchange(actor, exchange.old.id, saved);
+      if (creditUse) await payWithCredit(actor, saved, creditUse.noteId, creditUse.left);
+      setCreditUse(null);
       const paid = parts.reduce((a, p) => a + p.amount, 0);
       if (paid > 0) await recordPayments(actor, saved.id, parts, { date });
       setPaying(false);
@@ -363,6 +369,16 @@ export default function SaleScreen() {
               <p className="section-note text-success">{t('Exchange: {amount} from bill {number} is taken off', { amount: rupees(exchange.credit), number: exchange.old.number })}</p>
             )}
             {!walkIn && <CreditLimitNote businessId={actor.businessId} customerId={bill.billTo?.customerId} billAmount={totals?.grandTotal ?? 0} />}
+            {bill.lines.length > 0 &&
+              (creditUse ? (
+                <IonChip color="success" onClick={() => setCreditUse(null)}>
+                  <IonLabel>{t('Credit note {number}: {amount}', { number: creditUse.number, amount: rupees(Math.min(creditUse.left, totals?.grandTotal ?? 0)) })} ✕</IonLabel>
+                </IonChip>
+              ) : (
+                <IonChip outline onClick={() => setCreditPick(true)}>
+                  <IonLabel>{t('Use credit note')}</IonLabel>
+                </IonChip>
+              ))}
             {bill.lines.length > 0 && <CouponField businessId={actor.businessId} value={bill.coupon} date={bill.date} invoiceId={bill.id} onChange={(coupon) => patch({ coupon })} />}
             {regular && (
               <IonSegment value={bill.taxMode ?? 'gst'} onIonChange={sync((e) => patch({ taxMode: e.detail.value as 'gst' | 'none' }))} className="sale-tax">
@@ -508,7 +524,7 @@ export default function SaleScreen() {
 
       <PaySheet
         isOpen={paying}
-        amount={Math.max(0, totals.grandTotal - (exchange?.credit ?? 0))}
+        amount={Math.max(0, totals.grandTotal - (exchange?.credit ?? 0) - Math.min(creditUse?.left ?? 0, Math.max(0, totals.grandTotal - (exchange?.credit ?? 0))))}
         upi={upi}
         qrNote={profile.name}
         requireFull={walkIn}
@@ -526,6 +542,7 @@ export default function SaleScreen() {
           return true;
         }}
       />
+      <CreditPaySheet isOpen={creditPick} onClose={() => setCreditPick(false)} businessId={actor.businessId} customerId={bill.billTo?.customerId} onPick={(n, left) => setCreditUse({ noteId: n.id, number: n.number, left })} />
       <CustomerPicker
         isOpen={picker}
         onClose={() => setPicker(false)}

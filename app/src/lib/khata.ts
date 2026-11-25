@@ -61,7 +61,7 @@ export async function khataOf(businessId: string, customer: Customer): Promise<K
   for (const p of pays) {
     if (p.voidedAt) continue;
     // Using an advance moves money from the account to a bill: no change to what is owed, so skip both halves.
-    if (p.mode === 'advance') continue;
+    if (p.mode === 'advance' || p.mode === 'creditnote') continue;
     const bill = p.invoiceId ? invoices.find((i) => i.id === p.invoiceId) : undefined;
     const what = p.kind === 'refund' ? t('Refund') : bill ? t('Paid · {number}', { number: bill.number }) : t('Paid on account');
     rows.push({ date: p.date, label: `${what} · ${modeLabel(p.mode)}`, amount: p.kind === 'refund' ? p.amount : -p.amount, href: bill ? `/tabs/invoices/${bill.id}` : undefined, entry: p });

@@ -6,7 +6,7 @@ import { modeLabel } from '../lib/ledger';
 import { sync } from '../lib/sync';
 import { MoneyField, SelectField, TextField } from './Fields';
 
-export type CashMode = Exclude<PaymentMode, 'advance'>;
+export type CashMode = Exclude<PaymentMode, 'advance' | 'creditnote'>;
 export const CASH_MODES: CashMode[] = ['cash', 'upi', 'bank', 'cheque', 'card', 'other'];
 
 export interface MoneyEntry {

@@ -435,3 +435,16 @@ describe('cheques', () => {
   });
 });
 
+describe('R4 payments', () => {
+  it('a walk-in advance belongs to its estimate; credit-note money is a payment mode, not for suppliers', async () => {
+    const { biz, oH } = await setupStore('987021030');
+    const adv = { id: 'adv', invoiceId: '', customerId: null, jobId: 'est1', kind: 'payment', amount: 1000, mode: 'upi', date: '2026-11-25', updatedAt: at(0) };
+    expect((await pushOk(biz.id, oH, [{ table: 'payments', id: 'adv', data: adv }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, oH, [{ table: 'payments', id: 'x', data: { ...adv, id: 'x', jobId: null } }]))[0]!.status).toBe('rejected');
+    const cn = { id: 'cn', invoiceId: 'i1', creditNoteId: 'n1', kind: 'payment', amount: 500, mode: 'creditnote', date: '2026-11-25', updatedAt: at(0) };
+    expect((await pushOk(biz.id, oH, [{ table: 'payments', id: 'cn', data: cn }]))[0]!.status).toBe('ok');
+    const sp = { id: 'sp', supplierId: 's1', kind: 'payment', amount: 500, mode: 'creditnote', date: '2026-11-25', updatedAt: at(0) };
+    expect((await pushOk(biz.id, oH, [{ table: 'supplierPayments', id: 'sp', data: sp }]))[0]!.status).toBe('rejected');
+  });
+});
+

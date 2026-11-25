@@ -58,13 +58,15 @@ function newEntryProblem(table: SyncTable, data: Data): string | null {
   if (!PAYMENT_MODES.includes(data.mode as never)) return 'Unknown payment mode';
   if (table === 'supplierPayments') {
     if (typeof data.supplierId !== 'string' || !data.supplierId) return 'A payment belongs to a supplier';
-    if (data.mode === 'advance') return 'Unknown payment mode';
+    if (data.mode === 'advance' || data.mode === 'creditnote') return 'Unknown payment mode';
     return null;
   }
   // A customer payment is for a bill, or on account (khata) for a customer.
   const forBill = typeof data.invoiceId === 'string' && !!data.invoiceId;
   const onAccount = typeof data.customerId === 'string' && !!data.customerId;
-  if (!forBill && !onAccount) return 'A payment belongs to a bill or a customer';
+  // An advance for an estimate / job of a walk-in customer belongs to that estimate.
+  const forEstimate = typeof data.jobId === 'string' && !!data.jobId;
+  if (!forBill && !onAccount && !forEstimate) return 'A payment belongs to a bill or a customer';
   return null;
 }
 

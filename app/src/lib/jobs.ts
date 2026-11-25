@@ -75,8 +75,8 @@ export async function jobAdvance(businessId: string, jobId: string): Promise<num
 
 /** Takes an advance for the job: money on the customer's account, tagged with the job. */
 export async function takeAdvance(actor: Actor, est: Estimate, input: { amount: number; mode: CashMode; date: string; reference?: string; note?: string }): Promise<PaymentEntry> {
-  const customerId = est.billTo?.customerId;
-  if (!customerId) throw new Error(t('Pick a customer first'));
+  const customerId = est.billTo?.customerId ?? null;
+  if (!est.number) throw new Error(t('Save it first'));
   if (!(input.amount > 0)) throw new Error(t('Amount must be more than zero'));
   return putRecord('payments', actor, {
     id: newId(),
@@ -100,18 +100,48 @@ export async function takeAdvance(actor: Actor, est: Estimate, input: { amount: 
  * the bill allow). The used amount is tagged with the job, so it isn't used twice.
  */
 export async function settleJobAdvance(actor: Actor, invoice: Invoice): Promise<number> {
-  if (!invoice.fromEstimateId || invoice.status !== 'saved' || !invoice.billTo?.customerId) return 0;
+  if (!invoice.fromEstimateId || invoice.status !== 'saved') return 0;
   const left = await jobAdvance(actor.businessId, invoice.fromEstimateId);
   if (left <= 0) return 0;
-  const customer = await db.customers.get(invoice.billTo.customerId);
-  if (!customer) return 0;
   const before = await db.payments.where('businessId').equals(actor.businessId).toArray();
   const notes = await db.creditNotes.where('businessId').equals(actor.businessId).toArray();
   const pending = moneyOf(invoice, buildLedger(before, notes)).pending;
-  const amount = Math.min(left, pending, (await khataOf(actor.businessId, customer)).advance);
+  const customer = invoice.billTo?.customerId ? await db.customers.get(invoice.billTo.customerId) : undefined;
+  if (customer) {
+    const amount = Math.min(left, pending, (await khataOf(actor.businessId, customer)).advance);
+    if (amount <= 0) return 0;
+    await applyAdvance(actor, customer, invoice, amount, invoice.fromEstimateId);
+    return amount;
+  }
+  // Walk-in: the advance was kept on the estimate itself.
+  const amount = Math.min(left, pending);
   if (amount <= 0) return 0;
-  await applyAdvance(actor, customer, invoice, amount, invoice.fromEstimateId);
+  const base = { mode: 'advance' as const, date: todayISO(), receivedBy: actor.userId, receivedByName: actor.userName, customerId: null, jobId: invoice.fromEstimateId, receiptId: newId(), amount };
+  await putRecord('payments', actor, { id: newId(), ...base, kind: 'refund', invoiceId: '', note: t('Used on bill {number}', { number: invoice.number }) } as PaymentEntry);
+  // Only the money leaving the estimate is tagged with it; the bill's payment isn't.
+  await putRecord('payments', actor, { id: newId(), ...base, jobId: null, kind: 'payment', invoiceId: invoice.id } as PaymentEntry);
   return amount;
+}
+
+/** The customer didn't go ahead: give an estimate's advance back. */
+export async function refundAdvance(actor: Actor, est: Estimate, input: { amount: number; mode: CashMode; date: string; reference?: string; note?: string }): Promise<void> {
+  const left = await jobAdvance(actor.businessId, est.id);
+  const amount = Math.min(input.amount, left);
+  if (amount <= 0) return;
+  await putRecord('payments', actor, {
+    id: newId(),
+    invoiceId: '',
+    customerId: est.billTo?.customerId ?? null,
+    jobId: est.id,
+    kind: 'refund',
+    amount,
+    mode: input.mode,
+    date: input.date || todayISO(),
+    reference: input.reference?.trim() || undefined,
+    note: input.note?.trim() || t('Advance returned for {number}', { number: est.number }),
+    receivedBy: actor.userId,
+    receivedByName: actor.userName,
+  } as PaymentEntry);
 }
 
 /** A job card the customer keeps (repairs): what was handed over and the promised date. */

@@ -496,7 +496,7 @@ export interface SupplierPayment extends SyncedRecord {
   purchaseId?: string | null;
   kind: 'payment' | 'refund';
   amount: number;
-  mode: Exclude<PaymentMode, 'advance'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
   date: string;
   reference?: string;
   note?: string;
@@ -513,7 +513,7 @@ export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 export interface Expense extends SyncedRecord {
   category: ExpenseCategory;
   amount: number;
-  mode: Exclude<PaymentMode, 'advance'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
   date: string;
   note?: string;
   paidByName?: string;

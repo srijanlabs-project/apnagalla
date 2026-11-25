@@ -112,10 +112,10 @@ async function sales(ctx: ReportContext): Promise<ExportTable> {
 
 async function collections(ctx: ReportContext): Promise<ExportTable> {
   const { payments } = await salesData(ctx);
-  const modes = [...new Set(payments.filter((p) => p.mode !== 'advance').map((p) => p.mode))].sort();
+  const modes = [...new Set(payments.filter((p) => p.mode !== 'advance' && p.mode !== 'creditnote').map((p) => p.mode))].sort();
   const days = new Map<string, Record<string, number>>();
   for (const p of payments) {
-    if (p.mode === 'advance') continue;
+    if (p.mode === 'advance' || p.mode === 'creditnote') continue;
     const d = days.get(p.date) ?? (days.set(p.date, {}), days.get(p.date)!);
     d[p.mode] = (d[p.mode] ?? 0) + (p.kind === 'refund' ? -p.amount : p.amount);
   }
@@ -433,7 +433,7 @@ async function dayBook(ctx: ReportContext): Promise<ExportTable> {
   for (const i of invoices) push(i.date, i.createdAt, t('Sale'), i.number, i.billTo?.name ?? '', null, null);
   for (const n of notes) push(n.date, n.createdAt, t('Credit note'), n.number, n.billTo?.name ?? '', null, null);
   for (const p of payments) {
-    if (p.mode === 'advance') continue;
+    if (p.mode === 'advance' || p.mode === 'creditnote') continue;
     const ref = p.invoiceId ? (numberOf.get(p.invoiceId) ?? '') : t('On account');
     if (p.kind === 'refund') push(p.date, p.createdAt, t('Refund · {mode}', { mode: modeLabel(p.mode) }), ref, '', null, p.amount);
     else push(p.date, p.createdAt, t('Received · {mode}', { mode: modeLabel(p.mode) }), ref, '', p.amount, null);
@@ -472,7 +472,7 @@ async function staff(ctx: ReportContext): Promise<ExportTable> {
     s.sales += i.totals.grandTotal;
   }
   for (const n of notes) slot(n.createdBy, makerName(n)).returns += n.totals.grandTotal;
-  for (const p of payments) if (p.mode !== 'advance' && p.kind === 'payment') slot(p.receivedBy, p.receivedByName ?? '').received += p.amount;
+  for (const p of payments) if (p.mode !== 'advance' && p.mode !== 'creditnote' && p.kind === 'payment') slot(p.receivedBy, p.receivedByName ?? '').received += p.amount;
   const rows = [...m.values()].sort((a, b) => b.sales - a.sales).map((s) => [s.name || '—', s.bills, s.sales, s.returns, s.received] as CellValue[]);
   return {
     title: t('Staff-wise sales'),
@@ -490,7 +490,7 @@ async function stores(ctx: ReportContext): Promise<ExportTable> {
     const { invoices, notes, payments } = await salesData({ ...ctx, businessId: s.id, staffId: null });
     const sales = invoices.reduce((a, i) => a + i.totals.grandTotal, 0);
     const returns = notes.reduce((a, n) => a + n.totals.grandTotal, 0);
-    const received = payments.filter((p) => p.mode !== 'advance').reduce((a, p) => a + (p.kind === 'refund' ? -p.amount : p.amount), 0);
+    const received = payments.filter((p) => p.mode !== 'advance' && p.mode !== 'creditnote').reduce((a, p) => a + (p.kind === 'refund' ? -p.amount : p.amount), 0);
     rows.push([s.name, invoices.length, sales, returns, received]);
   }
   return {

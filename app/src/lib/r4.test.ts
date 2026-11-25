@@ -2,6 +2,11 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db, type Customer, type DocLine, type Offer } from './db';
 import { applyOffers, checkCoupon } from './offers';
+import { keepAsCredit, openCredits, payWithCredit, settlementOf } from './credit';
+import { khataOf } from './khata';
+import { cashDay } from './cashbook';
+import { jobAdvance, refundAdvance, settleJobAdvance, takeAdvance } from './jobs';
+import { billMoney, convertEstimate, newEstimateDraft, recordPayments, saveEstimate } from './repo';
 import { buildDocDefinition } from './pdf/buildDoc';
 import { pdfInputFor } from './pdf';
 import { PermissionError, ensureBusinessRecords, newCreditNoteDraft, newInvoiceDraft, putRecord, saveCreditNote, saveInvoice, settingsOf, type Actor } from './repo';
@@ -65,6 +70,53 @@ describe('R4.2 offers', () => {
     const d = await newInvoiceDraft(owner);
     await saveInvoice(owner, { ...d, coupon: 'DIWALI10', lines: [l('a', 10000)] }, { finalize: true });
     expect(await checkCoupon('b1', 'DIWALI10')).toMatchObject({ ok: false });
+  });
+});
+
+describe('R4.3 credit notes and advances', () => {
+  const sell = async (rate: number, customer = true) => {
+    const d = await newInvoiceDraft(owner);
+    return saveInvoice(owner, { ...d, billTo: customer ? { customerId: 'c1', name: 'Mehta', address: {} } : { customerId: null, name: 'Walk-in', address: {} }, lines: [line({ rate, qty: 1 })] }, { finalize: true });
+  };
+
+  it('a return kept as credit closes the bill without cash, then pays a later bill', async () => {
+    const inv = await sell(100000);
+    await recordPayments(owner, inv.id, [{ mode: 'cash', amount: 100000 }], { date: TODAY });
+    const n = await newCreditNoteDraft(owner, inv.id);
+    const note = await saveCreditNote(owner, { ...n, reason: 'return' }, { finalize: true });
+    expect((await settlementOf(note)).state).toBe('open');
+    expect(await keepAsCredit(owner, note)).toBe(100000);
+    expect((await billMoney(inv.id)).refundDue).toBe(0);
+    expect(await settlementOf(note)).toMatchObject({ state: 'credit', left: 100000, due: 0 });
+    expect((await khataOf('b1', (await db.customers.get('c1'))!)).balance).toBe(-100000);
+    // Nothing more to refund or keep.
+    expect(await keepAsCredit(owner, note)).toBe(0);
+    const next = await sell(60000);
+    expect((await openCredits('b1', { customerId: 'c1' }))[0]!.left).toBe(100000);
+    expect(await payWithCredit(owner, next, note.id, 100000)).toBe(60000);
+    expect((await billMoney(next.id)).pending).toBe(0);
+    expect((await settlementOf(note)).left).toBe(40000);
+    expect((await openCredits('b1', { number: note.number }))[0]!.left).toBe(40000);
+    expect((await khataOf('b1', (await db.customers.get('c1'))!)).balance).toBe(-40000);
+    // The drawer only saw the first cash payment.
+    expect((await cashDay('b1', TODAY)).expected).toBe(100000);
+  });
+
+  it('an estimate advance (walk-in too) pays its bill; a declined one is returned', async () => {
+    const d = await newEstimateDraft(owner);
+    const est = await saveEstimate(owner, { ...d, billTo: { customerId: null, name: 'Walk-in', address: {} }, lines: [line({ rate: 50000, qty: 1 })] }, { finalize: true });
+    await takeAdvance(owner, est, { amount: 20000, mode: 'upi', date: TODAY });
+    expect(await jobAdvance('b1', est.id)).toBe(20000);
+    const bill = await saveInvoice(owner, await convertEstimate(owner, est.id), { finalize: true });
+    expect(await settleJobAdvance(owner, bill)).toBe(20000);
+    expect((await billMoney(bill.id)).pending).toBe(30000);
+    expect(await jobAdvance('b1', est.id)).toBe(0);
+
+    const d2 = await newEstimateDraft(owner);
+    const e2 = await saveEstimate(owner, { ...d2, billTo: { customerId: 'c1', name: 'Mehta', address: {} }, lines: [line({ rate: 50000, qty: 1 })] }, { finalize: true });
+    await takeAdvance(owner, e2, { amount: 10000, mode: 'cash', date: TODAY });
+    await refundAdvance(owner, e2, { amount: 10000, mode: 'cash', date: TODAY });
+    expect(await jobAdvance('b1', e2.id)).toBe(0);
   });
 });
 

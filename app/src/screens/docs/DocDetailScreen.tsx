@@ -15,6 +15,10 @@ import {
   useIonRouter,
   useIonToast,
 } from '@ionic/react';
+import CreditPaySheet from '../../components/CreditPaySheet';
+import MoneyEntrySheet from '../../components/MoneyEntrySheet';
+import { keepAsCredit, payWithCredit, settlementOf } from '../../lib/credit';
+import { jobAdvance, refundAdvance, takeAdvance } from '../../lib/jobs';
 import DocPhotos from '../../components/DocPhotos';
 import { formatDateIN } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -62,6 +66,8 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const [alert] = useIonAlert();
   const [menu, setMenu] = useState(false);
   const [payOpen, setPayOpen] = useState<'payment' | 'refund' | null>(null);
+  const [creditPay, setCreditPay] = useState(false);
+  const [advanceOpen, setAdvanceOpen] = useState<'take' | 'refund' | null>(null);
   const printer = usePrint();
   const [receipt, setReceipt] = useState<string | null>(null);
   const [preview, setPreview] = useState<Blob | null>(null);
@@ -79,6 +85,10 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   // A credit note's invoice: its refund is paid from here.
   const noteInvoiceId = kind === 'credit' ? (doc as CreditNote | undefined)?.invoiceId : undefined;
   const linked = useLiveQuery(async (): Promise<Invoice | undefined> => (noteInvoiceId ? db.invoices.get(noteInvoiceId) : undefined), [noteInvoiceId]);
+  // A credit note's settlement: refunded, or kept as credit (and what's left).
+  const settlement = useLiveQuery(async () => (kind === 'credit' && doc && doc.status === 'saved' ? settlementOf(doc as CreditNote) : undefined), [kind, doc, ledger]);
+  // An estimate's advance (taken, less used or returned).
+  const estAdvance = useLiveQuery(async () => (kind === 'estimate' && id ? jobAdvance(actor.businessId, id) : 0), [kind, id, actor.businessId, ledger]);
   // Money the customer left on account, to use on this bill.
   const customerId = kind === 'invoice' ? (doc as Invoice | undefined)?.billTo?.customerId : undefined;
   const advance = useLiveQuery(async () => {
@@ -95,6 +105,8 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const billForMoney = inv ?? linked ?? null;
   const billMoneyNow = billForMoney ? moneyOf(billForMoney, ledger) : null;
   const refundDue = note?.status === 'saved' || inv ? (billMoneyNow?.refundDue ?? 0) : 0;
+  // "Keep as credit" settles through a return credit note: this one, or the bill's last one.
+  const keepNote = note?.status === 'saved' ? note : (creditNotes ?? []).filter((n) => n.status === 'saved').slice(-1)[0];
   const upi = upiIds.find((u) => u.id === billForMoney?.upiIdId) ?? upiIds.find((u) => u.isDefault) ?? upiIds[0] ?? null;
   const view = gstViewOf(kind, doc, doc.businessSnapshot ?? profile, doc.totals);
   const canEdit =
@@ -286,6 +298,12 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
               </div>
             </div>
           )}
+          {settlement && settlement.state !== 'open' && (
+            <p className={settlement.state === 'credit' ? 'text-success' : undefined}>
+              {settlement.state === 'refunded' ? t('Refunded to the customer') : t('Kept as credit · {amount} left to use', { amount: rupees(settlement.left) })}
+            </p>
+          )}
+          {est && (estAdvance ?? 0) > 0 && <p className="text-success">{t('Advance received: {amount} (used on the bill)', { amount: rupees(estAdvance ?? 0) })}</p>}
           {refundDue > 0 && (
             <p className="text-danger">
               {note
@@ -357,6 +375,26 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
             {refundDue > 0 && CAN_CREATE_INVOICES && (
               <IonButton fill="outline" color="danger" onClick={() => setPayOpen('refund')}>
                 <IonIcon icon={walletOutline} slot="start" /> {t('Refund {amount}', { amount: rupees(refundDue) })}
+              </IonButton>
+            )}
+            {refundDue > 0 && CAN_CREATE_INVOICES && keepNote && (
+              <IonButton fill="outline" onClick={() => void keepAsCredit(actor, keepNote).catch(fail)}>
+                <IonIcon icon={walletOutline} slot="start" /> {t('Keep {amount} as credit', { amount: rupees(refundDue) })}
+              </IonButton>
+            )}
+            {inv && inv.status === 'saved' && pending > 0 && CAN_CREATE_INVOICES && (
+              <IonButton fill="outline" onClick={() => setCreditPay(true)}>
+                {t('Pay with credit note')}
+              </IonButton>
+            )}
+            {est && est.status !== 'draft' && est.status !== 'converted' && (
+              <IonButton fill="outline" onClick={() => setAdvanceOpen('take')}>
+                <IonIcon icon={walletOutline} slot="start" /> {t('Take advance')}
+              </IonButton>
+            )}
+            {est && (estAdvance ?? 0) > 0 && est.status !== 'converted' && (
+              <IonButton fill="clear" color="danger" onClick={() => setAdvanceOpen('refund')}>
+                {t('Return advance')}
               </IonButton>
             )}
             {inv && pending > 0 && (
@@ -528,6 +566,26 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
       </IonButtons>
       <IonActionSheet isOpen={menu} onDidDismiss={() => setMenu(false)} buttons={menuButtons} />
 
+      <CreditPaySheet
+        isOpen={creditPay}
+        onClose={() => setCreditPay(false)}
+        businessId={actor.businessId}
+        customerId={inv?.billTo?.customerId}
+        onPick={(n, left) => inv && void payWithCredit(actor, inv, n.id, left).catch(fail)}
+      />
+      {est && (
+        <MoneyEntrySheet
+          isOpen={!!advanceOpen}
+          onClose={() => setAdvanceOpen(null)}
+          title={advanceOpen === 'refund' ? t('Return advance') : t('Advance for {job}', { job: est.number })}
+          amount={advanceOpen === 'refund' ? (estAdvance ?? 0) : undefined}
+          max={advanceOpen === 'refund' ? (estAdvance ?? 0) : undefined}
+          onSave={async (m) => {
+            if (advanceOpen === 'refund') await refundAdvance(actor, est, m);
+            else await takeAdvance(actor, est, m);
+          }}
+        />
+      )}
       {billForMoney && (
         <PaySheet
           isOpen={!!payOpen}
