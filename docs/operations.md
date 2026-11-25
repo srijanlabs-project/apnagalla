@@ -32,6 +32,11 @@ settings now live on the `@invoice/server` service:
 | `MS_CLIENT_ID` / `MS_CLIENT_SECRET` | nightly Excel to OneDrive (Entra app, `Files.ReadWrite offline_access`, redirect `<PUBLIC_URL>/v1/exports/callback/onedrive`) |
 | `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` | nightly Excel to Dropbox (scoped app, `files.content.write`, redirect `<PUBLIC_URL>/v1/exports/callback/dropbox`) |
 | `PUBLIC_URL` | this server's address, default `https://invoiceserver-production.up.railway.app` |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | plan payments by Razorpay payment link |
+| `RAZORPAY_WEBHOOK_SECRET` | the webhook secret; in Razorpay add a webhook to `<PUBLIC_URL>/v1/billing/razorpay-webhook` for the event `payment_link.paid` |
+| `PLANS_ENFORCED` | `true` applies plan limits (staff, bills a month, scans a day). Leave unset until the client has set the plans |
+| `TRIAL_DAYS` / `GRACE_DAYS` / `REFERRAL_DISCOUNT_PCT` | defaults 30 / 7 / 10 |
+| `APNAGALLA_LEGAL_NAME`, `APNAGALLA_GSTIN`, `APNAGALLA_ADDRESS`, `PLAN_SAC` | printed on the GST invoice ApnaGalla gives each paying store (SAC default 997331) |
 
 The nightly Excel runs inside the server every 5 minutes and sends each store's file once a day, after
 the hour the owner picked (India time). Cloud sign-ins are stored encrypted with a key derived from

@@ -165,14 +165,14 @@ defaults below. Each can still be changed.
 
 | Step | Scope | Status |
 |---|---|---|
-| R3.1 Jobs | Job-work orders (measurement → quote → advance → in progress → ready → delivered, photos, due date) and repair job cards (device, IMEI, problem, accessories, technician); bill from the job with the advance used | |
-| R3.2 Switching | Import items, customers, suppliers and balances from Vyapar, Khatabook or any Excel | |
-| R3.3 Items | Variants (size / colour, own stock, barcode and price), several units per item (box = 12 pcs), price levels (retail / wholesale / special) by customer type | |
-| R3.4 Electronics | Serial / IMEI per unit (in on purchase, out on sale), warranty dates, serial search, finance / EMI payment mode | |
-| R3.5 Selling | Offers (category % off, buy X get Y, combo price), bulk price update with history, reorder suggestions from sales speed, barcode labels and price stickers | |
-| R3.6 Control | Staff permissions per person, credit limit that can block, delivery challan, exchange in one bill, cheque tracking (pending / cleared / bounced), GSTR-1 export, custom saved reports | |
-| R3.7 Plans | Free / paid plans, trial, coupon / referral / partner codes, payment link, GST invoice to the shop, renewal reminders, grace period; scan the shop's paper sales bills; photos on items and bills | |
-| R3.8 Security | Scope and checklist for the external penetration test (the test itself is done by an outside firm) | |
+| R3.1 Jobs | Job-work orders (measurement → quote → advance → in progress → ready → delivered, photos, due date) and repair job cards (device, IMEI, problem, accessories, technician); bill from the job with the advance used || Done |
+| R3.2 Switching | Import items, customers, suppliers and balances from Vyapar, Khatabook or any Excel || Done |
+| R3.3 Items | Variants (size / colour, own stock, barcode and price), several units per item (box = 12 pcs), price levels (retail / wholesale / special) by customer type || Done |
+| R3.4 Electronics | Serial / IMEI per unit (in on purchase, out on sale), warranty dates, serial search, finance / EMI payment mode || Done |
+| R3.5 Selling | Offers (category % off, buy X get Y, combo price), bulk price update with history, reorder suggestions from sales speed, barcode labels and price stickers || Done |
+| R3.6 Control | Staff permissions per person, credit limit that can block, delivery challan, exchange in one bill, cheque tracking (pending / cleared / bounced), GSTR-1 export, custom saved reports || Done |
+| R3.7 Plans | Free / paid plans, trial, coupon / referral / partner codes, payment link, GST invoice to the shop, renewal reminders, grace period; scan the shop's paper sales bills; photos on items and bills || Done (payments need Razorpay keys; plan prices from the client) |
+| R3.8 Security | Scope and checklist for the external penetration test (the test itself is done by an outside firm) || Scope ready (docs/security-test-scope.md); test by an outside firm |
 
 R3 decisions (defaults):
 - Jobs are estimates with a job stage (work or repair), so quotes, area pricing, PDFs and "make
@@ -202,8 +202,17 @@ R3 decisions (defaults):
 - GSTR-1 export in the GST offline tool's JSON (B2B, B2C small, credit notes, HSN, documents) plus
   Excel; check with the CA before filing.
 - Plans: the mechanism is built; the client sets plan names, prices and limits in the admin panel.
+  New stores get a 30-day trial of the top plan, then 7 grace days, then the Free plan's limits
+  (placeholder plans: Free, Basic ₹299 / month, Pro ₹599 / month, before GST). Codes: coupons (% off,
+  ₹ off or free days, optionally a partner's), and each store's own referral code (10% off for the
+  new shop). A paid link extends the plan and numbers a GST invoice AG/{FY}/{n} (SAC 997331, 18%).
   Limits are not enforced until the client switches them on (`PLANS_ENFORCED`). Payment by
   Razorpay payment link (keys needed); UPI autopay comes after the Razorpay account is ready.
+- Paper sales bills: a photo of a bill-book page becomes a draft bill (customer, items, the paper's
+  number as reference, the photo attached); saved, it gets a normal number.
+- Not yet (later): UPI autopay mandates, Indian-language PDFs, pharmacy batches / expiry, store-wise
+  limits on the number of stores (counted only when a store is created — to add with plans enforced),
+  an SMS renewal reminder (the app shows one on Home).
 
 ### Release 5 (proposed) — global product reference
 Agreed in outline 25 Nov 2026; details to settle before building. Barcodes are out of scope.
