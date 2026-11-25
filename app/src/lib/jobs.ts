@@ -176,3 +176,9 @@ export function jobCardTable(est: Estimate): ExportTable {
 }
 
 export const isOpenJob = (e: Estimate) => !!e.job && !CLOSED.includes(e.job.stage) && !e.deleted;
+
+/** A fresh job record for an estimate made a work order (or repair). */
+export function blankJob(kind: JobInfo['kind'], byName: string): JobInfo {
+  const stage: JobStage = kind === 'work' ? 'measure' : 'received';
+  return { kind, stage, title: '', photos: [], stageHistory: [{ stage, at: new Date().toISOString(), byName }] };
+}

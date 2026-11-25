@@ -22,6 +22,7 @@ import {
   useIonRouter,
   useIonToast,
 } from '@ionic/react';
+import { isAreaPricing } from '@invoice/shared';
 import { formatPaise } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { addOutline, barcodeOutline, printOutline, checkmarkCircle, logoWhatsapp, personCircleOutline, removeOutline, shareSocialOutline } from 'ionicons/icons';
@@ -158,7 +159,7 @@ export default function SaleScreen() {
     lines: () => bill?.lines ?? [],
     confirmRepeat: settings.confirmRepeatScan !== false,
     addNew: (it) => {
-      if (it.pricing === 'sqft' || it.pricing === 'rft' || it.trackSerial) setScanning(false);
+      if (isAreaPricing(it.pricing) || it.trackSerial) setScanning(false);
       addItem(it);
     },
     addOne: (lineId) => step(lineId, 1),
@@ -183,7 +184,7 @@ export default function SaleScreen() {
 
   function addItem(it: Item) {
     // Priced by size: ask for the size straight away.
-    if (it.pricing === 'sqft' || it.pricing === 'rft' || it.trackSerial) {
+    if (isAreaPricing(it.pricing) || it.trackSerial) {
       setEditing({ line: lineFromItem(it, level), isNew: true });
       setQ('');
       return;

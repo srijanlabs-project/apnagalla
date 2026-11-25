@@ -17,3 +17,13 @@ describe('area billing', () => {
     expect(dimsLabel({ length: 12.5, pieces: 1, in: 'ft' }, 'rft')).toBe('12.5 ft = 12.5 rft');
   });
 });
+
+describe('metric area billing', () => {
+  it('sq m and running metres from mm, cm, m or feet', () => {
+    expect(areaQty({ length: 1220, width: 2440, pieces: 1, in: 'mm' }, 'sqm')).toBe(2.98);
+    expect(areaQty({ length: 2, width: 1.5, pieces: 2, in: 'm' }, 'sqm')).toBe(6);
+    expect(areaQty({ length: 250, pieces: 4, in: 'cm' }, 'rmt')).toBe(10);
+    expect(areaQty({ length: 600, width: 400, pieces: 1, in: 'mm' }, 'sqft')).toBe(2.58);
+    expect(dimsLabel({ length: 2, width: 1.5, pieces: 1, in: 'm' }, 'sqm')).toBe('2 m × 1.5 m = 3 sq m');
+  });
+});

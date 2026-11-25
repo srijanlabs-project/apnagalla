@@ -196,7 +196,7 @@ export interface Item extends SyncedRecord {
   pricing?: Pricing;
 }
 
-export type Pricing = 'unit' | 'sqft' | 'rft';
+export type Pricing = 'unit' | 'sqft' | 'rft' | 'sqm' | 'rmt';
 
 /** Size of an area-priced line: length (× width for sq ft) × pieces; qty is worked out from it. */
 export type LineDims = Dims;

@@ -14,7 +14,7 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/react';
-import { AREA_UNIT, areaQty, calculateInvoice, checkHsn, type AreaPricing } from '@invoice/shared';
+import { AREA_UNIT, areaQty, calculateInvoice, checkHsn, defaultSizeUnit, isAreaOf, isAreaPricing, type AreaPricing, type SizeUnit } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
 import { FormSection, MoneyField, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
@@ -29,7 +29,7 @@ import { newId, putRecord } from '../../lib/repo';
 import { sync } from '../../lib/sync';
 
 export function lineFromItem(it: Item, level: PriceLevel = 'retail'): DocLine {
-  const area = it.pricing === 'sqft' || it.pricing === 'rft';
+  const area = isAreaPricing(it.pricing);
   return {
     id: newId(),
     itemId: it.id,
@@ -44,7 +44,7 @@ export function lineFromItem(it: Item, level: PriceLevel = 'retail'): DocLine {
     hsn: it.hsn,
     discount: null,
     pricing: it.pricing,
-    dims: area ? { length: 0, width: 0, pieces: 1, in: 'ft' } : null,
+    dims: area ? { length: 0, width: 0, pieces: 1, in: defaultSizeUnit(it.pricing as AreaPricing) } : null,
     mrp: it.mrp,
     warrantyMonths: it.warrantyMonths ?? undefined,
     nonReturnable: it.nonReturnable || undefined,
@@ -115,7 +115,7 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
       cur
         ? next === 'unit'
           ? { ...cur, pricing: 'unit', dims: null, qty: cur.qty || 1 }
-          : { ...cur, pricing: next, unit: AREA_UNIT[next], dims: cur.dims ?? { length: 0, width: 0, pieces: 1, in: 'ft' }, qty: areaQty(cur.dims ?? { length: 0, width: 0, pieces: 1, in: 'ft' }, next) }
+          : { ...cur, pricing: next, unit: AREA_UNIT[next], dims: cur.dims ?? { length: 0, width: 0, pieces: 1, in: defaultSizeUnit(next) }, qty: areaQty(cur.dims ?? { length: 0, width: 0, pieces: 1, in: defaultSizeUnit(next) }, next) }
         : cur,
     );
   const calc = calculateInvoice({ lines: [noTax ? { ...l, taxPct: 0, rateIncludesTax: false } : l], roundOff: false });
@@ -249,7 +249,9 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
                   options={[
                     { value: 'unit', label: t('Quantity') },
                     { value: 'sqft', label: t('Area (sq ft)') },
+                    { value: 'sqm', label: t('Area (sq m)') },
                     { value: 'rft', label: t('Length (running ft)') },
+                    { value: 'rmt', label: t('Length (running metre)') },
                   ]}
                   onChange={setPricing}
                 />
@@ -258,21 +260,21 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
                 <>
                   <div className="field-row">
                     <NumberField label={t('Length ({unit})', { unit: l.dims!.in })} value={l.dims!.length || null} onChange={(length) => setDims({ length: length ?? 0 })} min={0} />
-                    {pricing === 'sqft' && <NumberField label={t('Width ({unit})', { unit: l.dims!.in })} value={l.dims!.width || null} onChange={(width) => setDims({ width: width ?? 0 })} min={0} />}
+                    {isAreaOf(pricing as AreaPricing) && <NumberField label={t('Width ({unit})', { unit: l.dims!.in })} value={l.dims!.width || null} onChange={(width) => setDims({ width: width ?? 0 })} min={0} />}
                   </div>
                   <div className="field-row">
                     <NumberField label={t('Pieces')} value={l.dims!.pieces} onChange={(pieces) => setDims({ pieces: pieces ?? 1 })} min={1} />
                     <SelectField
                       label={t('Measured in')}
                       value={l.dims!.in}
-                      options={[
-                        { value: 'ft' as const, label: t('Feet') },
-                        { value: 'in' as const, label: t('Inches') },
-                      ]}
+                      options={(['ft', 'in', 'm', 'cm', 'mm'] as SizeUnit[]).map((u) => ({ value: u, label: { ft: t('Feet'), in: t('Inches'), m: t('Metres'), cm: t('Centimetres'), mm: t('Millimetres') }[u] }))}
                       onChange={(unitIn) => setDims({ in: unitIn })}
                     />
                   </div>
                   <p className="section-note">{lineSize(l)}</p>
+                  <IonButton size="small" fill="clear" onClick={() => set({ dims: null })}>
+                    {t('Type the {unit} instead', { unit: l.unit })}
+                  </IonButton>
                 </>
               ) : (
                 <div className="field-row">

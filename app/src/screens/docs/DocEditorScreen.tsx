@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
+import { isAreaPricing } from '@invoice/shared';
 import {
   IonBackButton,
   IonButton,
@@ -52,7 +53,7 @@ import { PAYMENT_TERMS } from '../settings/InvoiceSettingsScreen';
 import CustomerPicker, { snapshotOf } from './CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
 import CouponField from '../../components/CouponField';
-import { settleJobAdvance } from '../../lib/jobs';
+import { blankJob, settleJobAdvance } from '../../lib/jobs';
 import { creditOverLimit } from '../../lib/khata';
 import { repriceLines } from '../../lib/pricing';
 import { useOffers } from '../../lib/useOffers';
@@ -113,6 +114,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
       if (!d) {
         d = kind === 'invoice' ? await newInvoiceDraft(actor) : await newEstimateDraft(actor);
         if (kind === 'estimate' && new URLSearchParams(location.search).get('challan')) (d as Estimate).challan = true;
+        if (kind === 'estimate' && new URLSearchParams(location.search).get('work')) (d as Estimate).job = blankJob('work', actor.userName);
         d.dueDate = addDaysISO(d.date, d.paymentTermsDays ?? 0);
         const customerId = new URLSearchParams(location.search).get('customer');
         const c = customerId ? await db.customers.get(customerId) : undefined;
@@ -148,7 +150,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
     confirmRepeat: settings.confirmRepeatScan !== false,
     addNew: (it) => {
       const line = lineFromItem(it, level);
-      if (it.pricing === 'sqft' || it.pricing === 'rft' || it.trackSerial) {
+      if (isAreaPricing(it.pricing) || it.trackSerial) {
         setScanning(false);
         setEditing({ line, isNew: true });
       } else setDoc((cur) => (cur ? { ...cur, lines: [...cur.lines, line] } : cur));
@@ -377,6 +379,28 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         )}
 
         {/* ---------- header ---------- */}
+        {kind === 'estimate' && !(doc as Estimate).challan && (
+          <FormSection>
+            <ToggleRow
+              label={t('This is a work order')}
+              note={t('Track it from measurement to delivery, with photos and an advance.')}
+              checked={!!(doc as Estimate).job}
+              onChange={(on) => patch({ job: on ? ((doc as Estimate).job ?? blankJob('work', actor.userName)) : null } as Partial<Estimate>)}
+              disabled={locked}
+            />
+            {(doc as Estimate).job && (
+              <>
+                <TextField label={t('What work')} value={(doc as Estimate).job!.title} onChange={(title) => patch({ job: { ...(doc as Estimate).job!, title } } as Partial<Estimate>)} disabled={locked} />
+                <TextArea label={t('Measurements and notes')} value={(doc as Estimate).job!.measurements} onChange={(measurements) => patch({ job: { ...(doc as Estimate).job!, measurements } } as Partial<Estimate>)} disabled={locked} />
+                {!wasDraft || doc.number ? (
+                  <IonButton size="small" fill="clear" routerLink={`/tabs/jobs/${doc.id}`}>
+                    {t('Open the work order (stages, photos, advance)')}
+                  </IonButton>
+                ) : null}
+              </>
+            )}
+          </FormSection>
+        )}
         <FormSection title={byKind(t('Invoice details'), t('Estimate details'), t('Credit note details'))}>
           <div className="field-row">
             <TextField

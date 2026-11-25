@@ -18,7 +18,7 @@ import {
 import CreditPaySheet from '../../components/CreditPaySheet';
 import MoneyEntrySheet from '../../components/MoneyEntrySheet';
 import { keepAsCredit, payWithCredit, settlementOf } from '../../lib/credit';
-import { jobAdvance, refundAdvance, takeAdvance } from '../../lib/jobs';
+import { jobAdvance, refundAdvance, stageLabel, takeAdvance } from '../../lib/jobs';
 import DocPhotos from '../../components/DocPhotos';
 import { formatDateIN } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -436,6 +436,11 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
         </div>
       )}
 
+      {est?.job && (
+        <IonButton fill="outline" expand="block" routerLink={`/tabs/jobs/${est.id}`}>
+          {t('Work order: {stage}', { stage: stageLabel(est.job.stage) })}
+        </IonButton>
+      )}
       {doc.privateNotes && (
         <p className="private-notes">
           <strong>{t('Notes for us')}:</strong> {doc.privateNotes}

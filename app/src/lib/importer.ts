@@ -239,10 +239,12 @@ export function buildPreview(kind: ImportKind, rows: Cell[][], existing: (Item |
       }
       const priced = norm(text(get(r, 'priced')));
       if (priced) {
-        const p = priced.includes('sq') ? 'sqft' : priced.includes('r') && priced.includes('ft') ? 'rft' : priced.includes('running') ? 'rft' : 'unit';
+        const p = priced.includes('sqm') || priced.includes('sqmt') || priced.includes('squaremet') ? 'sqm' : priced.includes('rmt') || priced.includes('runningmet') ? 'rmt' : priced.includes('sq') ? 'sqft' : priced.includes('r') && priced.includes('ft') ? 'rft' : priced.includes('running') ? 'rft' : 'unit';
         values.pricing = p;
         if (p === 'sqft') values.unit = 'sq ft';
         if (p === 'rft') values.unit = 'rft';
+        if (p === 'sqm') values.unit = 'sq m';
+        if (p === 'rmt') values.unit = 'rmt';
       }
       const description = text(get(r, 'description'));
       if (description) values.description = description;

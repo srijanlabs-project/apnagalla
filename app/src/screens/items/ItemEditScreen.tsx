@@ -1,6 +1,6 @@
 import { IonButton, IonIcon, IonItem, IonLabel, IonNote, useIonAlert, useIonRouter } from '@ionic/react';
 import { barcodeOutline, layersOutline } from 'ionicons/icons';
-import { calculateInvoice, checkHsn } from '@invoice/shared';
+import { AREA_UNIT, calculateInvoice, checkHsn } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
@@ -87,9 +87,11 @@ export function ItemForm({
             options={[
               { value: 'unit' as const, label: t('Per unit (piece, kg, box…)') },
               { value: 'sqft' as const, label: t('Per sq ft (length × width)') },
+              { value: 'sqm' as const, label: t('Per sq m (length × width)') },
               { value: 'rft' as const, label: t('Per running foot (length)') },
+              { value: 'rmt' as const, label: t('Per running metre (length)') },
             ]}
-            onChange={(pricing) => patch({ pricing, ...(pricing === 'sqft' ? { unit: 'sq ft' } : pricing === 'rft' ? { unit: 'rft' } : {}) })}
+            onChange={(pricing) => patch({ pricing, ...(pricing !== 'unit' ? { unit: AREA_UNIT[pricing] } : {}) })}
             disabled={priceLocked}
           />
         )}

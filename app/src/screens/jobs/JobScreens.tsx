@@ -105,7 +105,7 @@ export function JobsScreen() {
         </IonList>
       )}
       <IonFab slot="fixed" vertical="bottom" horizontal="end">
-        <IonFabButton routerLink={`/tabs/jobs/new?kind=${kind}`} aria-label={t('New job')}>
+        <IonFabButton routerLink={kind === 'work' ? '/tabs/estimates/new?work=1' : '/tabs/jobs/new?kind=repair'} aria-label={t('New job')}>
           <IonIcon icon={add} />
         </IonFabButton>
       </IonFab>
