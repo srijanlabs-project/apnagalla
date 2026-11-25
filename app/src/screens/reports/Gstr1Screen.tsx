@@ -17,7 +17,7 @@ const lastMonth = () => {
 
 /** Owner: the month's GSTR-1 as the GST offline tool's JSON, and a sheet to check it. */
 export default function Gstr1Screen() {
-  const { actor, isOwner } = useBusiness();
+  const { actor, isOwner, perms } = useBusiness();
   const [toast] = useIonToast();
   const [month, setMonth] = useState(lastMonth());
   const [data, setData] = useState<{ json: unknown; table: ExportTable; problems: string[] } | null>(null);
@@ -31,7 +31,7 @@ export default function Gstr1Screen() {
       .finally(() => setBusy(false));
   }, [actor.businessId, month]);
 
-  if (!isOwner) return null;
+  if (!isOwner && perms.access !== 'readonly') return null;
   const json = data?.json as { b2b: unknown[]; b2cl: unknown[]; b2cs: unknown[]; cdnr: unknown[] } | undefined;
   const fail = (e: unknown) => void toast({ message: (e as Error).message, duration: 2500, color: 'danger' });
 

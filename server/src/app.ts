@@ -297,7 +297,12 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
   app.get<{ Params: BizParams }>('/v1/admin/stores/:businessId/audit', adminOnly, async (req) => ({ entries: await admin.auditTrail(req.params.businessId) }));
 
   /** May this staff member see costs and purchases? Their own setting, else the store's. */
-  const seesCost = async (businessId: string, userId: string) => (await accounts.permissionsOf(businessId, userId))?.seeCost ?? (await syncService.staffSeeCost(businessId));
+  const seesCost = async (businessId: string, userId: string) => {
+    const p = await accounts.permissionsOf(businessId, userId);
+    // The warehouse never sees cost prices or purchases.
+    if (p?.access === 'warehouse') return false;
+    return p?.seeCost ?? (await syncService.staffSeeCost(businessId));
+  };
 
   /* ---------- sync ---------- */
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/sync/push', { ...authed, bodyLimit: 8_000_000 }, async (req): Promise<SyncPushResponse> => {
@@ -307,7 +312,13 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     const seriesCode = await accounts.seriesCodeOf(req.params.businessId, uid(req));
     const hideCost = role === 'staff' && !(await seesCost(req.params.businessId, uid(req)));
     const billsLeft = changes.some((c) => c.table === 'invoices') ? await billing.billsLeft(req.params.businessId) : undefined;
-    const results = await syncService.push({ businessId: req.params.businessId, userId: uid(req), role, client: req.auth!.client, seriesCode, hideCost, billsLeft }, changes);
+    const perms = role === 'staff' ? await accounts.permissionsOf(req.params.businessId, uid(req)) : null;
+    const settings = await syncService.settingsData(req.params.businessId);
+    const lock = { afterDays: typeof settings?.lockBillsAfterDays === 'number' ? settings.lockBillsAfterDays : null, until: typeof settings?.booksClosedUntil === 'string' ? settings.booksClosedUntil : null };
+    const results = await syncService.push(
+      { businessId: req.params.businessId, userId: uid(req), role, client: req.auth!.client, seriesCode, hideCost, billsLeft, access: perms?.access ?? 'full', cancelBills: perms?.cancelBills === true, lock },
+      changes,
+    );
     return { results };
   });
 

@@ -28,13 +28,53 @@ export async function deliveriesFor(actor: Actor, today = todayISO()): Promise<D
   ].sort((a, b) => a.doc.deliveryDate!.localeCompare(b.doc.deliveryDate!));
 }
 
-/** Anyone may mark a delivery done (staff included, even on a saved bill). */
-export async function markDelivered(actor: Actor, kind: 'invoice' | 'estimate', id: string): Promise<void> {
+/** Anyone may mark a delivery done (staff included, even on a saved bill); the warehouse adds a photo. */
+export async function markDelivered(actor: Actor, kind: 'invoice' | 'estimate', id: string, photo?: string): Promise<void> {
   const doc = kind === 'invoice' ? await db.invoices.get(id) : await db.estimates.get(id);
   if (!doc || doc.deliveredAt) return;
+  if (actor.access === 'warehouse' && !photo) throw new Error(t('Take a photo of the goods first'));
   const at = new Date().toISOString();
   const entry = { at, by: actor.userId, byName: actor.userName, action: 'delivered' };
-  await putRecord(kind === 'invoice' ? 'invoices' : 'estimates', actor, { ...doc, deliveredAt: at, deliveredByName: actor.userName, history: [...doc.history, entry] });
+  await putRecord(kind === 'invoice' ? 'invoices' : 'estimates', actor, {
+    ...doc,
+    deliveredAt: at,
+    deliveredByName: actor.userName,
+    ...(photo ? { deliveryPhoto: photo } : {}),
+    history: [...doc.history, entry],
+  });
+}
+
+export interface WarehouseRow {
+  kind: 'invoice' | 'estimate';
+  doc: Invoice | Estimate;
+}
+
+/**
+ * The warehouse list: saved bills and delivery challans still to deliver (those with a delivery
+ * date, every challan, and with `recentDays` every bill of those last days), or those delivered
+ * in the last 30 days.
+ */
+export async function warehouseList(businessId: string, opts: { delivered: boolean; recentDays?: number; today?: string }): Promise<WarehouseRow[]> {
+  const today = opts.today ?? todayISO();
+  const since = addDaysISO(today, -(opts.delivered ? 30 : (opts.recentDays ?? 0)));
+  const live = (d: DocBase & { status: string }) => !d.deleted && d.status !== 'draft' && d.status !== 'cancelled' && d.status !== 'declined';
+  const want = (d: DocBase & { status: string; challan?: boolean }) => {
+    if (opts.delivered) return !!d.deliveredAt && d.deliveredAt.slice(0, 10) >= since;
+    if (d.deliveredAt) return false;
+    return !!d.deliveryDate || !!d.challan || (!!opts.recentDays && d.date >= since);
+  };
+  const [invoices, estimates] = await Promise.all([
+    db.invoices.where('businessId').equals(businessId).filter((d) => live(d) && want(d)).toArray(),
+    db.estimates
+      .where('businessId')
+      .equals(businessId)
+      // Estimates count only as challans or job-work orders with a delivery date (not converted).
+      .filter((d) => live(d) && d.status !== 'converted' && (!!d.challan || !!d.deliveryDate) && want(d))
+      .toArray(),
+  ]);
+  const rows: WarehouseRow[] = [...invoices.map((doc) => ({ kind: 'invoice' as const, doc })), ...estimates.map((doc) => ({ kind: 'estimate' as const, doc }))];
+  const key = (r: WarehouseRow) => (opts.delivered ? r.doc.deliveredAt ?? '' : r.doc.deliveryDate ?? r.doc.date);
+  return rows.sort((a, b) => (opts.delivered ? key(b).localeCompare(key(a)) : key(a).localeCompare(key(b))));
 }
 
 /* ---------- phone alerts ---------- */

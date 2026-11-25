@@ -31,7 +31,7 @@ import PaymentDetailsScreen from '../settings/PaymentDetailsScreen';
 import StoresScreen from '../stores/StoresScreen';
 import DevicesScreen from './DevicesScreen';
 import MoreScreen from './MoreScreen';
-import { HomeScreen } from './Placeholders';
+import DeliveriesScreen, { HomeOrDeliveries } from './DeliveriesScreen';
 import TeamScreen from './TeamScreen';
 import ExpensesScreen from '../expenses/ExpensesScreen';
 import CashBookScreen from '../cash/CashBookScreen';
@@ -39,6 +39,7 @@ import ChequesScreen from '../cash/ChequesScreen';
 import { JobScreen, JobsScreen } from '../jobs/JobScreens';
 import { ReportScreen, ReportsScreen } from '../reports/ReportsScreen';
 import Gstr1Screen from '../reports/Gstr1Screen';
+import TallyScreen from '../reports/TallyScreen';
 import CustomReportScreen from '../reports/CustomReportScreen';
 import { PurchaseDetailScreen, PurchaseEditScreen, PurchaseOrderScreen, PurchasesScreen } from '../purchases/PurchaseScreens';
 import { SupplierDetailScreen, SupplierEditScreen, SuppliersScreen } from '../suppliers/SupplierScreens';
@@ -48,7 +49,8 @@ export default function MainTabs() {
     <BusinessProvider>
       <IonTabs>
         <IonRouterOutlet>
-          <Route path="home" element={<HomeScreen />} />
+          <Route path="home" element={<HomeOrDeliveries />} />
+          <Route path="deliveries" element={<DeliveriesScreen />} />
           <Route path="sale" element={<SaleScreen />} />
 
           <Route path="invoices" element={<DocListScreen kind="invoice" />} />
@@ -99,6 +101,7 @@ export default function MainTabs() {
           <Route path="jobs/:id" element={<JobScreen />} />
           <Route path="reports" element={<ReportsScreen />} />
           <Route path="reports/gstr1" element={<Gstr1Screen />} />
+          <Route path="reports/tally" element={<TallyScreen />} />
           <Route path="reports/custom/:id" element={<CustomReportScreen />} />
           <Route path="reports/:id" element={<ReportScreen />} />
 

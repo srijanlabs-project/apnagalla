@@ -9,6 +9,7 @@ import {
   constructOutline,
   cloudUploadOutline,
   busOutline,
+  carOutline,
   cartOutline,
   cashOutline,
   walletOutline,
@@ -198,6 +199,10 @@ export default function MoreScreen() {
             <IonLabel>{t('ApnaGalla admin')}</IonLabel>
           </IonItem>
         )}
+        <IonItem routerLink="/tabs/deliveries" detail lines="full">
+          <IonIcon icon={carOutline} slot="start" />
+          <IonLabel>{t('Deliveries')}</IonLabel>
+        </IonItem>
         <IonItem routerLink="/tabs/more/printer" detail lines="full">
           <IonIcon icon={printOutline} slot="start" />
           <IonLabel>{t('Printer')}</IonLabel>

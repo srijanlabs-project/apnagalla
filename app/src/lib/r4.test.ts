@@ -131,3 +131,58 @@ describe('Wi-Fi printer address', () => {
     expect(isIpAddress('printer.local')).toBe(false);
   });
 });
+
+describe('R4.6 logins, locks and Tally', () => {
+  it('locked bills: no edits or cancelling, owner included', async () => {
+    const { billLocked } = await import('@invoice/shared');
+    expect(billLocked('2026-10-05', { until: '2026-10-31' }, '2026-11-25')).toBe(true);
+    expect(billLocked('2026-11-01', { until: '2026-10-31' }, '2026-11-25')).toBe(false);
+    expect(billLocked('2026-11-10', { afterDays: 7 }, '2026-11-25')).toBe(true);
+    expect(billLocked('2026-11-20', { afterDays: 7 }, '2026-11-25')).toBe(false);
+    const { cancelInvoice } = await import('./repo');
+    const d = await newInvoiceDraft(owner);
+    const inv = await saveInvoice(owner, { ...d, date: '2026-01-05', lines: [line()] }, { finalize: true });
+    await putRecord('settings', owner, { ...(await settingsOf('b1')), booksClosedUntil: '2026-01-31' });
+    await expect(saveInvoice(owner, { ...inv, lines: [line({ qty: 5 })] }, { finalize: false })).rejects.toBeInstanceOf(PermissionError);
+    await expect(cancelInvoice(owner, inv.id)).rejects.toBeInstanceOf(PermissionError);
+  });
+
+  it('a view-only login changes nothing; the warehouse only bills and challans, with a photo', async () => {
+    const { markDelivered, warehouseList } = await import('./deliveries');
+    const ro: Actor = { ...staff, access: 'readonly' };
+    const wh: Actor = { ...staff, access: 'warehouse' };
+    await expect(putRecord('customers', ro, { id: 'c9', name: 'X', billingAddress: {}, openingBalance: 0 } as Customer)).rejects.toBeInstanceOf(PermissionError);
+    await expect(putRecord('customers', wh, { id: 'c9', name: 'X', billingAddress: {}, openingBalance: 0 } as Customer)).rejects.toBeInstanceOf(PermissionError);
+    const d = await newInvoiceDraft(owner);
+    const inv = await saveInvoice(owner, { ...d, lines: [line()], deliveryDate: TODAY }, { finalize: true });
+    expect((await warehouseList('b1', { delivered: false })).map((r) => r.doc.id)).toEqual([inv.id]);
+    await expect(markDelivered(wh, 'invoice', inv.id)).rejects.toThrow();
+    await markDelivered(wh, 'invoice', inv.id, 'data:image/jpeg;base64,PHOTO');
+    expect((await db.invoices.get(inv.id))!.deliveryPhoto).toBe('data:image/jpeg;base64,PHOTO');
+    expect(await warehouseList('b1', { delivered: false })).toEqual([]);
+    expect((await warehouseList('b1', { delivered: true })).length).toBe(1);
+  });
+
+  it('staff may cancel a bill only when allowed', async () => {
+    const { cancelInvoice } = await import('./repo');
+    const d = await newInvoiceDraft(owner);
+    const inv = await saveInvoice(owner, { ...d, lines: [line()] }, { finalize: true });
+    await expect(cancelInvoice(staff, inv.id)).rejects.toBeInstanceOf(PermissionError);
+    await cancelInvoice({ ...staff, cancelBills: true }, inv.id);
+    expect((await db.invoices.get(inv.id))!.status).toBe('cancelled');
+  });
+
+  it('Tally vouchers balance: debits equal credits on every voucher', async () => {
+    const { buildTallyXml } = await import('./tally');
+    const d = await newInvoiceDraft(owner);
+    await saveInvoice(owner, { ...d, lines: [line({ taxPct: 18, rate: 33333 }), line({ id: 'l2', taxPct: 5, rate: 999 })] }, { finalize: true });
+    const { xml, counts } = await buildTallyXml('b1', '2000-01-01', '2100-01-01', false);
+    expect(counts.sales).toBe(1);
+    for (const v of xml.split('<VOUCHER ').slice(1)) {
+      const amounts = [...v.matchAll(/<AMOUNT>(-?[\d.]+)<\/AMOUNT>/g)].map((m) => Math.round(Number(m[1]) * 100));
+      expect(amounts.length).toBeGreaterThan(1);
+      expect(amounts.reduce((a, b) => a + b, 0)).toBe(0);
+    }
+    expect(xml).toContain('<VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>');
+  });
+});

@@ -3,7 +3,7 @@ import { DEFAULT_STAFF_PERMISSIONS, type MemberDto, type StaffPermissions, type 
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { t } from '../lib/i18n';
-import { FormSection, NumberField, ToggleRow } from './Fields';
+import { FormSection, NumberField, SelectField, ToggleRow } from './Fields';
 
 /** Owner: what one staff member may do in the store. */
 export default function PermissionsSheet({
@@ -37,7 +37,27 @@ export default function PermissionsSheet({
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        <FormSection title={t('Permissions')}>
+        <FormSection title={t('Kind of login')}>
+          <SelectField
+            label={t('This person is')}
+            value={p.access}
+            options={[
+              { value: 'full' as const, label: t('Staff (billing, stock, customers)') },
+              { value: 'warehouse' as const, label: t('Warehouse (deliveries only)') },
+              { value: 'readonly' as const, label: t('Accountant / CA (view only)') },
+            ]}
+            onChange={(access) => set({ access, ...(access === 'readonly' ? { seeCost: true, viewReports: true } : {}) })}
+          />
+          <p className="section-note">
+            {p.access === 'warehouse'
+              ? t('Sees bills and challans to deliver, and marks them delivered with a photo. Never sees cost prices.')
+              : p.access === 'readonly'
+                ? t('Sees bills, purchases, khata and reports, and can export them. Cannot change anything.')
+                : t('Makes bills and manages stock and customers, within the permissions below.')}
+          </p>
+        </FormSection>
+        {p.access === 'full' && <FormSection title={t('Permissions')}>
+          <ToggleRow label={t('Cancel saved bills')} checked={p.cancelBills} onChange={(cancelBills) => set({ cancelBills })} />
           <ToggleRow label={t('See purchases and cost prices')} note={t('Purchase bills, suppliers, cost and profit.')} checked={p.seeCost} onChange={(seeCost) => set({ seeCost })} />
           <ToggleRow label={t('See reports')} checked={p.viewReports} onChange={(viewReports) => set({ viewReports })} />
           <ToggleRow label={t('Edit items and prices')} checked={p.editItems} onChange={(editItems) => set({ editItems })} />
@@ -51,7 +71,12 @@ export default function PermissionsSheet({
             suffix="%"
             helper={t('100% = no limit. Offers you set up are not counted.')}
           />
-        </FormSection>
+        </FormSection>}
+        {p.access === 'readonly' && (
+          <FormSection title={t('Permissions')}>
+            <ToggleRow label={t('See purchases and cost prices')} checked={p.seeCost} onChange={(seeCost) => set({ seeCost })} />
+          </FormSection>
+        )}
         <IonButton
           expand="block"
           disabled={busy || !member}

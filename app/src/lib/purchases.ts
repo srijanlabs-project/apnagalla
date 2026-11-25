@@ -17,7 +17,7 @@ import {
 import type { ExportTable } from './exportTable';
 import { addressLines } from './format';
 import { t } from './i18n';
-import { PermissionError, effectiveGstType, newId, putRecord, storeStateCode, type Actor } from './repo';
+import { PermissionError, effectiveGstType, newId, putRecord, storeStateCode, type Actor, assertNotLocked } from './repo';
 import { setOpeningStock } from './stock';
 import { withPriceHistory } from './pricing';
 
@@ -179,6 +179,7 @@ const unitCost = (l: PurchaseLine) => Math.round((l.rateIncludesTax && l.taxPct 
 export async function savePurchase(actor: Actor, p: Purchase, opts: { finalize: boolean }): Promise<Purchase> {
   const existing = await db.purchases.get(p.id);
   if (existing && existing.status !== 'draft' && actor.role !== 'owner') throw new PermissionError(t('Only the owner can change a saved purchase'));
+  await assertNotLocked(actor, existing);
   const finalizing = opts.finalize && (!existing || existing.status === 'draft');
   let lines = p.lines.filter((l) => l.name.trim() && l.qty > 0);
 

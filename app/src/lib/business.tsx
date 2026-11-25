@@ -1,5 +1,5 @@
 import { IonSpinner } from '@ionic/react';
-import { DEFAULT_STAFF_PERMISSIONS } from '@invoice/shared';
+import { DEFAULT_STAFF_PERMISSIONS, type StaffAccess } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { db, type BankAccount, type BusinessProfile, type BusinessSettings, type UpiId } from './db';
@@ -12,6 +12,9 @@ import { useSyncTriggers } from './useSync';
 
 /** What this person may do here (the owner: everything). */
 export interface Perms {
+  /** full staff (or the owner), warehouse, or read-only (accountant). */
+  access: StaffAccess;
+  cancelBills: boolean;
   seeCost: boolean;
   maxDiscountPct: number;
   viewReports: boolean;
@@ -76,16 +79,18 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     const p = membership.permissions ?? {};
     const perms: Perms =
       membership.role === 'owner'
-        ? { seeCost: true, maxDiscountPct: 100, viewReports: true, editItems: true, deleteRecords: true }
+        ? { access: 'full', cancelBills: true, seeCost: true, maxDiscountPct: 100, viewReports: true, editItems: true, deleteRecords: true }
         : {
-            seeCost: p.seeCost ?? merged.staffSeeCost,
+            access: p.access ?? 'full',
+            cancelBills: p.cancelBills === true,
+            seeCost: p.access === 'warehouse' ? false : (p.seeCost ?? merged.staffSeeCost),
             maxDiscountPct: p.maxDiscountPct ?? DEFAULT_STAFF_PERMISSIONS.maxDiscountPct,
             viewReports: p.viewReports ?? DEFAULT_STAFF_PERMISSIONS.viewReports,
             editItems: p.editItems ?? DEFAULT_STAFF_PERMISSIONS.editItems,
             deleteRecords: p.deleteRecords ?? DEFAULT_STAFF_PERMISSIONS.deleteRecords,
           };
     return {
-      actor: { ...actor, maxDiscountPct: perms.maxDiscountPct },
+      actor: { ...actor, maxDiscountPct: perms.maxDiscountPct, access: perms.access, cancelBills: perms.cancelBills },
       ledger,
       perms,
       isOwner: membership.role === 'owner',

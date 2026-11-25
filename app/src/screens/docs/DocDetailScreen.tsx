@@ -22,9 +22,9 @@ import { jobAdvance, refundAdvance, stageLabel, takeAdvance } from '../../lib/jo
 import DocPhotos from '../../components/DocPhotos';
 import { formatDateIN } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { createOutline, documentOutline, ellipsisVertical, eyeOutline, logoWhatsapp, shareSocialOutline, walletOutline, printOutline, swapHorizontalOutline } from 'ionicons/icons';
+import { cameraOutline, createOutline, documentOutline, ellipsisVertical, eyeOutline, logoWhatsapp, shareSocialOutline, walletOutline, printOutline, swapHorizontalOutline } from 'ionicons/icons';
 import { printPdfFile, sendOnWhatsApp } from '../../lib/shopTools';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import PageShell from '../../components/PageShell';
 import PdfPreview from '../../components/PdfPreview';
@@ -33,7 +33,7 @@ import { useBusiness } from '../../lib/business';
 import { db, type CreditNote, type Estimate, type Invoice } from '../../lib/db';
 import { gstViewOf, titleIn } from '../../lib/gstView';
 import { appLanguage } from '../../lib/i18n';
-import { dateIN, lineSize, rupees } from '../../lib/format';
+import { dateIN, lineSize, rupees, fileToResizedDataUrl } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { pdfFileName, pdfInputFor, renderPdf, sharePdf } from '../../lib/pdf';
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
@@ -60,7 +60,8 @@ import { DOC_BASE } from './DocEditorScreen';
 
 export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const { id } = useParams<{ id: string }>();
-  const { actor, isOwner, settings, profile, ledger, upiIds } = useBusiness();
+  const { actor, isOwner, settings, profile, ledger, upiIds, perms } = useBusiness();
+  const deliveryCam = useRef<HTMLInputElement>(null);
   const router = useIonRouter();
   const [toast] = useIonToast();
   const [alert] = useIonAlert();
@@ -211,7 +212,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
           { text: t('Mark declined'), handler: () => void setEstimateStatus(actor, doc.id, 'declined') },
         ]
       : []),
-    ...(inv && inv.status === 'saved' && isOwner
+    ...(inv && inv.status === 'saved' && (isOwner || perms.cancelBills)
       ? [
           {
             text: t('Cancel invoice'),
@@ -362,11 +363,32 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 <IonIcon icon={walletOutline} slot="start" /> {t('Use advance {amount}', { amount: rupees(Math.min(pending, advance ?? 0)) })}
               </IonButton>
             )}
-            {doc.deliveryDate && !doc.deliveredAt && (inv?.status === 'saved' || (est && est.status !== 'draft')) && (
-              <IonButton fill="outline" color="success" onClick={() => void markDelivered(actor, kind as 'invoice' | 'estimate', doc.id).catch(fail)}>
+            {!doc.deliveredAt && (doc.deliveryDate || est?.challan || perms.access === 'warehouse') && (inv?.status === 'saved' || (est && est.status !== 'draft' && est.status !== 'converted')) && (
+              <IonButton
+                fill="outline"
+                color="success"
+                onClick={() => (perms.access === 'warehouse' ? deliveryCam.current?.click() : void markDelivered(actor, kind as 'invoice' | 'estimate', doc.id).catch(fail))}
+              >
                 {t('Mark delivered')}
               </IonButton>
             )}
+            {!doc.deliveredAt && perms.access !== 'warehouse' && (doc.deliveryDate || est?.challan) && (inv?.status === 'saved' || (est && est.status !== 'draft' && est.status !== 'converted')) && (
+              <IonButton fill="clear" color="success" onClick={() => deliveryCam.current?.click()}>
+                <IonIcon icon={cameraOutline} slot="start" /> {t('Delivered, with photo')}
+              </IonButton>
+            )}
+            <input
+              ref={deliveryCam}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              hidden
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (f) await markDelivered(actor, kind as 'invoice' | 'estimate', doc.id, await fileToResizedDataUrl(f, 1000, true)).catch(fail);
+              }}
+            />
             {refundDue > 0 && CAN_CREATE_INVOICES && billForMoney && (
               <IonButton fill="outline" color="success" routerLink={`/tabs/sale?exchange=${billForMoney.id}`}>
                 <IonIcon icon={swapHorizontalOutline} slot="start" /> {t('Exchange: new bill')}
@@ -446,7 +468,13 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
           <strong>{t('Notes for us')}:</strong> {doc.privateNotes}
         </p>
       )}
-      {(kind !== 'credit' || (doc.photos?.length ?? 0) > 0) && (
+      {doc.deliveryPhoto && (
+        <div className="ion-padding-horizontal">
+          <p className="section-note">{t('Delivery photo')}{doc.deliveredByName ? ` · ${doc.deliveredByName}` : ''}</p>
+          <img src={doc.deliveryPhoto} alt="" className="delivery-photo" />
+        </div>
+      )}
+      {(kind !== 'credit' || (doc.photos?.length ?? 0) > 0) && perms.access !== 'warehouse' && perms.access !== 'readonly' && (
         <DocPhotos
           photos={doc.photos ?? []}
           canAdd={doc.status !== 'cancelled'}

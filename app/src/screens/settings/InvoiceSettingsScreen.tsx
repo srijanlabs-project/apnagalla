@@ -1,7 +1,7 @@
 import { IonButton, IonChip, IonIcon, IonInput, IonLabel } from '@ionic/react';
 import { closeCircle } from 'ionicons/icons';
 import { useState } from 'react';
-import { FormSection, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
+import { FormSection, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
 import FormPage from '../../components/FormPage';
 import { useBusiness } from '../../lib/business';
 import type { BusinessSettings } from '../../lib/db';
@@ -265,6 +265,25 @@ export default function InvoiceSettingsScreen() {
           checked={s.staffMustLock}
           onChange={(staffMustLock) => patch({ staffMustLock })}
           disabled={ro}
+        />
+      </FormSection>
+
+      <FormSection title={t('Lock old bills')}>
+        <NumberField
+          label={t('Lock bills older than (days)')}
+          value={s.lockBillsAfterDays ?? null}
+          onChange={(n) => patch({ lockBillsAfterDays: n && n > 0 ? Math.round(n) : null })}
+          min={0}
+          disabled={ro}
+          helper={t('Empty = never. Locked bills still take payments; corrections go on a credit note.')}
+        />
+        <TextField
+          label={t('Books closed up to')}
+          type="date"
+          value={s.booksClosedUntil ?? ''}
+          onChange={(v) => patch({ booksClosedUntil: v || null })}
+          disabled={ro}
+          helper={t('After filing GSTR-1 for a month, set its last day: those bills can’t change, not even by you.')}
         />
       </FormSection>
 

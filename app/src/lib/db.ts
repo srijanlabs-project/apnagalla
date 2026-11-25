@@ -110,6 +110,10 @@ export interface BusinessSettings extends SyncedRecord {
   creditLimitBlocks?: boolean;
   /** Delivery challans: their own number series. */
   challanPrefix?: string;
+  /** Lock saved bills older than this many days (0 / empty = never). */
+  lockBillsAfterDays?: number | null;
+  /** Books closed up to this date (e.g. the GST return is filed): bills on or before it are locked. */
+  booksClosedUntil?: string | null;
   /** Staff may see items' purchase price. Off: the server never sends it to staff phones. */
   staffSeeCost: boolean;
   /** "HH:MM": when the day-before delivery alert rings. */

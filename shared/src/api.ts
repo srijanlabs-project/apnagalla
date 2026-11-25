@@ -72,8 +72,17 @@ export interface UserDto {
   name: string | null;
 }
 
+/**
+ * What kind of login a team member has: full staff, the warehouse (sees bills and challans, only
+ * marks them delivered with a photo) or an accountant / CA (sees everything, changes nothing).
+ */
+export type StaffAccess = 'full' | 'warehouse' | 'readonly';
+
 /** What a staff member may do in a store (the owner may do everything). */
 export interface StaffPermissions {
+  access?: StaffAccess;
+  /** Cancel a saved bill (normally only the owner). */
+  cancelBills?: boolean;
   /** Purchase prices, purchases, suppliers, profit. Missing = the store's "staff can see costs" setting. */
   seeCost?: boolean;
   /** Most discount % on a bill (100 = no limit). Offers made by the owner don't count. */
@@ -85,9 +94,11 @@ export interface StaffPermissions {
   deleteRecords?: boolean;
 }
 
-export const DEFAULT_STAFF_PERMISSIONS: Required<Omit<StaffPermissions, 'seeCost'>> = { maxDiscountPct: 100, viewReports: true, editItems: false, deleteRecords: false };
+export const DEFAULT_STAFF_PERMISSIONS: Required<Omit<StaffPermissions, 'seeCost'>> = { access: 'full', cancelBills: false, maxDiscountPct: 100, viewReports: true, editItems: false, deleteRecords: false };
 
 export const staffPermissionsBody = z.object({
+  access: z.enum(['full', 'warehouse', 'readonly']).optional(),
+  cancelBills: z.boolean().optional(),
   seeCost: z.boolean().optional(),
   maxDiscountPct: z.number().min(0).max(100).optional(),
   viewReports: z.boolean().optional(),

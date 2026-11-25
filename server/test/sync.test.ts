@@ -448,3 +448,53 @@ describe('R4 payments', () => {
   });
 });
 
+
+describe('R4 logins and locks', () => {
+  const setPerms = (bizId: string, oH: Record<string, string>, userId: string, payload: Record<string, unknown>) =>
+    app.inject({ method: 'POST', url: `/v1/businesses/${bizId}/members/${userId}/permissions`, headers: oH, payload });
+
+  it('an accountant login only views; the warehouse only marks deliveries and never sees costs', async () => {
+    const { biz, oH, sH, staff } = await setupStore('987021040');
+    await pushOk(biz.id, oH, [{ table: 'invoices', id: 'w1', data: invoice('w1', { updatedAt: at(-5) }) }]);
+
+    expect((await setPerms(biz.id, oH, staff.me.user.id, { access: 'readonly' })).statusCode).toBe(200);
+    const ro = await pushOk(biz.id, sH, [{ table: 'customers', id: 'c1', data: { id: 'c1', name: 'A', updatedAt: at(0) } }]);
+    expect(ro[0]).toMatchObject({ status: 'rejected', reason: 'This login can only view the books' });
+    expect((await pull(biz.id, sH)).changes.some((c) => c.id === 'w1')).toBe(true);
+
+    await setPerms(biz.id, oH, staff.me.user.id, { access: 'warehouse' });
+    const delivered = invoice('w1', { deliveredAt: at(0), deliveredByName: 'Store', deliveryPhoto: 'data:image/jpeg;base64,xx', history: [{ action: 'delivered' }], updatedAt: at(-4) });
+    expect((await pushOk(biz.id, sH, [{ table: 'invoices', id: 'w1', data: delivered }]))[0]!.status).toBe('ok');
+    const edit = await pushOk(biz.id, sH, [{ table: 'invoices', id: 'w1', data: { ...delivered, lines: [], updatedAt: at(-3) } }]);
+    expect(edit[0]).toMatchObject({ status: 'rejected', reason: 'The warehouse login only marks deliveries' });
+    const pay = await pushOk(biz.id, sH, [{ table: 'payments', id: 'p1', data: { id: 'p1', invoiceId: 'w1', kind: 'payment', amount: 100, mode: 'cash', date: '2026-11-25', updatedAt: at(0) } }]);
+    expect(pay[0]!.status).toBe('rejected');
+    // Costs never reach the warehouse, even if the store lets staff see them.
+    await pushOk(biz.id, oH, [{ table: 'items', id: 'it1', data: { id: 'it1', name: 'Rice', purchasePrice: 4000, updatedAt: at(0) } }]);
+    const item = (await pull(biz.id, sH)).changes.find((c) => c.id === 'it1');
+    expect(item?.data?.purchasePrice).toBeUndefined();
+  });
+
+  it('staff cancel saved bills only when allowed', async () => {
+    const { biz, oH, sH, staff } = await setupStore('987021050');
+    await pushOk(biz.id, oH, [{ table: 'invoices', id: 'k1', data: invoice('k1', { updatedAt: at(-5) }) }]);
+    const cancel = (m: number) => invoice('k1', { status: 'cancelled', history: [{ action: 'cancelled' }], updatedAt: at(m) });
+    expect((await pushOk(biz.id, sH, [{ table: 'invoices', id: 'k1', data: cancel(-4) }]))[0]!.status).toBe('rejected');
+    await setPerms(biz.id, oH, staff.me.user.id, { cancelBills: true });
+    expect((await pushOk(biz.id, sH, [{ table: 'invoices', id: 'k1', data: cancel(-3) }]))[0]!.status).toBe('ok');
+  });
+
+  it('locked old bills take payments but nothing else, not even from the owner', async () => {
+    const { biz, oH } = await setupStore('987021060');
+    await pushOk(biz.id, oH, [
+      { table: 'invoices', id: 'old', data: invoice('old', { date: '2026-10-05', updatedAt: at(-5) }) },
+      { table: 'invoices', id: 'new', data: invoice('new', { number: 'INV/26-27/0002', date: '2026-11-20', updatedAt: at(-5) }) },
+      { table: 'settings', id: biz.id, data: { id: biz.id, booksClosedUntil: '2026-10-31', updatedAt: at(-5) } },
+    ]);
+    const paid = { payment: { status: 'paid', amountPaid: 10000 }, updatedAt: at(-4) };
+    expect((await pushOk(biz.id, oH, [{ table: 'invoices', id: 'old', data: invoice('old', { date: '2026-10-05', ...paid }) }]))[0]!.status).toBe('ok');
+    const edit = await pushOk(biz.id, oH, [{ table: 'invoices', id: 'old', data: invoice('old', { date: '2026-10-05', ...paid, lines: [], updatedAt: at(-3) }) }]);
+    expect(edit[0]).toMatchObject({ status: 'rejected', reason: 'This bill is locked (its period is closed). Make a credit note instead.' });
+    expect((await pushOk(biz.id, oH, [{ table: 'invoices', id: 'new', data: invoice('new', { number: 'INV/26-27/0002', date: '2026-11-20', lines: [], updatedAt: at(-3) }) }]))[0]!.status).toBe('ok');
+  });
+});

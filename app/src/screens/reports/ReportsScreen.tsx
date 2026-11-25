@@ -25,12 +25,13 @@ const GROUPS: { id: ReportInfo['group']; title: () => string }[] = [
 /** Reports this person may open. */
 function useAllowed() {
   const { isOwner, perms } = useBusiness();
-  return (r: ReportInfo) => perms.viewReports && (!r.ownerOnly || isOwner) && (!r.cost || perms.seeCost);
+  // The accountant (view-only login) sees the owner's reports too.
+  return (r: ReportInfo) => perms.viewReports && (!r.ownerOnly || isOwner || perms.access === 'readonly') && (!r.cost || perms.seeCost);
 }
 
 export function ReportsScreen() {
   const allowed = useAllowed();
-  const { isOwner, actor } = useBusiness();
+  const { isOwner, actor, perms } = useBusiness();
   const mine = useLiveQuery(() => db.savedReports.where('businessId').equals(actor.businessId).filter((r) => !r.deleted).toArray(), [actor.businessId]);
   return (
     <PageShell title={t('Reports')} backHref="/tabs/more" padded={false}>
@@ -60,9 +61,14 @@ export function ReportsScreen() {
                 <IonLabel>{r.title()}</IonLabel>
               </IonItem>
             ))}
-            {g.id === 'gst' && isOwner && (
+            {g.id === 'gst' && (isOwner || perms.access === 'readonly') && (
               <IonItem routerLink="/tabs/reports/gstr1" detail>
                 <IonLabel>{t('GSTR-1 (JSON for the GST portal)')}</IonLabel>
+              </IonItem>
+            )}
+            {g.id === 'gst' && (isOwner || perms.access === 'readonly') && (
+              <IonItem routerLink="/tabs/reports/tally" detail>
+                <IonLabel>{t('Export for Tally')}</IonLabel>
               </IonItem>
             )}
           </IonList>

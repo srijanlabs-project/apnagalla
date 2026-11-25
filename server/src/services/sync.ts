@@ -19,6 +19,10 @@ import {
   type SyncPushBody,
   type SyncPushResult,
   type SyncTable,
+  type StaffAccess,
+  type BillLock,
+  billLocked,
+  istToday,
 } from '@invoice/shared';
 import type { DB } from '../db/client';
 import { numberCounters, returnedNumbers, syncRecords } from '../db/schema';
@@ -35,7 +39,20 @@ export interface SyncActor {
   hideCost?: boolean;
   /** Plan limit: new saved bills this push may still add this month (undefined = no limit). */
   billsLeft?: number;
+  /** Staff: full, warehouse (deliveries only) or read-only (accountant). */
+  access?: StaffAccess;
+  /** Staff allowed to cancel saved bills. */
+  cancelBills?: boolean;
+  /** The store's lock on old bills. */
+  lock?: BillLock;
+  /** Today in India (tests set it). */
+  today?: string;
 }
+
+/** All the warehouse may change on a saved bill or challan. */
+const WAREHOUSE_FIELDS = ['history', 'deliveredAt', 'deliveredByName', 'deliveryPhoto', 'updatedAt', 'updatedBy'];
+/** Bills, returns and purchases a lock applies to. */
+const LOCKABLE: readonly SyncTable[] = ['invoices', 'creditNotes', 'purchases'];
 
 /** Item fields staff never receive when the store hides cost. */
 const COST_FIELDS = ['purchasePrice'];
@@ -79,7 +96,7 @@ type Change = SyncPushBody['changes'][number];
 const MAX_CLOCK_SKEW_MS = 5 * 60_000;
 
 /** Fields staff (and the web) may still change on a saved invoice: history and marking it delivered. */
-const PAYMENT_FIELDS = ['payment', 'history', 'deliveredAt', 'deliveredByName', 'photos', 'updatedAt', 'updatedBy'];
+const PAYMENT_FIELDS = ['payment', 'history', 'deliveredAt', 'deliveredByName', 'deliveryPhoto', 'photos', 'privateNotes', 'updatedAt', 'updatedBy'];
 
 function stable(v: unknown): string {
   if (Array.isArray(v)) return `[${v.map(stable).join(',')}]`;
@@ -211,6 +228,12 @@ export class SyncService {
 
   /** Returns a reason when the change is not allowed, else null. */
   private checkPermission(actor: SyncActor, table: SyncTable, data: Data, existing: Data | undefined): string | null {
+    if (actor.role !== 'owner' && actor.access === 'readonly') return 'This login can only view the books';
+    if (actor.role !== 'owner' && actor.access === 'warehouse') {
+      const deliverable = (table === 'invoices' || table === 'estimates') && !!existing && existing.status !== 'draft' && existing.status !== 'cancelled';
+      if (!deliverable || stable(without(data, WAREHOUSE_FIELDS)) !== stable(without(existing, WAREHOUSE_FIELDS))) return 'The warehouse login only marks deliveries';
+      return null;
+    }
     // Staff number new documents only in their own series (or a shared one).
     if (NUMBERED_TABLES.includes(table) && !existing && actor.role !== 'owner' && typeof data.numberSeries === 'string') {
       const key = parseSeriesKey(data.numberSeries);
@@ -247,6 +270,11 @@ export class SyncService {
       }
     }
 
+    // A locked old bill takes payments and notes; nothing else changes (a credit note corrects it).
+    if (LOCKABLE.includes(table) && existing && existing.status === 'saved' && billLocked(typeof existing.date === 'string' ? existing.date : null, actor.lock, actor.today ?? istToday())) {
+      if (stable(without(data, PAYMENT_FIELDS)) !== stable(without(existing, PAYMENT_FIELDS))) return 'This bill is locked (its period is closed). Make a credit note instead.';
+    }
+
     if (table === 'purchases') {
       if (data.deleted === true && existing && existing.status !== 'draft') return 'Only drafts can be deleted';
       if (actor.role !== 'owner' && existing && existing.status !== 'draft') return 'Only the owner can change a saved purchase';
@@ -260,7 +288,10 @@ export class SyncService {
       if (data.deleted === true && existing && existing.status !== 'draft') return 'Only drafts can be deleted';
       const limited = actor.client === 'web' || (actor.role === 'staff' && !wasDraft);
       if (limited && existing) {
-        if (stable(without(data, PAYMENT_FIELDS)) !== stable(without(existing, PAYMENT_FIELDS))) {
+        // Staff the owner allows may cancel a saved bill (from the phone app).
+        const cancelling = actor.client !== 'web' && actor.role === 'staff' && actor.cancelBills === true && existing.status === 'saved' && data.status === 'cancelled';
+        const may = cancelling ? [...PAYMENT_FIELDS, 'status'] : PAYMENT_FIELDS;
+        if (stable(without(data, may)) !== stable(without(existing, may))) {
           return actor.client === 'web' ? 'Invoices can only be edited in the phone app' : 'Only the owner can edit a saved invoice';
         }
         if (actor.role === 'staff' && paid(data) < paid(existing)) return 'Only the owner can reduce a recorded payment';
@@ -278,12 +309,17 @@ export class SyncService {
 
   /** Does this store let staff see purchase prices? (Its settings record, synced like any other.) */
   async staffSeeCost(businessId: string): Promise<boolean> {
+    return (await this.settingsData(businessId))?.staffSeeCost === true;
+  }
+
+  /** The store's settings record (as last synced). */
+  async settingsData(businessId: string): Promise<Data | undefined> {
     const [row] = await this.db
       .select({ data: syncRecords.data })
       .from(syncRecords)
       .where(and(eq(syncRecords.businessId, businessId), eq(syncRecords.tableName, 'settings'), eq(syncRecords.id, businessId)))
       .limit(1);
-    return row?.data.staffSeeCost === true;
+    return row?.data;
   }
 
   /**

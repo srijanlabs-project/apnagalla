@@ -1,20 +1,4 @@
-import {
-  DEFAULT_NUMBER_PATTERN,
-  calculateInvoice,
-  financialYearLabel,
-  formatNumber,
-  gstinState,
-  parseDocNumber,
-  parseSeriesKey,
-  seriesKey,
-  resolvePlaceOfSupply,
-  stateCode,
-  todayISO,
-  type GstType,
-  type InvoiceTotals,
-  type NumberSeries,
-  type TaxMode,
-} from '@invoice/shared';
+import { DEFAULT_NUMBER_PATTERN, calculateInvoice, financialYearLabel, formatNumber, gstinState, parseDocNumber, parseSeriesKey, seriesKey, resolvePlaceOfSupply, stateCode, todayISO, type GstType, type InvoiceTotals, type NumberSeries, type TaxMode, billLocked, type StaffAccess } from '@invoice/shared';
 import type { Table } from 'dexie';
 import { t } from './i18n';
 import { buildLedger, moneyOf, type BillMoney } from './ledger';
@@ -46,6 +30,19 @@ export interface Actor {
   seriesCode?: string;
   /** Staff: most discount % allowed on a bill (missing / 100 = no limit). */
   maxDiscountPct?: number;
+  /** Staff: full, warehouse (deliveries only) or read-only (accountant). */
+  access?: StaffAccess;
+  /** Staff allowed to cancel saved bills. */
+  cancelBills?: boolean;
+}
+
+/** Locked old bill: payments and notes only (the store's lock setting). */
+export async function assertNotLocked(actor: Actor, doc: { status: string; date: string } | undefined): Promise<void> {
+  if (!doc || doc.status !== 'saved') return;
+  const s = await settingsOf(actor.businessId);
+  if (billLocked(doc.date, { afterDays: s.lockBillsAfterDays, until: s.booksClosedUntil }, todayISO())) {
+    throw new PermissionError(t('This bill is locked (its period is closed). Make a credit note instead.'));
+  }
 }
 
 /**
@@ -84,6 +81,8 @@ function tableOf(name: SyncedTable): Table<SyncedRecord, string> {
 
 /** Insert or replace a record and queue it for sync — atomically. */
 export async function putRecord<R extends { id: string; createdAt?: string }>(name: SyncedTable, actor: Actor, record: R): Promise<R & SyncedRecord> {
+  if (actor.role !== 'owner' && actor.access === 'readonly') throw new PermissionError(t('This login can only view the books'));
+  if (actor.role !== 'owner' && actor.access === 'warehouse' && name !== 'invoices' && name !== 'estimates') throw new PermissionError(t('The warehouse login only marks deliveries'));
   const now = nowIso();
   const full = { ...record, createdAt: record.createdAt || now, businessId: actor.businessId, updatedAt: now, updatedBy: actor.userId } as R & SyncedRecord;
   await db.transaction('rw', [tableOf(name), db.outbox], async () => {
@@ -445,6 +444,7 @@ export async function saveInvoice(actor: Actor, inv: Invoice, opts: { finalize: 
   const existing = await db.invoices.get(inv.id);
   if (existing && existing.status !== 'draft' && actor.role !== 'owner') throw new PermissionError(t('Only the owner can edit a saved invoice'));
   if (existing?.status === 'cancelled') throw new PermissionError(t('Cancelled invoices cannot be edited'));
+  await assertNotLocked(actor, existing);
 
   let next: Invoice = { ...inv, history: [...(existing?.history ?? inv.history ?? [])] };
   const finalizing = opts.finalize && next.status === 'draft';
@@ -594,9 +594,10 @@ export async function convertLegacyPayments(actor: Actor): Promise<number> {
 }
 
 export async function cancelInvoice(actor: Actor, invoiceId: string, reason?: string): Promise<void> {
-  if (actor.role !== 'owner') throw new PermissionError(t('Only the owner can cancel an invoice'));
+  if (actor.role !== 'owner' && !actor.cancelBills) throw new PermissionError(t('Only the owner can cancel an invoice'));
   const inv = await db.invoices.get(invoiceId);
   if (!inv || inv.status !== 'saved') return;
+  await assertNotLocked(actor, inv);
   const money = await billMoney(invoiceId);
   if (money.credited > 0) throw new PermissionError(t('Cancel its credit notes first'));
   if (money.paid > 0) throw new PermissionError(t('Void or refund its payments first'));
@@ -798,6 +799,7 @@ export async function saveCreditNote(actor: Actor, note: CreditNote, opts: { fin
     if (existing && existing.status !== 'draft') throw new PermissionError(t('Only the owner can change a saved credit note'));
   }
   if (existing?.status === 'cancelled') throw new PermissionError(t('Cancelled credit notes cannot be edited'));
+  await assertNotLocked(actor, existing);
   const next: CreditNote = { ...note, totals: computeTotals(note), history: [...(existing?.history ?? note.history ?? [])] };
   const finalizing = opts.finalize && next.status === 'draft';
   if (finalizing || next.status === 'saved') {
@@ -822,6 +824,7 @@ export async function cancelCreditNote(actor: Actor, id: string, reason?: string
   if (actor.role !== 'owner') throw new PermissionError(t('Only the owner can cancel a credit note'));
   const note = await db.creditNotes.get(id);
   if (!note || note.status !== 'saved') return;
+  await assertNotLocked(actor, note);
   await putRecord('creditNotes', actor, { ...note, status: 'cancelled', history: [...note.history, historyEntry(actor, 'cancelled', reason)] });
   await noteOnInvoice(actor, note.invoiceId, 'credit note', `${note.number} cancelled`);
 }

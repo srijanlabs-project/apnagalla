@@ -10,7 +10,7 @@ interface TextProps {
   label: string;
   value: string | undefined;
   onChange: (v: string) => void;
-  type?: 'text' | 'tel' | 'email' | 'url' | 'number';
+  type?: 'text' | 'tel' | 'email' | 'url' | 'number' | 'date';
   inputmode?: 'text' | 'tel' | 'email' | 'url' | 'numeric' | 'decimal';
   placeholder?: string;
   disabled?: boolean;
