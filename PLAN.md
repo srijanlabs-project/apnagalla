@@ -159,6 +159,33 @@ R2 decisions (defaults):
 - Not yet (R3 or later): GSTR-1 JSON export, custom saved reports, cheque bounce handling, auto UPI
   confirmation, credit limit blocking (it only warns), customer groups and price levels.
 
+### Release 5 (proposed) — global product reference
+Agreed in outline 25 Nov 2026; details to settle before building. Barcodes are out of scope.
+
+Goal: when a shop adds an item, it picks from a shared product list instead of typing everything.
+A shop with its own catalogue mostly sees its own items; the shared list stays out of the way.
+
+- Global data kept by ApnaGalla: categories, generic items (Wheat Atta), brands and their other
+  spellings, pack sizes (quantity + unit), regional names (आटा, gehun ka atta → Wheat Atta), default
+  HSN / GST rate. Product = generic item + brand + pack (Aashirvaad Wheat Atta 5 kg).
+- Three things never mixed: generic item, product, the shop's own item (with its prices and stock).
+- At onboarding the owner picks the store's categories (several allowed, changeable later in
+  settings; existing stores choose there). Each category's list is one small download (about
+  0.5–2 MB) to every phone of the store's team, updated with changes only. Works offline.
+- It is a read-only suggestion list, never added to the shop's items in bulk. Picking a suggestion
+  copies name, unit, category, HSN and GST into a new item of the shop; the shop adds price, cost,
+  MRP and stock. Later changes to the global list don't change the shop's items.
+- Typing "fortune oil 1" matches brand, generic item, quantity and unit on the phone; the shop's own
+  items are suggested first, so nothing is duplicated.
+- A shop's own items stay private. Only the ApnaGalla team edits the global list (admin panel, by
+  hand or Excel). Later: names many shops added but missing from the global list, for the team to
+  review (needs consent in the terms).
+- Starts inside the ApnaGalla server (own tables and download); a separate service for Quicksy and
+  others when a second product needs it.
+- Open: who makes the first list (draft by us for client review, or the client's list); which store
+  categories first (kirana only, or all five shop types); suggestions also while billing / purchases
+  and in Excel import, or the New item screen only; someone to keep the data clean over time.
+
 Pending (not scheduled yet):
 - **iPhone app.** Needs an Apple Developer account ($99/yr), a Mac or cloud Mac builds, and an iPhone to
   test. Work: add the iOS project, icons and launch screen, permission texts (camera, Face ID,
