@@ -10,8 +10,8 @@ import { newId, putRecord, type Actor } from './repo';
  */
 
 /** Does this item keep count of stock? Services and area-priced items don't. */
-export const tracksStock = (item: Pick<Item, 'trackStock' | 'pricing' | 'deleted'>): boolean =>
-  !item.deleted && item.trackStock !== false && (item.pricing ?? 'unit') === 'unit';
+export const tracksStock = (item: Pick<Item, 'trackStock' | 'pricing' | 'deleted' | 'hasVariants'>): boolean =>
+  !item.deleted && !item.hasVariants && item.trackStock !== false && (item.pricing ?? 'unit') === 'unit';
 
 const round = (n: number) => Math.round(n * 1000) / 1000;
 
@@ -48,17 +48,17 @@ export async function stockEvents(businessId: string, upTo?: string): Promise<Ma
     add(m.itemId, { date: m.date, qty: m.qty, kind: m.kind, label: m.kind === 'opening' ? t('Opening stock') : reasonLabel(m.reason), move: m });
   }
   for (const inv of invoices) {
-    for (const l of inv.lines) add(l.itemId, { date: inv.date, qty: -l.qty, kind: 'sale', label: t('Sale {number}', { number: inv.number }), href: `/tabs/invoices/${inv.id}` });
+    for (const l of inv.lines) add(l.itemId, { date: inv.date, qty: -l.qty * (l.unitFactor ?? 1), kind: 'sale', label: t('Sale {number}', { number: inv.number }), href: `/tabs/invoices/${inv.id}` });
   }
   for (const n of notes) {
-    for (const l of n.lines) add(l.itemId, { date: n.date, qty: l.qty, kind: 'return', label: t('Return {number}', { number: n.number }), href: `/tabs/credit-notes/${n.id}` });
+    for (const l of n.lines) add(l.itemId, { date: n.date, qty: l.qty * (l.unitFactor ?? 1), kind: 'return', label: t('Return {number}', { number: n.number }), href: `/tabs/credit-notes/${n.id}` });
   }
   for (const p of purchases) {
     const ret = p.kind === 'return';
     for (const l of p.lines) {
       add(l.itemId, {
         date: p.date,
-        qty: ret ? -l.qty : l.qty,
+        qty: (ret ? -l.qty : l.qty) * (l.unitFactor ?? 1),
         kind: ret ? 'purchase_return' : 'purchase',
         label: p.supplier?.name ? (ret ? t('Returned to {name}', { name: p.supplier.name }) : t('Bought from {name}', { name: p.supplier.name })) : ret ? t('Purchase return') : t('Purchase'),
         href: `/tabs/purchases/${p.id}`,
@@ -77,7 +77,7 @@ export async function stockLevels(businessId: string, upTo?: string): Promise<Ma
   return levels;
 }
 
-export const isLow = (item: Pick<Item, 'lowStock' | 'trackStock' | 'pricing' | 'deleted'>, qty: number): boolean =>
+export const isLow = (item: Pick<Item, 'lowStock' | 'trackStock' | 'pricing' | 'deleted' | 'hasVariants'>, qty: number): boolean =>
   tracksStock(item) && item.lowStock != null && qty <= item.lowStock;
 
 /** Quantity to suggest ordering: the item's usual order, else enough to get back above the low level. */

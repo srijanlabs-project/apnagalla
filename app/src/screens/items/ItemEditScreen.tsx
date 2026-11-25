@@ -15,6 +15,7 @@ import { flattenCategories, useCategories } from '../../lib/categories';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
 import { isLow, qtyText, setOpeningStock, stockLevels, tracksStock } from '../../lib/stock';
+import { PriceLevelsSection, UnitsSection, VariantsSection } from './ItemExtras';
 
 export function blankItem(actor: Actor, settings: BusinessSettings, name = '', barcode?: string): Item {
   return {
@@ -215,6 +216,9 @@ export default function ItemEditScreen() {
         </IonItem>
       )}
       <ItemForm value={it} onChange={patch} settings={settings} priceLocked={priceLocked} showCost={isOwner || settings.staffSeeCost} />
+      {!it.hasVariants && <PriceLevelsSection it={it} patch={patch} disabled={priceLocked} />}
+      {!it.hasVariants && <UnitsSection it={it} patch={patch} disabled={priceLocked} />}
+      <VariantsSection it={it} saved={!isNew} />
       {isNew && tracksStock(it) && (
         <FormSection>
           <NumberField label={t('Opening stock')} value={opening} onChange={setOpening} suffix={it.unit} min={0} helper={t('How many you have now.')} />

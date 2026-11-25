@@ -33,10 +33,11 @@ export default function ItemsScreen() {
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     const inCat = catId ? withDescendants(catId, cats) : null;
+    // Variants show under their group, unless searched for.
     return (items ?? []).filter(
       (i) =>
         (!inCat || (i.categoryId && inCat.has(i.categoryId))) &&
-        (!s || i.name.toLowerCase().includes(s) || i.code?.toLowerCase() === s || i.barcode === s),
+        (s ? i.name.toLowerCase().includes(s) || i.code?.toLowerCase() === s || i.barcode === s : !i.variantOf),
     );
   }, [items, q, catId, cats]);
 
@@ -90,6 +91,14 @@ export default function ItemsScreen() {
               </IonLabel>
               <IonNote slot="end" className="amount-note">
                 {rupees(i.rate)}
+                {i.hasVariants && stock && (
+                  <span className="stock-qty">
+                    {t('{count} variants · stock {qty}', {
+                      count: (items ?? []).filter((v) => v.variantOf === i.id).length,
+                      qty: qtyText((items ?? []).filter((v) => v.variantOf === i.id).reduce((a, v) => a + (stock.get(v.id) ?? 0), 0)),
+                    })}
+                  </span>
+                )}
                 {tracksStock(i) && stock && (
                   <span className={`stock-qty${(stock.get(i.id) ?? 0) < 0 || isLow(i, stock.get(i.id) ?? 0) ? ' text-danger' : ''}`}>
                     {t('Stock {qty}', { qty: qtyText(stock.get(i.id) ?? 0) })}

@@ -41,6 +41,7 @@ import { computeTotals, deleteDraft, effectiveGstType, newId, newInvoiceDraft, r
 import { sync } from '../../lib/sync';
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
+import { repriceLines, sellable } from '../../lib/pricing';
 import LineEditor, { lineFromItem } from '../docs/LineEditor';
 
 /** What the counter shows after a sale is saved. */
@@ -91,10 +92,13 @@ export default function SaleScreen() {
       db.items
         .where('[businessId+name]')
         .between([actor.businessId, ''], [actor.businessId, '￿'])
-        .filter((i) => !i.deleted)
+        .filter(sellable)
         .toArray(),
     [actor.businessId],
   );
+  // Wholesale / special customers get those prices.
+  const customerId = bill?.billTo?.customerId;
+  const level = useLiveQuery(async () => (customerId ? ((await db.customers.get(customerId))?.priceLevel ?? 'retail') : 'retail'), [customerId]) ?? 'retail';
   const heldBills = useLiveQuery(
     () =>
       db.invoices
@@ -149,14 +153,14 @@ export default function SaleScreen() {
   function addItem(it: Item) {
     // Priced by size: ask for the size straight away.
     if (it.pricing === 'sqft' || it.pricing === 'rft') {
-      setEditing({ line: lineFromItem(it), isNew: true });
+      setEditing({ line: lineFromItem(it, level), isNew: true });
       setQ('');
       return;
     }
     patch((cur) => {
       const same = cur.lines.find((l) => l.itemId === it.id && !l.dims);
       if (same) return { lines: cur.lines.map((l) => (l === same ? { ...l, qty: l.qty + 1 } : l)) };
-      return { lines: [...cur.lines, lineFromItem(it)] };
+      return { lines: [...cur.lines, lineFromItem(it, level)] };
     });
     setQ('');
   }
@@ -477,8 +481,16 @@ export default function SaleScreen() {
         onConfirm={finish}
       />
       <BarcodeScanner isOpen={scanning} continuous title={t('Scan items')} onClose={() => setScanning(false)} onScan={(code) => byBarcode(code)} />
-      <CustomerPicker isOpen={picker} onClose={() => setPicker(false)} onPick={(party) => patch({ billTo: party, shipTo: null })} />
+      <CustomerPicker
+        isOpen={picker}
+        onClose={() => setPicker(false)}
+        onPick={(party, customer) => {
+          patch({ billTo: party, shipTo: null });
+          void repriceLines(bill.lines, customer?.priceLevel ?? 'retail').then((lines) => patch({ lines }));
+        }}
+      />
       <LineEditor
+        level={level}
         line={editing?.line ?? null}
         isNew={editing?.isNew ?? false}
         noTax={bill.taxMode === 'none'}

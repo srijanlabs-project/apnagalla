@@ -1,3 +1,4 @@
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   IonBackButton,
   IonButton,
@@ -51,6 +52,7 @@ import { PAYMENT_TERMS } from '../settings/InvoiceSettingsScreen';
 import CustomerPicker, { snapshotOf } from './CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
 import { settleJobAdvance } from '../../lib/jobs';
+import { repriceLines } from '../../lib/pricing';
 import LineEditor from './LineEditor';
 import { sync } from '../../lib/sync';
 import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
@@ -132,6 +134,8 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
   }, [invoiceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totals = useMemo(() => (doc ? computeTotals(doc) : null), [doc]);
+  const docCustomerId = doc?.billTo?.customerId;
+  const level = useLiveQuery(async () => (docCustomerId ? ((await db.customers.get(docCustomerId))?.priceLevel ?? 'retail') : 'retail'), [docCustomerId]) ?? 'retail';
 
   if (kind !== 'estimate' && !CAN_CREATE_INVOICES) {
     return (
@@ -564,8 +568,16 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         </IonFooter>
       )}
 
-      <CustomerPicker isOpen={picker} onClose={() => setPicker(false)} onPick={(party) => patch({ billTo: party, shipTo: null })} />
+      <CustomerPicker
+        isOpen={picker}
+        onClose={() => setPicker(false)}
+        onPick={(party, customer) => {
+          patch({ billTo: party, shipTo: null });
+          void repriceLines(doc.lines, customer?.priceLevel ?? 'retail').then((lines) => patch({ lines }));
+        }}
+      />
       <LineEditor
+        level={level}
         line={editing?.line ?? null}
         isNew={editing?.isNew ?? false}
         noTax={noTax}

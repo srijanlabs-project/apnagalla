@@ -122,8 +122,12 @@ export interface BusinessSettings extends SyncedRecord {
 
 /* ---------- catalogue ---------- */
 
+export type PriceLevel = 'retail' | 'wholesale' | 'special';
+
 export interface Customer extends SyncedRecord {
   name: string;
+  /** Wholesale / special customers get those item prices. */
+  priceLevel?: PriceLevel;
   /** Warn when what the customer owes would go above this (paise). */
   creditLimit?: number | null;
   phone?: string;
@@ -158,6 +162,15 @@ export interface Item extends SyncedRecord {
   reorderQty?: number | null;
   /** Supplier this item is usually bought from. */
   supplierId?: string | null;
+  /** Garments etc.: this item only groups its variants (no stock of its own). */
+  hasVariants?: boolean;
+  /** A variant: its parent item and "M · Red". */
+  variantOf?: string | null;
+  variantLabel?: string;
+  /** Other units it is bought or sold in: 1 box = 12 (base unit). Own price optional. */
+  altUnits?: { unit: string; factor: number; rate?: number | null }[];
+  /** Prices per base unit for customer types; retail is `rate`. */
+  prices?: { wholesale?: number | null; special?: number | null };
   /** Cost per unit (paise). Hidden from staff unless the store allows it. */
   purchasePrice?: number;
   categoryId?: string | null;
@@ -188,6 +201,8 @@ export interface DocLine {
   dims?: LineDims | null;
   /** Copied from the item for the optional MRP column. */
   mrp?: number;
+  /** Base units in one of this line's unit (a box of 12 → 12). Stock moves qty × this. */
+  unitFactor?: number;
 }
 
 /** Item category; up to 3 levels (parentId = null for a top level). */

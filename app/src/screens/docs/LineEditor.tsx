@@ -19,13 +19,14 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useState } from 'react';
 import { FormSection, MoneyField, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
 import { useBusiness } from '../../lib/business';
-import { db, type DocLine, type Item } from '../../lib/db';
+import { db, type DocLine, type Item, type PriceLevel } from '../../lib/db';
+import { priceFor, sellable, unitOptions } from '../../lib/pricing';
 import { t } from '../../lib/i18n';
 import { isAreaLine, lineSize, rupees } from '../../lib/format';
 import { newId, putRecord } from '../../lib/repo';
 import { sync } from '../../lib/sync';
 
-export function lineFromItem(it: Item): DocLine {
+export function lineFromItem(it: Item, level: PriceLevel = 'retail'): DocLine {
   const area = it.pricing === 'sqft' || it.pricing === 'rft';
   return {
     id: newId(),
@@ -35,7 +36,7 @@ export function lineFromItem(it: Item): DocLine {
     // Area-priced: the size is entered next, which gives the quantity.
     qty: area ? 0 : 1,
     unit: area ? AREA_UNIT[it.pricing as AreaPricing] : it.unit,
-    rate: it.rate,
+    rate: priceFor(it, level),
     rateIncludesTax: it.rateIncludesTax,
     taxPct: it.taxPct,
     hsn: it.hsn,
@@ -57,9 +58,11 @@ interface Props {
   onClose: () => void;
   onSave: (line: DocLine) => void;
   onDelete: (id: string) => void;
+  /** The customer's price type (wholesale / special prices). */
+  level?: PriceLevel;
 }
 
-export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDelete }: Props) {
+export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDelete, level = 'retail' }: Props) {
   const { actor, settings } = useBusiness();
   const [l, setL] = useState<DocLine | null>(line);
   const [picking, setPicking] = useState(false);
@@ -78,10 +81,12 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
       db.items
         .where('[businessId+name]')
         .between([actor.businessId, ''], [actor.businessId, '￿'])
-        .filter((i) => !i.deleted)
+        .filter(sellable)
         .toArray(),
     [actor.businessId],
   );
+  // The catalogue item of this line, for its other units (box, dozen…).
+  const lineItem = useLiveQuery(async () => (l?.itemId ? db.items.get(l.itemId) : undefined), [l?.itemId]);
   const matches = useMemo(() => {
     const s = q.trim().toLowerCase();
     return s ? (items ?? []).filter((i) => i.name.toLowerCase().includes(s)) : items ?? [];
@@ -173,7 +178,7 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
                 button
                 detail={false}
                 onClick={() => {
-                  setL({ ...lineFromItem(it), id: l.id });
+                  setL({ ...lineFromItem(it, level), id: l.id });
                   setPicking(false);
                 }}
               >
@@ -227,7 +232,19 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
               ) : (
                 <div className="field-row">
                   <NumberField label={t('Quantity')} value={l.qty} onChange={(qty) => set({ qty: qty ?? 0 })} min={0} />
-                  <SelectField label={t('Unit')} value={l.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => set({ unit })} />
+                  {lineItem?.altUnits?.length ? (
+                    <SelectField
+                      label={t('Unit')}
+                      value={`${l.unit}|${l.unitFactor ?? 1}`}
+                      options={unitOptions(lineItem, level).map((u) => ({ value: `${u.unit}|${u.factor}`, label: u.factor === 1 ? u.unit : `${u.unit} (${u.factor} ${lineItem.unit})` }))}
+                      onChange={(v) => {
+                        const u = unitOptions(lineItem, level).find((x) => `${x.unit}|${x.factor}` === v);
+                        if (u) set({ unit: u.unit, unitFactor: u.factor === 1 ? undefined : u.factor, rate: u.rate });
+                      }}
+                    />
+                  ) : (
+                    <SelectField label={t('Unit')} value={l.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => set({ unit })} />
+                  )}
                 </div>
               )}
               {noTax ? (

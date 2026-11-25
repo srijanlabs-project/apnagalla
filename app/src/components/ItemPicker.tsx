@@ -6,6 +6,7 @@ import { db, type Item } from '../lib/db';
 import { rupees } from '../lib/format';
 import { t } from '../lib/i18n';
 import { qtyText, stockLevels, tracksStock } from '../lib/stock';
+import { sellable } from '../lib/pricing';
 
 /** Pick a catalogue item (search by name, code or barcode); optionally a new name not in the catalogue. */
 export default function ItemPicker({
@@ -25,7 +26,7 @@ export default function ItemPicker({
   showCost?: boolean;
 }) {
   const [q, setQ] = useState('');
-  const items = useLiveQuery(() => (isOpen ? db.items.where('businessId').equals(businessId).filter((i) => !i.deleted).toArray() : []), [isOpen, businessId]);
+  const items = useLiveQuery(() => (isOpen ? db.items.where('businessId').equals(businessId).filter(sellable).toArray() : []), [isOpen, businessId]);
   const stock = useLiveQuery(() => (isOpen ? stockLevels(businessId) : undefined), [isOpen, businessId]);
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();

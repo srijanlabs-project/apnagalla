@@ -206,6 +206,10 @@ export function PurchaseEditScreen() {
       .catch(() => setScanOn(false));
   }, []);
 
+  // Catalogue items on the bill, for their other units (bought by the box…).
+  const itemKey = p?.lines.map((l) => l.itemId ?? '').join(',') ?? '';
+  const lineItems = useLiveQuery(async () => new Map((await db.items.bulkGet(itemKey.split(','))).filter((i): i is NonNullable<typeof i> => !!i).map((i) => [i.id, i])), [itemKey]);
+
   async function scan(file: File) {
     if (!p) return;
     setScanning(true);
@@ -331,6 +335,23 @@ export function PurchaseEditScreen() {
                   </IonButton>
                 )}
               </div>
+              {(() => {
+                const it = l.itemId ? lineItems?.get(l.itemId) : undefined;
+                if (!it?.altUnits?.length) return null;
+                const opts = [{ unit: it.unit, factor: 1 }, ...it.altUnits.filter((u) => u.unit && u.factor > 0)];
+                return (
+                  <SelectField
+                    label={t('Bought in')}
+                    value={`${l.unit}|${l.unitFactor ?? 1}`}
+                    options={opts.map((u) => ({ value: `${u.unit}|${u.factor}`, label: u.factor === 1 ? u.unit : `${u.unit} (${u.factor} ${it.unit})` }))}
+                    onChange={(v) => {
+                      const u = opts.find((x) => `${x.unit}|${x.factor}` === v);
+                      if (u) patchLine(l.id, { unit: u.unit, unitFactor: u.factor === 1 ? undefined : u.factor, rate: Math.round((it.purchasePrice ?? 0) * u.factor) });
+                    }}
+                    disabled={locked}
+                  />
+                );
+              })()}
               <div className="field-row">
                 <NumberField label={t('Quantity')} value={l.qty} onChange={(qty) => patchLine(l.id, { qty: qty ?? 0 })} suffix={l.unit} min={0} disabled={locked} />
                 <MoneyField label={l.rateIncludesTax ? t('Cost (incl. tax)') : t('Cost (before tax)')} value={l.rate} onChange={(rate) => patchLine(l.id, { rate: rate ?? 0 })} disabled={locked} />

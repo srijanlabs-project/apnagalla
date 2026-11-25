@@ -141,11 +141,12 @@ async function itemSales(ctx: ReportContext) {
     doc.lines.forEach((l, idx) => {
       const key = l.itemId || `name:${l.name.toLowerCase()}`;
       const item = l.itemId ? items.get(l.itemId) : undefined;
-      const s = by.get(key) ?? (by.set(key, { name: item?.name ?? l.name, unit: l.unit, qty: 0, amount: 0, cost: 0, item }), by.get(key)!);
+      const s = by.get(key) ?? (by.set(key, { name: item?.name ?? l.name, unit: item?.unit ?? l.unit, qty: 0, amount: 0, cost: 0, item }), by.get(key)!);
       const taxable = doc.totals.lines[idx]?.taxable ?? Math.round(l.qty * l.rate);
-      s.qty += sign * l.qty;
+      const qty = l.qty * (l.unitFactor ?? 1);
+      s.qty += sign * qty;
       s.amount += sign * taxable;
-      s.cost += sign * Math.round(l.qty * (item?.purchasePrice ?? 0));
+      s.cost += sign * Math.round(qty * (item?.purchasePrice ?? 0));
     });
   invoices.forEach((i) => add(i, 1));
   notes.filter((n) => n.reason === 'return').forEach((n) => add(n, -1));

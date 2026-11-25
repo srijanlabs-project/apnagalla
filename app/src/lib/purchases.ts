@@ -168,7 +168,7 @@ export async function newPurchaseDraft(actor: Actor, opts: { supplier?: Supplier
 const entry = (actor: Actor, action: string, detail?: string): HistoryEntry => ({ at: new Date().toISOString(), by: actor.userId, byName: actor.userName, action, detail });
 
 /** Cost per unit before tax, for the item's purchase price. */
-const unitCost = (l: PurchaseLine) => Math.round(l.rateIncludesTax && l.taxPct ? l.rate / (1 + l.taxPct / 100) : l.rate);
+const unitCost = (l: PurchaseLine) => Math.round((l.rateIncludesTax && l.taxPct ? l.rate / (1 + l.taxPct / 100) : l.rate) / (l.unitFactor ?? 1));
 
 /**
  * Saves a purchase. On first save of a bill: lines for things not in the catalogue become new items
@@ -223,8 +223,10 @@ export async function savePurchase(actor: Actor, p: Purchase, opts: { finalize: 
         const patch: Partial<Item> = {};
         const cost = unitCost(l);
         if (cost > 0 && cost !== item.purchasePrice) patch.purchasePrice = cost;
-        if (l.mrp && l.mrp !== item.mrp) patch.mrp = l.mrp;
-        if (l.salePrice && l.salePrice !== item.rate) patch.rate = l.salePrice;
+        // MRP and selling price are per the line's unit; the item keeps them per base unit.
+        const per = (v: number) => Math.round(v / (l.unitFactor ?? 1));
+        if (l.mrp && per(l.mrp) !== item.mrp) patch.mrp = per(l.mrp);
+        if (l.salePrice && per(l.salePrice) !== item.rate) patch.rate = per(l.salePrice);
         if (!item.supplierId && p.supplier?.supplierId) patch.supplierId = p.supplier.supplierId;
         // Only the owner changes catalogue prices; staff saves still record the bill.
         if (Object.keys(patch).length && (actor.role === 'owner' || !('rate' in patch))) await putRecord('items', actor, { ...item, ...patch });

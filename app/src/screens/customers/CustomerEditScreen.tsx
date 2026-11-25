@@ -3,7 +3,8 @@ import { checkGstin, normalizeIndianMobile, stateName, type GstinProblem } from 
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { AddressFields, FormSection, MoneyField, TextField, ToggleRow } from '../../components/Fields';
+import { AddressFields, FormSection, MoneyField, SelectField, TextField, ToggleRow } from '../../components/Fields';
+import { levelLabel } from '../../lib/pricing';
 import FormPage from '../../components/FormPage';
 import GstinCheck from '../../components/GstinCheck';
 import { useBusiness } from '../../lib/business';
@@ -131,6 +132,15 @@ export default function CustomerEditScreen() {
       <CustomerForm value={c} update={(fn) => setValue((v) => v && fn(v))} />
       <FormSection title={t('Opening balance')} note={t('Amount this customer already owed you before you started using the app. Added to their pending total.')}>
         <MoneyField label={t('Opening balance')} value={c.openingBalance} onChange={(v) => patch({ openingBalance: v ?? 0 })} disabled={!isOwner && !isNew} />
+      </FormSection>
+      <FormSection title={t('Customer type')} note={t('Wholesale and special customers get the items’ wholesale or special prices.')}>
+        <SelectField
+          label={t('Customer type')}
+          value={c.priceLevel ?? 'retail'}
+          options={(['retail', 'wholesale', 'special'] as const).map((value) => ({ value, label: levelLabel(value) }))}
+          onChange={(priceLevel) => patch({ priceLevel })}
+          disabled={!isOwner && !isNew}
+        />
       </FormSection>
       <FormSection title={t('Credit limit')} note={t('Warns before billing on credit beyond this amount. Leave empty for no limit.')}>
         <MoneyField label={t('Credit limit')} value={c.creditLimit ?? null} onChange={(v) => patch({ creditLimit: v || null })} disabled={!isOwner} />
