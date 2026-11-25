@@ -89,3 +89,31 @@ describe('R5 product list on the phone', () => {
     expect(parseCatalogSheet([['Item']]).problems[0]).toContain('Missing columns');
   });
 });
+
+describe('starter product lists', () => {
+  it('every row loads through the upload code, and common searches find the right products', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const { parseCsv } = await import('./importer');
+    const { catalogRowBody, buildCatalogIndex, catalogId: idOf } = await import('@invoice/shared');
+    const dir = path.resolve(__dirname, '../../../server/catalog/starter');
+    const all: CatalogItemDto[] = [];
+    for (const section of ['kirana', 'hardware', 'garments'] as const) {
+      const { rows, problems } = parseCatalogSheet(parseCsv(fs.readFileSync(path.join(dir, `${section}.csv`), 'utf8')));
+      expect(problems).toEqual([]);
+      expect(rows.length).toBeGreaterThan(400);
+      for (const r of rows) {
+        const ok = catalogRowBody.parse(r);
+        all.push({ ...ok, id: idOf(section, { item: ok.item, brand: ok.brand ?? null, size: ok.size ?? null, sizeUnit: ok.sizeUnit ?? null }), section, brand: ok.brand ?? null, size: ok.size ?? null, sizeUnit: ok.sizeUnit ?? null, hsn: ok.hsn ?? null, gstPct: ok.gstPct ?? null, seq: 1 });
+      }
+    }
+    const aliases = parseCsv(fs.readFileSync(path.join(dir, 'aliases.csv'), 'utf8')).slice(1).map((r) => ({ word: String(r[0]), means: String(r[1]) }));
+    const index = buildCatalogIndex(all, aliases);
+    const top = (q: string) => searchCatalog(index, q, 5).map((e) => e.name);
+    expect(top('polycab wire 1.5').length).toBeGreaterThan(0);
+    expect(top('havells mcb')[0]).toMatch(/MCB/);
+    console.log(JSON.stringify({ atta: top('ashirwad atta 5'), oil: top('fortune oil 1'), tel: top('सरसों तेल'), wire: top('polycab wire 1.5'), mcb: top('havells mcb'), shirt: top('mens shirt'), chawal: top('chawal') }, null, 1));
+    expect(top('ashirwad atta 5')[0]).toMatch(/Aashirvaad.*Atta 5 kg/);
+    expect(new Set(all.map((r) => r.id)).size).toBe(all.length);
+  });
+});

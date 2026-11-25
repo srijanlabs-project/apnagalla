@@ -121,6 +121,7 @@ export function normalizeWords(s: string): string[] {
   return s
     .toLowerCase()
     .normalize('NFC')
+    .replace(/['’`]/g, '') // "men's" → "mens"
     .replace(/(\d)([a-z]+)/g, '$1 $2') // "5kg" → "5 kg", "500ml" → "500 ml"
     .replace(/[^\p{L}\p{M}\p{N}.]+/gu, ' ')
     .replace(/(^|\s)\.+|\.+(\s|$)/g, ' ')
@@ -164,8 +165,10 @@ function nearly(a: string, b: string): boolean {
 export interface CatalogIndexEntry {
   row: CatalogItemDto;
   name: string;
-  /** Words of the brand, item, category and other names. */
+  /** Words of the brand, item and other names. */
   words: string[];
+  /** Words of the category (they count for less). */
+  catWords: string[];
   /** Pack size and unit for "1 l", "500 g". */
   size: number | null;
   unit: string | null;
@@ -181,9 +184,10 @@ export function buildCatalogIndex(rows: CatalogItemDto[], aliases: Pick<CatalogA
   const entries = rows
     .filter((r) => !r.deleted)
     .map((row) => {
-      const words = new Set([...normalizeWords(row.brand ?? ''), ...normalizeWords(row.item), ...normalizeWords(row.category), ...row.otherNames.flatMap(normalizeWords)]);
+      const words = new Set([...normalizeWords(row.brand ?? ''), ...normalizeWords(row.item), ...row.otherNames.flatMap(normalizeWords)]);
+      const catWords = normalizeWords(row.category).filter((w) => !words.has(w));
       const unit = row.sizeUnit ? (UNIT_WORDS[row.sizeUnit.toLowerCase()] ?? row.sizeUnit.toLowerCase()) : null;
-      return { row, name: catalogName(row), words: [...words], size: row.size, unit };
+      return { row, name: catalogName(row), words: [...words], catWords, size: row.size, unit };
     });
   const map = new Map<string, string[]>();
   for (const a of aliases) {
@@ -227,7 +231,7 @@ export function searchCatalog(index: CatalogIndex, query: string, limit = 12): C
     let score = 0;
     let ok = true;
     for (const alts of words) {
-      const s = Math.max(...alts.map((a) => wordScore(a, e.words)));
+      const s = Math.max(...alts.map((a) => Math.max(wordScore(a, e.words), wordScore(a, e.catWords) * 0.4)));
       if (!s) {
         ok = false;
         break;
@@ -236,13 +240,11 @@ export function searchCatalog(index: CatalogIndex, query: string, limit = 12): C
     }
     if (!ok) continue;
     for (const n of nums) {
-      if (e.size == null) {
-        ok = false;
-        break;
-      }
-      // "1" matches 1 L and 1 kg; "1" also matches 100 g / 1000 ml typed as the start of the number.
-      if (e.size === n) score += 2;
-      else if (String(e.size).startsWith(String(n))) score += 0.5;
+      // A number is the pack size ("1" → 1 L, also the start of 100 g) or part of the name
+      // ("1.5" → wire 1.5 sq mm, "40" → 40A).
+      if (e.words.includes(String(n))) score += 2.5;
+      else if (e.size === n) score += 2;
+      else if (e.size != null && String(e.size).startsWith(String(n))) score += 0.5;
       else {
         ok = false;
         break;

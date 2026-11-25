@@ -303,7 +303,7 @@ Decisions (26 Nov 2026):
 | R5.3 Search | Offline matching on the phone: brand + item + size + unit, misspellings, Hindi / Gujarati / Punjabi names; shop's items first | Done |
 | R5.4 New item and onboarding | Suggestions fill New item; store categories at sign-up and in Settings; switch off | Done |
 | R5.5 Billing and purchases | Suggestions for items not yet in the catalogue while billing and on purchase bills (saved as a new item) | Done |
-| R5.6 Starter data | Draft list for Kirana, Hardware, Garments with HSN / GST for the client's review | |
+| R5.6 Starter data | Draft list for Kirana, Hardware, Garments with HSN / GST for the client's review | Draft ready (docs/product-list-review.xlsx: 1,502 kirana, 1,505 hardware, 485 garments, 383 spellings); waiting for review |
 
 How to load the list: admin console (web, /admin) → Product list → pick the section → Upload
 sheet (.xlsx or .csv with the columns Category, Item, Brand, Size, Size unit, Sell unit, HSN, GST %,

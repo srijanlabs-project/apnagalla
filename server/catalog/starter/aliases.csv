@@ -1,0 +1,384 @@
+Word,Means
+tel,Oil
+तेल,Oil
+ਤੇਲ,Oil
+chawal,Rice
+chaval,Rice
+चावल,Rice
+aata,Atta
+आटा,Atta
+ਆਟਾ,Atta
+daal,Dal
+dhal,Dal
+दाल,Dal
+cheeni,Sugar
+chini,Sugar
+चीनी,Sugar
+namak,Salt
+नमक,Salt
+loon,Salt
+ghi,Ghee
+घी,Ghee
+ਘਿਓ,Ghee
+chai,Tea
+चाय,Tea
+chai patti,Tea
+kafi,Coffee
+कॉफी,Coffee
+kaapi,Coffee
+doodh,Milk
+dudh,Milk
+दूध,Milk
+dahi,Curd
+दही,Curd
+ਦਹੀਂ,Curd
+पनीर,Paneer
+panir,Paneer
+makhan,Butter
+मक्खन,Butter
+ਮੱਖਣ,Butter
+बेसन,Besan
+gram flour,Besan
+ਵੇਸਣ,Besan
+मैदा,Maida
+menda,Maida
+મેંદો,Maida
+suji,Sooji
+rava,Sooji
+rawa,Sooji
+pauva,Poha
+chivda,Poha
+पोहा,Poha
+gur,Jaggery
+gud,Jaggery
+गुड़,Jaggery
+haldi,Turmeric
+हल्दी,Turmeric
+ਹਲਦੀ,Turmeric
+mirch,Chilli
+mirchi,Chilli
+मिर्च,Chilli
+dhania,Coriander
+dhaniya,Coriander
+धनिया,Coriander
+zeera,Jeera
+cumin,Jeera
+जीरा,Jeera
+anda,Eggs
+ande,Eggs
+अंडा,Eggs
+double roti,Bread
+ब्रेड,Bread
+dabal roti,Bread
+biscuit,Biscuits
+biskut,Biscuits
+biskit,Biscuits
+nudals,Noodles
+नूडल्स,Noodles
+namkin,Namkeen
+नमकीन,Namkeen
+farsan,Namkeen
+bujia,Bhujia
+भुजिया,Bhujia
+bhujiya,Bhujia
+wafers,Chips
+wafer,Chips
+चिप्स,Chips
+sabun,Soap
+साबुन,Soap
+ਸਾਬਣ,Soap
+shampu,Shampoo
+शैम्पू,Shampoo
+ਸ਼ੈਂਪੂ,Shampoo
+manjan,Toothpaste
+paste,Toothpaste
+टूथपेस्ट,Toothpaste
+surf powder,Washing Powder
+kapde ka powder,Washing Powder
+detergent powder,Washing Powder
+cold drink,Soft Drink
+colddrink,Soft Drink
+thanda,Soft Drink
+pani bottle,Drinking Water
+mineral water,Drinking Water
+पानी,Drinking Water
+agarbati,Agarbatti
+incense,Agarbatti
+अगरबत्ती,Agarbatti
+machis,Matchbox
+माचिस,Matchbox
+tilli,Matchbox
+cell,Battery
+sel,Battery
+बैटरी,Battery
+taar,Wire
+tar,Wire
+तार,Wire
+swich,Switch
+batan,Switch
+स्विच,Switch
+sokit,Socket
+सॉकेट,Socket
+plug point,Socket
+balb,Bulb
+बल्ब,Bulb
+ਬਲਬ,Bulb
+pankha,Fan
+पंखा,Fan
+ਪੱਖਾ,Fan
+paip,Pipe
+पाइप,Pipe
+nal,Tap
+tonti,Tap
+नल,Tap
+rang,Paint
+रंग,Paint
+पेंट,Paint
+siment,Cement
+सीमेंट,Cement
+ਸੀਮਿੰਟ,Cement
+puti,Putty
+पुट्टी,Putty
+pech,Screw
+पेच,Screw
+skru,Screw
+keel,Nails
+kil,Nails
+कील,Nails
+tala,Padlock
+ताला,Padlock
+ਤਾਲਾ,Padlock
+kabja,Hinge
+kabza,Hinge
+कब्ज़ा,Hinge
+chitkani,Tower Bolt
+sitkani,Tower Bolt
+चिटकनी,Tower Bolt
+kundi,Aldrop
+कुंडी,Aldrop
+saria,TMT Bar
+sariya,TMT Bar
+सरिया,TMT Bar
+trip switch,MCB
+एमसीबी,MCB
+होल्डर,Holder
+holdar,Holder
+प्लग,Plug
+plag,Plug
+black tape,Insulation Tape
+bijli tape,Insulation Tape
+tep,Insulation Tape
+gizer,Geyser
+geezer,Geyser
+गीज़र,Geyser
+press,Electric Iron
+istri,Electric Iron
+प्रेस,Electric Iron
+tanki,Water Tank
+टंकी,Water Tank
+ਟੈਂਕੀ,Water Tank
+dispenser paint,Distemper
+डिस्टेंपर,Distemper
+oil paint,Enamel
+inamel,Enamel
+tinner,Thinner
+थिनर,Thinner
+kuchi,Paint Brush
+कूची,Paint Brush
+hathoda,Hammer
+हथौड़ा,Hammer
+ਹਥੌੜਾ,Hammer
+pechkas,Screwdriver
+पेचकस,Screwdriver
+plas,Plier
+प्लास,Plier
+pakkad,Plier
+pana,Spanner
+पाना,Spanner
+barma,Drill
+ड्रिल,Drill
+regmal,Sand Paper
+रेगमाल,Sand Paper
+kameez,Shirt
+kamiz,Shirt
+कमीज़,Shirt
+tshirt,T-Shirt
+t shirt,T-Shirt
+टी-शर्ट,T-Shirt
+pant,Trousers
+pent,Trousers
+patloon,Trousers
+jeens,Jeans
+जींस,Jeans
+baniyan,Vest
+banyan,Vest
+banian,Vest
+underwear,Brief
+chaddi,Brief
+kachha,Brief
+brazzier,Bra
+ब्रा,Bra
+bodice,Bra
+panties,Panty
+पैंटी,Panty
+legging,Leggings
+leggins,Leggings
+लेगिंग,Leggings
+कुर्ती,Kurti
+kurtee,Kurti
+कुर्ता,Kurta
+ਕੁੜਤਾ,Kurta
+pajama,Pyjama
+payjama,Pyjama
+पजामा,Pyjama
+sari,Saree
+saadi,Saree
+साड़ी,Saree
+धोती,Dhoti
+veshti,Dhoti
+लुंगी,Lungi
+tehmat,Lungi
+naity,Nighty
+नाइटी,Nighty
+फ्रॉक,Frock
+frok,Frock
+peticot,Petticoat
+पेटीकोट,Petticoat
+saya,Petticoat
+ब्लाउज़,Blouse
+blouj,Blouse
+chunni,Dupatta
+odhni,Dupatta
+दुपट्टा,Dupatta
+tauliya,Towel
+toliya,Towel
+तौलिया,Towel
+chadar,Bedsheet
+chaddar,Bedsheet
+चादर,Bedsheet
+kambal,Blanket
+कंबल,Blanket
+kapda,Fabric
+kapra,Fabric
+कपड़ा,Fabric
+moze,Socks
+moja,Socks
+jurab,Socks
+swetar,Sweater
+स्वेटर,Sweater
+ਸਵੈਟਰ,Sweater
+jaket,Jacket
+जैकेट,Jacket
+rumal,Handkerchief
+roomal,Handkerchief
+रूमाल,Handkerchief
+shaal,Shawl
+शॉल,Shawl
+ashirwad,Aashirvaad
+pilsbury,Pillsbury
+fortun,Fortune
+patanjli,Patanjali
+dawat,Daawat
+lal kila,Lal Qilla
+tata sampan,Tata Sampann
+safola,Saffola
+डालडा,Dalda
+parashoot,Parachute
+amool,Amul
+motherdairy,Mother Dairy
+govardhan,Gowardhan
+everst,Everest
+badsha,Badshah
+achi,Aachi
+hapilo,Happilo
+tata chai,Tata Tea
+redlabel,Red Label
+waghbakri,Wagh Bakri
+taza,Taaza
+nescaffe,Nescafe
+britania,Britannia
+parle g,Parle
+magi,Maggi
+haldiram,Haldiram's
+lays,Lay's
+kelloggs,Kellogg's
+horlics,Horlicks
+bornvita,Bournvita
+coke,Coca-Cola
+thumbs up,Thums Up
+maza,Maaza
+fruity,Frooti
+bislery,Bisleri
+mamipoko,MamyPoko
+lifeboy,Lifebuoy
+detol,Dettol
+santur,Santoor
+head and shoulders,Head & Shoulders
+clinicplus,Clinic Plus
+colget,Colgate
+closeup,Close-Up
+pepsodant,Pepsodent
+fair and lovely,Glow & Lovely
+vasline,Vaseline
+gilette,Gillette
+wisper,Whisper
+surf exel,Surf Excel
+aerial,Ariel
+ghari,Ghadi
+wim,Vim
+harpik,Harpic
+goodknight,Good Knight
+allout,All Out
+policab,Polycab
+havels,Havells
+finolax,Finolex
+ankar,Anchor
+lagrand,Legrand
+schnider,Schneider
+phillips,Philips
+siska,Syska
+crompten,Crompton
+oriant,Orient
+khetan,Khaitan
+luminus,Luminous
+recold,Racold
+ashian paint,Asian Paints
+berjer,Berger
+neroloc,Nerolac
+dulex,Dulux
+ultratec,UltraTech
+fevicole,Fevicol
+feviquick,Fevikwik
+mseal,M-Seal
+dr fixit,Dr. Fixit
+tapariya,Taparia
+stanly,Stanley
+bosh,Bosch
+astrel,Astral
+jaguar,Jaquar
+parry ware,Parryware
+syntex,Sintex
+godrez,Godrej
+harison,Harrison
+hetich,Hettich
+joki,Jockey
+roopa,Rupa
+lux cosy,Lux Cozi
+lyra leggings,Lyra
+macho,Amul Macho
+dixy scott,Dixcy Scott
+peterengland,Peter England
+alen solly,Allen Solly
+van husen,Van Heusen
+louis philip,Louis Philippe
+levis,Levi's
+rangler,Wrangler
+us polo,U.S. Polo Assn.
+raymonds,Raymond
+siyaram,Siyaram's
+ramraj,Ramraj Cotton
+bombay daying,Bombay Dyeing
+gocolors,Go Colors
+enamour,Enamor
+loveable,Lovable
+addidas,Adidas

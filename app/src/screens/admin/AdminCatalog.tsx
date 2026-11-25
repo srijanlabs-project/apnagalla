@@ -8,6 +8,9 @@ import { readRows, type Cell } from '../../lib/importer';
 import { sync } from '../../lib/sync';
 import { t } from '../../lib/i18n';
 
+/** Sheets of the review workbook (docs/product-list-review.xlsx) for each list. */
+const SHEET_NAMES: Record<CatalogSection, string[]> = { kirana: ['Kirana'], hardware: ['Hardware & electrical', 'Hardware'], garments: ['Garments'] };
+
 /** Sheet columns, in order (the same for upload and download). */
 export const CATALOG_COLUMNS = ['Category', 'Item', 'Brand', 'Size', 'Size unit', 'Sell unit', 'HSN', 'GST %', 'Other names', 'Notes'];
 
@@ -143,7 +146,7 @@ export default function AdminCatalog({ isOpen, onClose }: { isOpen: boolean; onC
             e.target.value = '';
             if (!f) return;
             try {
-              setPending({ ...parseCatalogSheet(await readRows(f)), file: f.name });
+              setPending({ ...parseCatalogSheet(await readRows(f, SHEET_NAMES[section])), file: f.name });
             } catch (err) {
               fail(err);
             }
@@ -158,7 +161,7 @@ export default function AdminCatalog({ isOpen, onClose }: { isOpen: boolean; onC
             const f = e.target.files?.[0];
             e.target.value = '';
             if (!f) return;
-            const all = await readRows(f).catch((err) => (fail(err), [] as Cell[][]));
+            const all = await readRows(f, ['Other spellings']).catch((err) => (fail(err), [] as Cell[][]));
             setAliasPending(all.slice(1).map((r) => ({ word: str(r[0]), means: str(r[1]) })).filter((r) => r.word && r.means));
           }}
         />

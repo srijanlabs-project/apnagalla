@@ -116,11 +116,21 @@ export function parseCsv(text: string): Cell[][] {
   return rows.filter((r) => r.some((c) => (c ?? '').trim() !== ''));
 }
 
-/** Reads the first sheet of an .xlsx, or a .csv file. */
-export async function readRows(file: File): Promise<Cell[][]> {
+/**
+ * Reads a .csv file, or a sheet of an .xlsx: the first of `sheetNames` the workbook has, else its
+ * first sheet.
+ */
+export async function readRows(file: File, sheetNames: string[] = []): Promise<Cell[][]> {
   if (/\.csv$/i.test(file.name) || file.type === 'text/csv') return parseCsv(await file.text());
   if (!/\.xlsx$/i.test(file.name)) throw new Error(t('Choose an Excel (.xlsx) or CSV file. Older .xls files: open in Excel and "Save as" .xlsx.'));
   const { readSheet } = await import('read-excel-file/browser');
+  for (const name of sheetNames) {
+    try {
+      return (await readSheet(file, name)) as Cell[][];
+    } catch {
+      // not in this workbook: try the next name
+    }
+  }
   return (await readSheet(file)) as Cell[][];
 }
 
