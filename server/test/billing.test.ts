@@ -152,3 +152,20 @@ describe('shared product list', () => {
     expect((await app.inject({ method: 'GET', url: '/v1/admin/catalog', headers: admin })).json().sections).toEqual([expect.objectContaining({ section: 'kirana', items: 2 })]);
   });
 });
+
+describe('compression', () => {
+  it('big replies are gzipped when asked, small ones are not', async () => {
+    const shop = bearer((await login('9870410302')).accessToken);
+    const admin = bearer((await login('9870410001', 'web')).accessToken);
+    const rows = Array.from({ length: 40 }, (_, i) => ({ category: 'Rice', item: `Basmati Rice ${i}`, brand: 'India Gate', size: 1, sizeUnit: 'kg', sellUnit: 'pcs', hsn: '1006', gstPct: 5, otherNames: ['चावल'] }));
+    await app.inject({ method: 'POST', url: '/v1/admin/catalog/import', headers: admin, payload: { section: 'garments', rows } });
+    const big = await app.inject({ method: 'GET', url: '/v1/catalog/items/garments?since=0', headers: { ...shop, 'accept-encoding': 'gzip' } });
+    expect(big.statusCode).toBe(200);
+    expect(big.headers['content-encoding']).toBe('gzip');
+    const plain = await app.inject({ method: 'GET', url: '/v1/catalog/items/garments?since=0', headers: shop });
+    expect(plain.headers['content-encoding']).toBeUndefined();
+    expect(plain.json().rows.length).toBeGreaterThan(0);
+    const small = await app.inject({ method: 'GET', url: '/health', headers: { 'accept-encoding': 'gzip' } });
+    expect(small.headers['content-encoding']).toBeUndefined();
+  });
+});

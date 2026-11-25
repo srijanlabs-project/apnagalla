@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import compress from '@fastify/compress';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -133,6 +134,9 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     allowList: (req) => req.url === '/health',
     errorResponseBuilder: (_req, ctx) => ({ statusCode: 429, error: 'rate_limited', message: `Too many requests. Try again in ${Math.ceil(ctx.ttl / 1000)} seconds.` }),
   });
+  // gzip / brotli for replies over 1 KB: sync pages and the product list are ~5× smaller on
+  // mobile data. Phones and browsers ask for it themselves (Accept-Encoding).
+  await app.register(compress, { threshold: 1024, encodings: ['br', 'gzip'] });
   await app.register(cors, {
     origin: (origin, cb) => cb(null, !origin || allowedOrigins.has(origin)),
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
