@@ -7,6 +7,7 @@ import { useBusiness } from '../../lib/business';
 import { db, type Customer, type Item, type Supplier } from '../../lib/db';
 import { rupees } from '../../lib/format';
 import { t } from '../../lib/i18n';
+import { isTallyXml, tallyRows } from '../../lib/tallyImport';
 import { COLUMNS, MAX_IMPORT_ROWS, applyImport, buildPreview, readRows, templateCsv, type ImportKind, type ImportResult, type Preview } from '../../lib/importer';
 import { sharePdf } from '../../lib/pdf';
 import { sync } from '../../lib/sync';
@@ -64,7 +65,8 @@ export default function ImportScreen() {
     setBusy(true);
     setResult(null);
     try {
-      const rows = await readRows(file);
+      const head = await file.slice(0, 2000).text();
+      const rows = isTallyXml(file.name, head) ? tallyRows(await file.text(), kind) : await readRows(file);
       if (rows.length < 2) throw new Error(t('The file has no rows under the headings.'));
       if (rows.length - 1 > MAX_IMPORT_ROWS) void toast({ message: t('Only the first {count} rows are imported at a time.', { count: MAX_IMPORT_ROWS }), duration: 3000 });
       if (kind === 'items') setPreview(buildPreview('items', rows, await db.items.where('businessId').equals(actor.businessId).filter((i) => !i.deleted).toArray()));
@@ -132,6 +134,7 @@ export default function ImportScreen() {
             <summary>{t('Moving from Vyapar or Khatabook?')}</summary>
             <p>{t('Vyapar: Items → ⋮ → Export items to Excel, and Parties → ⋮ → Export parties to Excel. Import the parties file as Customers, and again as Suppliers for the ones you buy from.')}</p>
             <p>{t('Khatabook: Reports → Customer list → Download Excel (and the supplier list the same way).')}</p>
+            <p>{t('Tally: Gateway of Tally → Display More Reports → List of Accounts → Export (Alt+E), format XML. Choose that file here as Customers, Suppliers or Items: sundry debtors, sundry creditors and stock items come in with their opening balances and stock.')}</p>
             <p>{t('Their column names and balances (“Dr / Cr”, “You’ll get / You’ll give”) are read as they are. Stock in the file becomes opening stock.')}</p>
           </details>
           <p className="section-note">
@@ -146,7 +149,7 @@ export default function ImportScreen() {
             <IonButton onClick={() => input.current?.click()} disabled={busy}>
               {busy && !preview ? <IonSpinner name="dots" /> : <IonIcon icon={documentAttachOutline} slot="start" />} {t('Choose file')}
             </IonButton>
-            <input ref={input} type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={(e) => void onFile(e.target.files?.[0])} />
+            <input ref={input} type="file" accept=".xlsx,.csv,.xml,text/csv,text/xml,application/xml,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={(e) => void onFile(e.target.files?.[0])} />
           </div>
 
           {preview && (
