@@ -1,4 +1,5 @@
-import { IonButton, IonButtons, IonContent, IonHeader, IonModal, IonTitle, IonToolbar } from '@ionic/react';
+import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonModal, IonSegment, IonSegmentButton, IonLabel, IonTitle, IonToolbar, useIonAlert } from '@ionic/react';
+import { flashlightOutline, keypadOutline } from 'ionicons/icons';
 import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { useEffect, useRef, useState } from 'react';
@@ -21,9 +22,16 @@ const FORMATS = [
   BarcodeFormat.UPC_E,
   BarcodeFormat.CODE_128,
   BarcodeFormat.CODE_39,
+  BarcodeFormat.CODE_93,
+  BarcodeFormat.CODABAR,
   BarcodeFormat.ITF,
+  BarcodeFormat.RSS_14,
+  BarcodeFormat.RSS_EXPANDED,
   BarcodeFormat.QR_CODE,
+  BarcodeFormat.DATA_MATRIX,
 ];
+
+type Track = MediaStreamTrack;
 
 /** The same code within this time is one scan, not two. */
 const SAME_CODE_MS = 1500;
@@ -36,6 +44,39 @@ export default function BarcodeScanner({ isOpen, onClose, onScan, continuous, ti
   const video = useRef<HTMLVideoElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [last, setLast] = useState<string | null>(null);
+  // Small barcodes need the camera closer than it can focus: zoom in instead.
+  const [zooms, setZooms] = useState<number[]>([]);
+  const [zoom, setZoom] = useState(1);
+  const [torch, setTorch] = useState<boolean | null>(null);
+  const [alert] = useIonAlert();
+  const track = () => (video.current?.srcObject as MediaStream | null)?.getVideoTracks()[0] as Track | undefined;
+  const applyZoom = (z: number) => {
+    setZoom(z);
+    void track()?.applyConstraints({ advanced: [{ zoom: z } as MediaTrackConstraintSet] }).catch(() => undefined);
+  };
+  const toggleTorch = () => {
+    const on = !torch;
+    setTorch(on);
+    void track()?.applyConstraints({ advanced: [{ torch: on } as MediaTrackConstraintSet] }).catch(() => setTorch(null));
+  };
+  const typeCode = () =>
+    void alert({
+      header: t('Type the barcode'),
+      inputs: [{ name: 'code', type: 'text', attributes: { inputmode: 'numeric', autofocus: true } }],
+      buttons: [
+        { text: t('Cancel'), role: 'cancel' },
+        {
+          text: t('OK'),
+          handler: (v: { code: string }) => {
+            const code = v.code.trim();
+            if (!code) return;
+            setLast(code);
+            const keepGoing = onScanRef.current(code) === false || continuous;
+            if (!keepGoing) onCloseRef.current();
+          },
+        },
+      ],
+    });
   // Callbacks via refs: a new function from the parent must not restart the camera.
   const onScanRef = useRef(onScan);
   onScanRef.current = onScan;
@@ -50,15 +91,25 @@ export default function BarcodeScanner({ isOpen, onClose, onScan, continuous, ti
     let lastAt = 0;
     setError(null);
     setLast(null);
-    const hints = new Map([[DecodeHintType.POSSIBLE_FORMATS, FORMATS]]);
-    const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 150 });
+    setZooms([]);
+    setZoom(1);
+    setTorch(null);
+    const hints = new Map<DecodeHintType, unknown>([
+      [DecodeHintType.POSSIBLE_FORMATS, FORMATS],
+      [DecodeHintType.TRY_HARDER, true],
+    ]);
+    const reader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 120 });
 
     // The modal's video element appears after it animates in.
     const start = async () => {
       for (let i = 0; i < 20 && !video.current; i++) await new Promise((r) => setTimeout(r, 50));
       if (stopped || !video.current) return;
       try {
-        controls = await reader.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' } } }, video.current, (result) => {
+        // A sharp, large picture is what lets small barcodes read; ask for HD and continuous focus.
+        const constraints = {
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, advanced: [{ focusMode: 'continuous' } as MediaTrackConstraintSet] },
+        };
+        controls = await reader.decodeFromConstraints(constraints, video.current, (result) => {
           if (!result || stopped) return;
           const code = result.getText().trim();
           const now = Date.now();
@@ -75,6 +126,9 @@ export default function BarcodeScanner({ isOpen, onClose, onScan, continuous, ti
           }
         });
         if (stopped) controls.stop();
+        const caps = track()?.getCapabilities?.() as (MediaTrackCapabilities & { zoom?: { min: number; max: number }; torch?: boolean }) | undefined;
+        if (caps?.zoom && caps.zoom.max > caps.zoom.min) setZooms([1, 2, 3, 4].filter((z) => z >= caps.zoom!.min && z <= caps.zoom!.max));
+        if (caps?.torch) setTorch(false);
       } catch (e) {
         const name = (e as Error).name;
         setError(
@@ -112,7 +166,30 @@ export default function BarcodeScanner({ isOpen, onClose, onScan, continuous, ti
             <div className="scanner-frame" />
           </div>
         )}
-        {!error && <p className="ion-padding scanner-hint">{last ? t('Read {code}', { code: last }) : t('Point the camera at the barcode.')}</p>}
+        {!error && zooms.length > 1 && (
+          <IonSegment value={String(zoom)} onIonChange={(e) => applyZoom(Number(e.detail.value))} className="scanner-zoom">
+            {zooms.map((z) => (
+              <IonSegmentButton key={z} value={String(z)}>
+                <IonLabel>{z}×</IonLabel>
+              </IonSegmentButton>
+            ))}
+          </IonSegment>
+        )}
+        {!error && (
+          <p className="ion-padding scanner-hint">
+            {last ? t('Read {code}', { code: last }) : t('Point the camera at the barcode. For a small barcode, zoom in (2×) and hold the phone a little further away.')}
+          </p>
+        )}
+        <div className="scanner-tools">
+          {torch !== null && (
+            <IonButton fill={torch ? 'solid' : 'outline'} size="small" onClick={toggleTorch}>
+              <IonIcon icon={flashlightOutline} slot="start" /> {t('Light')}
+            </IonButton>
+          )}
+          <IonButton fill="outline" size="small" onClick={typeCode}>
+            <IonIcon icon={keypadOutline} slot="start" /> {t('Type the code')}
+          </IonButton>
+        </div>
       </IonContent>
     </IonModal>
   );
