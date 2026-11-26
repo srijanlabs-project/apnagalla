@@ -151,3 +151,36 @@ describe('R6.3 loans', () => {
     expect((await cashDay('b1', TODAY)).expected).toBe(-29_000_00);
   });
 });
+
+describe('R6.4 receipts', () => {
+  it('a split payment on a bill is one receipt; a khata payment over two bills is one receipt with the balance left', async () => {
+    const { receiptFor, voucherFor, buildReceiptDefinition } = await import('./pdf/receipt');
+    const { receiveKhataPayment } = await import('./khata');
+    const a = await bill(3_000_00);
+    const [p1] = await recordPayments(owner, a.id, [
+      { mode: 'cash', amount: 1_000_00 },
+      { mode: 'upi', amount: 500_00, reference: 'UPI123' },
+    ]);
+    const r = (await receiptFor(p1!.id))!;
+    expect(r.total).toBe(1_500_00);
+    expect(r.lines.map((l) => l.mode).sort()).toEqual(['Cash', 'UPI']);
+    expect(r.party).toBe('Mehta');
+    expect(r.number).toMatch(/^RC-\d{6}-[A-Z0-9]{4}$/);
+
+    const b = await bill(2_000_00);
+    const entries = await receiveKhataPayment(owner, (await db.customers.get('c1'))!, { amount: 2_500_00, mode: 'cash', date: TODAY });
+    const k = (await receiptFor(entries[0]!.id))!;
+    expect(k.total).toBe(2_500_00);
+    expect(k.against.map((x) => x.label)).toEqual([`Bill ${a.number}`, `Bill ${b.number}`]);
+    expect(k.balanceAfter).toBe(1_000_00); // 5,000 billed − 1,500 − 2,500
+    const def = JSON.stringify(buildReceiptDefinition(k));
+    expect(def).toContain('Payment receipt');
+    expect(def).toContain('Balance still due');
+
+    await putRecord('suppliers', owner, { id: 's1', name: 'Polycab Dist' } as never);
+    const sp = await recordSupplierPayment(owner, { supplierId: 's1', amount: 4_000_00, mode: 'bank', date: TODAY, reference: 'NEFT9' });
+    const v = (await voucherFor(sp.id))!;
+    expect(v).toMatchObject({ kind: 'voucher', party: 'Polycab Dist', total: 4_000_00 });
+    expect(v.number.startsWith('PV-')).toBe(true);
+  });
+});

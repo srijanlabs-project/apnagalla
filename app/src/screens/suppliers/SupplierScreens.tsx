@@ -14,6 +14,7 @@ import { useBusiness } from '../../lib/business';
 import { db, type Supplier } from '../../lib/db';
 import { addressLines, dateIN, rupees } from '../../lib/format';
 import { t } from '../../lib/i18n';
+import { shareReceipt, voucherFor } from '../../lib/pdf/receipt';
 import { modeLabel } from '../../lib/ledger';
 import { blankSupplier, payables, recordSupplierPayment, supplierLedger, voidSupplierPayment } from '../../lib/purchases';
 import { deleteRecord, putRecord } from '../../lib/repo';
@@ -267,6 +268,11 @@ export function SupplierDetailScreen() {
             <div slot="end" className="list-end">
               <strong className={r.amount > 0 ? 'text-danger' : 'text-success'}>{rupees(Math.abs(r.amount))}</strong>
               <IonNote className="ledger-balance">{t('Balance {amount}', { amount: rupees(r.balance) })}</IonNote>
+              {r.payment && !r.payment.voidedAt && r.payment.kind === 'payment' && (
+                <IonButton size="small" fill="clear" onClick={() => void voucherFor(r.payment!.id).then((d) => d && shareReceipt(d))}>
+                  {t('Voucher')}
+                </IonButton>
+              )}
               {isOwner && r.payment && (
                 <IonButton
                   size="small"

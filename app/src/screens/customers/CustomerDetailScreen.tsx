@@ -12,6 +12,7 @@ import { db } from '../../lib/db';
 import { shareTable } from '../../lib/exportTable';
 import { addressLines, dateIN, rupees } from '../../lib/format';
 import { t } from '../../lib/i18n';
+import { receiptFor, shareReceipt } from '../../lib/pdf/receipt';
 import { khataOf, receiveKhataPayment, reminderText, statementTable } from '../../lib/khata';
 import { upiLink } from '../../lib/pdf/buildDoc';
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
@@ -138,6 +139,19 @@ export default function CustomerDetailScreen() {
               <div slot="end" className="list-end">
                 <strong className={r.amount > 0 ? 'text-danger' : 'text-success'}>{rupees(Math.abs(r.amount))}</strong>
                 <IonNote className="ledger-balance">{t('Balance {amount}', { amount: rupees(r.balance) })}</IonNote>
+                {r.entry && r.entry.kind === 'payment' && !r.entry.voidedAt && (
+                  <IonButton
+                    size="small"
+                    fill="clear"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      void receiptFor(r.entry!.id).then((d) => d && shareReceipt(d));
+                    }}
+                  >
+                    {t('Receipt')}
+                  </IonButton>
+                )}
               </div>
             </IonItem>
           ))}

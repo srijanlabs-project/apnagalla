@@ -35,6 +35,7 @@ import { gstViewOf, titleIn } from '../../lib/gstView';
 import { appLanguage } from '../../lib/i18n';
 import { dateIN, lineSize, rupees, fileToResizedDataUrl } from '../../lib/format';
 import { t } from '../../lib/i18n';
+import { receiptFor, shareReceipt } from '../../lib/pdf/receipt';
 import { pdfFileName, pdfInputFor, renderPdf, sharePdf } from '../../lib/pdf';
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
 import {
@@ -508,6 +509,11 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 {e.kind === 'refund' ? '−' : ''}
                 {rupees(e.amount)}
               </IonNote>
+              {!e.voidedAt && e.kind === 'payment' && e.mode !== 'advance' && e.mode !== 'creditnote' && (
+                <IonButton slot="end" fill="clear" size="small" onClick={() => void receiptFor(e.id).then((d) => d && shareReceipt(d)).catch(fail)}>
+                  {t('Receipt')}
+                </IonButton>
+              )}
               {isOwner && !e.voidedAt && (
                 <IonButton
                   slot="end"
