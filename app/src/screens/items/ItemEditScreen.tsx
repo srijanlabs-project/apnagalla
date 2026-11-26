@@ -266,6 +266,11 @@ export default function ItemEditScreen() {
       )}
       {!it.hasVariants && <PriceLevelsSection it={it} patch={patch} disabled={priceLocked} />}
       {!it.hasVariants && <UnitsSection it={it} patch={patch} disabled={priceLocked} />}
+      {settings.onlineStore?.enabled && (
+        <FormSection>
+          <ToggleRow label={t('Show in online store')} note={t('Customers see it with its price on your store page and can order it.')} checked={!!it.online} onChange={(online) => patch({ online })} disabled={priceLocked} />
+        </FormSection>
+      )}
       <SerialSection it={it} patch={patch} disabled={priceLocked} />
       <BatchSection it={it} patch={patch} disabled={priceLocked} />
       {!it.hasVariants && <ReturnSection it={it} patch={patch} disabled={priceLocked} />}

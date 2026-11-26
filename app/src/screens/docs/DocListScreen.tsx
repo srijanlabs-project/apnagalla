@@ -24,7 +24,7 @@ import CustomerPicker from './CustomerPicker';
 
 const INVOICE_FILTERS = ['All', 'Unpaid', 'Overdue', 'Paid', 'Draft'] as const;
 const ESTIMATE_FILTERS = ['All', 'Open', 'Accepted', 'Converted', 'Declined', 'Draft'] as const;
-const ESTIMATE_TYPES = ['all', 'quote', 'order', 'proforma', 'work', 'challan'] as const;
+const ESTIMATE_TYPES = ['all', 'online', 'quote', 'order', 'proforma', 'work', 'challan'] as const;
 const PAGE = 25;
 
 type DatePick = Preset | 'all';
@@ -138,6 +138,7 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
       if (kind === 'estimate') {
         const e = d as Estimate;
         const type = e.challan ? 'challan' : e.order ? 'order' : e.proforma ? 'proforma' : e.job ? 'work' : 'quote';
+        if (estType === 'online') return !!e.online && e.status === 'draft';
         if (estType !== 'all' && type !== estType) return false;
         return filter === 'All' || estimateStatus(e).label === filter;
       }
@@ -148,6 +149,7 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docs, q, filter, kind, ledger, estType, period?.from, period?.to, customer]);
+  const onlineNew = (docs ?? []).filter((d) => (d as Estimate).online && d.status === 'draft').length;
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
   const shown = filtered.slice(page * PAGE, page * PAGE + PAGE);
   const totalShown = filtered.reduce((a, d) => a + (d.status === 'cancelled' ? 0 : d.totals.grandTotal), 0);
@@ -170,9 +172,9 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
       <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search number or customer')} />
       {kind === 'estimate' && (
         <div className="filter-chips">
-          {ESTIMATE_TYPES.map((f) => (
+          {ESTIMATE_TYPES.filter((f) => f !== 'online' || onlineNew > 0).map((f) => (
             <IonChip key={f} outline={estType !== f} color={estType === f ? 'primary' : undefined} onClick={() => setEstType(f)}>
-              {f === 'all' ? t('All kinds') : f === 'quote' ? t('Quotations') : f === 'order' ? t('Sales orders') : f === 'proforma' ? t('Proforma') : f === 'work' ? t('Work orders') : t('Challans')}
+              {f === 'online' ? `${t('New online orders')}${onlineNew ? ` (${onlineNew})` : ''}` : f === 'all' ? t('All kinds') : f === 'quote' ? t('Quotations') : f === 'order' ? t('Sales orders') : f === 'proforma' ? t('Proforma') : f === 'work' ? t('Work orders') : t('Challans')}
             </IonChip>
           ))}
         </div>

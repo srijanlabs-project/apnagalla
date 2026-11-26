@@ -170,6 +170,7 @@ export const api = {
   adminReactivate: (id: string) => request<void>('POST', `/v1/admin/stores/${id}/reactivate`),
   adminAudit: (id: string) => request<{ entries: AuditEntryDto[] }>('GET', `/v1/admin/stores/${id}/audit`),
   features: () => request<{ scanBill: boolean }>('GET', '/v1/features'),
+  storeSlugFree: (id: string, slug: string) => request<{ free: boolean }>('GET', `/v1/businesses/${id}/store-slug/${encodeURIComponent(slug)}`),
   billing: (id: string) => request<{ status: BillingStatusDto; plans: PlanDto[] }>('GET', `/v1/businesses/${id}/billing`),
   billingQuote: (id: string, body: { planId: string; period: 'month' | 'year'; code?: string | null }) =>
     request<{ amount: number; gst: number; total: number; code: string | null; extraDays: number; note: string | null }>('POST', `/v1/businesses/${id}/billing/quote`, body),

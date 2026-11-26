@@ -117,6 +117,8 @@ export interface BusinessSettings extends SyncedRecord {
   closingTime?: string;
   /** Days before this are never asked to be closed (set when the rule is turned on). */
   dayEndFrom?: string;
+  /** R9: the store's public order page at /s/<slug>. */
+  onlineStore?: { enabled: boolean; slug: string; note?: string; minOrder?: number };
   /** R9: payment reminder schedule (see lib/reminders.ts). */
   reminders?: Partial<import('./reminders').ReminderRules>;
   /** R9: loyalty points and membership levels (see lib/loyalty.ts). */
@@ -215,6 +217,8 @@ export interface Item extends SyncedRecord {
   supplierId?: string | null;
   /** Electronics: each piece has a serial / IMEI number, recorded in and out. */
   trackSerial?: boolean;
+  /** R9: shown with its price on the store's online page. */
+  online?: boolean;
   /** R8: the item's code on the weighing scale (PLU), for scale-printed labels. */
   scaleCode?: string;
   /** R8: keeps batch number and expiry (medicines, packaged food…). */
@@ -437,6 +441,8 @@ export interface Estimate extends DocBase {
   proforma?: boolean;
   /** R8: a challan for goods on sale or return (consignment): bill what sold, take back the rest. */
   consignment?: boolean;
+  /** R9: came from the online store (a draft until the shop confirms it). */
+  online?: boolean;
 }
 
 export type WorkStage = 'measure' | 'quoted' | 'confirmed' | 'in_progress' | 'ready' | 'delivered' | 'cancelled';

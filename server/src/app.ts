@@ -7,6 +7,8 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
+import { OnlineStoreService, onlineOrderBody } from './services/store';
+import { renderStorePage, storeNotFound } from './services/storePage';
 import { sql } from 'drizzle-orm';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { ZodError, type ZodType } from 'zod';
@@ -402,6 +404,22 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     await accounts.requireRole(uid(req), req.params.businessId);
     const info = await gst.lookup(req.params.businessId, req.params.gstin);
     return { found: !!info, info };
+  });
+
+  /* ---------- R9 online store ---------- */
+  const store = new OnlineStoreService(db);
+  app.get<{ Params: { slug: string } }>('/s/:slug', async (req, reply) => {
+    const page = await store.page(req.params.slug.toLowerCase());
+    reply.header('Cache-Control', 'no-cache').type('text/html; charset=utf-8');
+    if (!page) return reply.status(404).send(storeNotFound());
+    return reply.send(renderStorePage(page, req.params.slug.toLowerCase()));
+  });
+  app.post<{ Params: { slug: string } }>('/v1/store/:slug/orders', { config: { rateLimit: { max: 10, timeWindow: '10 minutes' } } }, async (req, reply) =>
+    reply.status(201).send(await store.placeOrder(req.params.slug.toLowerCase(), parse(onlineOrderBody, req.body))),
+  );
+  app.get<{ Params: BizParams & { slug: string } }>('/v1/businesses/:businessId/store-slug/:slug', authed, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
+    return { free: await store.slugFree(req.params.slug.toLowerCase(), req.params.businessId) };
   });
 
   /* ---------- bill scanning ---------- */

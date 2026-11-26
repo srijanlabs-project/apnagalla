@@ -547,3 +547,29 @@ describe('R6 money and books', () => {
     expect([...(await tables(sH))]).toEqual(expect.arrayContaining(['moneyMoves', 'incomes', 'loans']));
   });
 });
+
+describe('R9 online store', () => {
+  it('a store switched on shows its online items; an order arrives as a draft sales order', async () => {
+    const { biz, oH, sH } = await setupStore('987031090');
+    await pushOk(biz.id, oH, [
+      { table: 'settings', id: biz.id, data: { id: biz.id, roundOff: true, onlineStore: { enabled: true, slug: 'raj-kirana' }, updatedAt: at(0) } },
+      { table: 'items', id: 'atta', data: { id: 'atta', name: 'Atta 5kg', unit: 'pcs', rate: 25000, taxPct: 0, online: true, updatedAt: at(0) } },
+      { table: 'items', id: 'secret', data: { id: 'secret', name: 'Back-room item', unit: 'pcs', rate: 100, taxPct: 0, updatedAt: at(0) } },
+    ]);
+    const page = await app.inject({ method: 'GET', url: '/s/raj-kirana' });
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain('Atta 5kg');
+    expect(page.body).not.toContain('Back-room item');
+    expect((await app.inject({ method: 'GET', url: '/s/nobody-here' })).statusCode).toBe(404);
+    const order = await app.inject({ method: 'POST', url: '/v1/store/raj-kirana/orders', payload: { name: 'Sunita', phone: '9876543210', address: 'Sector 5', lines: [{ itemId: 'atta', qty: 2 }, { itemId: 'secret', qty: 1 }] } });
+    expect(order.statusCode).toBe(201);
+    expect(order.json()).toMatchObject({ total: 50000 });
+    const changes = (await pull(biz.id, sH)).changes.filter((c) => c.table === 'estimates');
+    expect(changes).toHaveLength(1);
+    expect(changes[0]!.data).toMatchObject({ status: 'draft', order: true, online: true, billTo: { name: 'Sunita', phone: '+919876543210' } });
+    expect((changes[0]!.data.lines as unknown[]).length).toBe(1);
+    expect((await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/store-slug/raj-kirana`, headers: oH })).json()).toEqual({ free: true });
+    const other = await setupStore('987031091');
+    expect((await app.inject({ method: 'GET', url: `/v1/businesses/${other.biz.id}/store-slug/raj-kirana`, headers: other.oH })).json()).toEqual({ free: false });
+  });
+});

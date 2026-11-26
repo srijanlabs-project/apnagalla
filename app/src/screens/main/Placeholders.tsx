@@ -39,6 +39,7 @@ export function HomeScreen() {
   const seesMoney = isOwner || perms.access === 'readonly';
   const { settings } = useBusiness();
   const billsHere = CAN_CREATE_INVOICES && perms.access !== 'readonly' && perms.access !== 'warehouse';
+  const onlineOrders = useLiveQuery(() => db.estimates.where('businessId').equals(actor.businessId).filter((e) => !!e.online && e.status === 'draft' && !e.deleted).count(), [actor.businessId]);
   // Day-end: a past day still open blocks billing; after closing time, a reminder for today.
   const dayEnd = useLiveQuery(async () => {
     if (!billsHere) return null;
@@ -83,6 +84,11 @@ export function HomeScreen() {
       {!CAN_CREATE_INVOICES && <p className="section-note">{webInvoiceNote()}</p>}
 
       <ChooseProductListCard />
+      {(onlineOrders ?? 0) > 0 && (
+        <IonRouterLink routerLink="/tabs/estimates">
+          <p className="day-end-banner">{t('{n} new online orders: open Estimates → New online orders', { n: onlineOrders ?? 0 })}</p>
+        </IonRouterLink>
+      )}
       {dayEnd && (
         <IonRouterLink routerLink={`/tabs/cash-book?date=${dayEnd.date}`}>
           <p className={dayEnd.block ? 'renew-banner' : 'day-end-banner'}>
