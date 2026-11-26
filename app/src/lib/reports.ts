@@ -68,7 +68,8 @@ export type ReportId =
   | 'gstr9'
   | 'salesByCustomer'
   | 'purchasesByItem'
-  | 'expensesByPaidTo';
+  | 'expensesByPaidTo'
+  | 'visits';
 
 const inRange = (d: string, p: Period) => d >= p.from && d <= p.to;
 const periodText = (p: Period) => {
@@ -891,6 +892,7 @@ export const REPORTS: ReportInfo[] = [
   { id: 'balanceSheet', title: () => t('Balance sheet'), group: 'money', period: true, ownerOnly: true, run: (c) => import('./books').then((m) => m.balanceSheetTable(c.businessId, c.to)) },
   { id: 'trialBalance', title: () => t('Trial balance'), group: 'money', period: true, ownerOnly: true, run: (c) => import('./books').then((m) => m.trialBalanceTable(c.businessId, c.to)) },
   { id: 'supplierDues', title: () => t('Bills to pay (by due date)'), group: 'money', period: false, cost: true, run: supplierDuesReport },
+  { id: 'visits', title: () => t('Field visits'), group: 'people', period: true, ownerOnly: true, run: (c) => import('./visits').then((m) => m.visitsTable(c.businessId, c.from, c.to)) },
   { id: 'staff', title: () => t('Staff-wise sales'), group: 'people', period: true, ownerOnly: true, run: staff },
   { id: 'stores', title: () => t('Store-wise sales'), group: 'people', period: true, ownerOnly: true, run: stores },
 ];

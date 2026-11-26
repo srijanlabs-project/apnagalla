@@ -837,6 +837,25 @@ export interface Journal extends SyncedRecord {
   kind?: 'journal' | 'capital' | 'drawings';
 }
 
+/* ---------- R10: field sales ---------- */
+
+/** A salesperson's visit to a customer, checked in where they stood. */
+export interface Visit extends SyncedRecord {
+  customerId: string;
+  customerName: string;
+  date: string;
+  at: string;
+  lat?: number;
+  lng?: number;
+  /** Metres. */
+  accuracy?: number;
+  outcome?: 'order' | 'payment' | 'no_order' | 'closed';
+  note?: string;
+  orderId?: string;
+  byUserId: string;
+  byName: string;
+}
+
 export type SyncedTable = SyncTable;
 
 export interface OutboxEntry {
@@ -883,6 +902,7 @@ export const db = new Dexie('apnagalla') as Dexie & {
   recurringExpenses: EntityTable<RecurringExpense, 'id'>;
   ledgers: EntityTable<Ledger, 'id'>;
   journals: EntityTable<Journal, 'id'>;
+  visits: EntityTable<Visit, 'id'>;
   catalogItems: EntityTable<CatalogItemDto, 'id'>;
   catalogAliases: EntityTable<CatalogAliasDto, 'word'>;
   outbox: EntityTable<OutboxEntry, 'seq'>;
@@ -953,6 +973,9 @@ db.version(10).stores({
   ledgers: 'id, businessId',
   journals: 'id, businessId, [businessId+date]',
 });
+db.version(11).stores({
+  visits: 'id, businessId, [businessId+date], customerId',
+});
 
 export const ALL_TABLES = [
   db.profiles,
@@ -984,6 +1007,7 @@ export const ALL_TABLES = [
   db.recurringExpenses,
   db.ledgers,
   db.journals,
+  db.visits,
   db.outbox,
   db.meta,
 ];

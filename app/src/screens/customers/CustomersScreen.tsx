@@ -3,7 +3,7 @@ import { IonBadge, IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, I
 import { groupsIn } from '../../components/GroupField';
 import { formatIndianMobile } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { add, cloudUploadOutline, notificationsOutline, peopleOutline } from 'ionicons/icons';
+import { add, cloudUploadOutline, locationOutline, notificationsOutline, peopleOutline } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
@@ -54,6 +54,9 @@ export default function CustomersScreen() {
         </div>
       )}
       <div className="filter-chips">
+        <IonButton size="small" fill="clear" routerLink="/tabs/customers/visits">
+          <IonIcon icon={locationOutline} slot="start" /> {t('Field visits')}
+        </IonButton>
         <IonButton size="small" fill="clear" routerLink="/tabs/customers/reminders">
           <IonIcon icon={notificationsOutline} slot="start" /> {t('Payment reminders')}
           {(dueCount ?? 0) > 0 && <IonBadge color="danger">{dueCount}</IonBadge>}

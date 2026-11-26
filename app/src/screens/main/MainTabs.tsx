@@ -2,6 +2,7 @@ import RecycleBinScreen from './RecycleBinScreen';
 import FullBackupScreen from '../settings/FullBackupScreen';
 import ActivityScreen from './ActivityScreen';
 import RemindersScreen from '../customers/RemindersScreen';
+import VisitsScreen from '../customers/VisitsScreen';
 import ContactImportScreen from '../customers/ContactImportScreen';
 import LoyaltyScreen from '../settings/LoyaltyScreen';
 import Gstr2bScreen from '../reports/Gstr2bScreen';
@@ -87,6 +88,7 @@ export default function MainTabs() {
           <Route path="customers" element={<CustomersScreen />} />
           <Route path="customers/new" element={<CustomerEditScreen />} />
           <Route path="customers/reminders" element={<RemindersScreen />} />
+          <Route path="customers/visits" element={<VisitsScreen />} />
           <Route path="customers/import-contacts" element={<ContactImportScreen />} />
           <Route path="customers/:id" element={<CustomerDetailScreen />} />
           <Route path="customers/:id/edit" element={<CustomerEditScreen />} />

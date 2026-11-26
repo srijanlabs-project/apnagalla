@@ -37,6 +37,8 @@ export const SYNC_TABLES = [
   // R7
   'ledgers',
   'journals',
+  // R10
+  'visits',
 ] as const;
 export type SyncTable = (typeof SYNC_TABLES)[number];
 
@@ -55,6 +57,9 @@ export const R6_TABLES: readonly SyncTable[] = ['moneyMoves', 'incomes', 'loans'
 /** Tables added in R7 (sent to apps of schema 6 or later): own ledgers and journal entries. */
 export const R7_TABLES: readonly SyncTable[] = ['ledgers', 'journals'];
 
+/** Tables added in R10 (sent to apps of schema 7 or later): field sales visits. */
+export const R10_TABLES: readonly SyncTable[] = ['visits'];
+
 /** Bank moves, other income, loans, repeating expenses and the books: the owner and the accountant login see them. */
 export const MONEY_TABLES: readonly SyncTable[] = [...R6_TABLES, ...R7_TABLES];
 
@@ -62,7 +67,7 @@ export const MONEY_TABLES: readonly SyncTable[] = [...R6_TABLES, ...R7_TABLES];
 export const OWNER_PRIVATE_TABLES: readonly SyncTable[] = ['employees', 'attendance'];
 
 /** The data layout the phone understands; sent on pull. Older apps send none (= 1). */
-export const SYNC_SCHEMA = 6;
+export const SYNC_SCHEMA = 7;
 
 /**
  * Purchase prices live in these tables: staff of a store that hides costs from staff never

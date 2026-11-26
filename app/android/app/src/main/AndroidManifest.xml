@@ -46,6 +46,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Barcode scanning with the camera (in-app, no Google services). -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- R10 field sales: where a visit was checked in -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- Bluetooth thermal printers: classic (paired) and BLE. -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />

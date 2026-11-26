@@ -423,7 +423,7 @@ email / Drive / OneDrive / Dropbox, Tally export, and phone alerts.
 | R7 Accounts and GST returns (built) | Ledgers for every party and account, **journal entries**, chart of accounts (Tally-style groups), **trial balance, balance sheet**, capital and drawings; **GSTR-2B match** (upload the portal file, see missing / mismatched bills), proper **GSTR-3B** and **GSTR-9** sheets, input / output tax registers, taxable / exempt / nil sales; owner **activity log** in the app; reports **purchases by item**, **expenses by paid-to**, **sales by customer**; **customer, item and category filters** on reports; Home cards for **total purchases**, **stock value** and **other income** |
 | R8 Orders and stock depth (built) | **Sales orders** (status, part delivered, pending order report, order → bill), **proforma invoice**, **batch and expiry** (pharmacy, FMCG: pick batch on sale, expiry report), **godowns** inside a store with transfers, **item stock history**, purchase **expenses spread into cost** (freight, loading), purchase **due dates and supplier reminders**, **recycle bin** (restore deleted items, customers, bills), **weighing-scale barcodes** (price / weight inside the barcode), **consignment** (goods sent on sale-or-return: what is out with whom, sold, returned) |
 | R9 Customers and online store (built) | **Party groups**, **customer-specific prices**, **loyalty points**, **automatic payment reminders** (WhatsApp / SMS on a schedule), **online store** (catalogue link with prices, customer orders → bill), share catalogue, import phone contacts, email bills |
-| R10 Government links and data | **E-invoice (IRN, QR)** and **e-way bill** through a GSP, **Tally import**, full **backup and restore** (Google Drive / file, one tap), field sales staff (visits with location, orders taken in the field), import from Vyapar backups |
+| R10 Government links and data (built) | **E-invoice (IRN, QR)** and **e-way bill** through a GSP, **Tally import**, full **backup and restore** (Google Drive / file, one tap), field sales staff (visits with location, orders taken in the field), import from Vyapar backups |
 
 A line-by-line check of the Vyapar list (26 Nov 2026) found 8 lines no release had; they were
 added above: purchases by item, expenses by paid-to, sales by customer, customer and item filters
@@ -596,6 +596,31 @@ R7 decisions (defaults):
   ignored); tax within ₹1 counts as matched; "entered, not in 2B" looks at the 2B's month.
 - Journals and own ledgers are owner-only; the accountant login sees them; older phones (before
   this update) don't receive them.
+
+#### Release 10 — government links and data (built 27 Nov 2026, auto mode)
+
+| Step | Scope | Status |
+|---|---|---|
+| R10.1 E-invoice, e-way bill | IRP schema 1.1 e-invoice JSON from a saved B2B tax invoice; IRN, ack and signed QR through the store's GSP (server, off until EINVOICE_* keys are set); cancel IRN; IRN and QR on the PDF; e-way bill bulk-upload JSON (works today, no GSP needed); warning above ₹50,000 | Done (IRN needs the client's GSP account) |
+| R10.2 Backup and restore | One-tap file with everything in the store (share to Google Drive / WhatsApp / save); restore into the same store: missing, deleted and older records come back, newer work stays | Done |
+| R10.3 Tally import | Tally masters XML (sundry debtors, sundry creditors, stock items with opening balances, stock, GST and HSN) through the usual import preview | Done |
+| R10.4 Field sales | Check in at a customer with the phone's location (only at check-in), then take an order, collect money or note why not; owner sees everyone's day with map links; Field visits report | Done |
+| Vyapar backup import | Vyapar's own backup file (.vyb) is a closed format; its Excel exports of items and parties already import (R3.2) | Not built (Excel route instead) |
+
+R10 decisions (defaults):
+- GSPs differ: the server adapter posts the IRP JSON to EINVOICE_API_URL + /einvoice/generate (and
+  /cancel) with client id / secret, user, password and GSTIN in headers, and reads Irn, AckNo, AckDt,
+  SignedQRCode from the usual places in the answer. Once the client picks a GSP, check its
+  documentation and adjust paths / headers if they differ. Only the owner gets an IRN.
+- E-invoice needs: store GSTIN and PIN, buyer GSTIN and PIN, HSN on every line; the app lists what is
+  missing. Units map to GST's UQC codes (others → OTH). Credit notes as CRN are built but the button is
+  on invoices first.
+- E-way bill: one invoice per file, road transport by default; vehicle number or transporter ID is
+  required; distance is the user's figure (the portal checks it).
+- Backup is JSON (photos included, so it can be large); restore never deletes anything.
+- Field visits: a new synced table (older phones don't get it); staff see their own visits, the owner
+  sees all; location only when checking in, never in the background; Android asks for location the
+  first time.
 
 #### Release 11 — features for particular kinds of shop (planned 26 Nov 2026)
 Found by asking what retailers need that neither ApnaGalla nor the Vyapar list has. Design-first.

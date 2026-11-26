@@ -47,6 +47,7 @@ import {
   saveInvoice,
   seriesOf,
   PermissionError,
+  putRecord,
   type DocKind,
 } from '../../lib/repo';
 import { PAYMENT_TERMS } from '../settings/InvoiceSettingsScreen';
@@ -118,6 +119,11 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         d = kind === 'invoice' ? await newInvoiceDraft(actor) : await newEstimateDraft(actor);
         if (kind === 'estimate' && new URLSearchParams(location.search).get('challan')) (d as Estimate).challan = true;
         if (kind === 'estimate' && new URLSearchParams(location.search).get('order')) (d as Estimate).order = true;
+        const visitId = new URLSearchParams(location.search).get('visit');
+        if (visitId) {
+          const v = await db.visits.get(visitId);
+          if (v) void putRecord('visits', actor, { ...v, orderId: d.id });
+        }
         if (kind === 'estimate' && new URLSearchParams(location.search).get('consign')) Object.assign(d, { challan: true, consignment: true });
         if (kind === 'estimate' && new URLSearchParams(location.search).get('proforma')) (d as Estimate).proforma = true;
         if (kind === 'estimate' && new URLSearchParams(location.search).get('work')) (d as Estimate).job = blankJob('work', actor.userName);

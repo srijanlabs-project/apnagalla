@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from './db';
 import { eInvoiceJson, eInvoiceProblems, ewayBillJson, uqc } from './einvoice';
 import { tallyRows } from './tallyImport';
+import { checkIn, mapLink, setOutcome, visitsIn, visitsTable } from './visits';
 import { makeBackup, readBackup, restoreBackup, restorePlan } from './backup';
 import { deleteRecord, ensureBusinessRecords, newInvoiceDraft, putRecord, saveInvoice, type Actor } from './repo';
 
@@ -89,5 +90,20 @@ describe('R10.3 Tally import', () => {
     expect(tallyRows(xml, 'customers').slice(1)).toEqual([['Mehta & Sons', '9876543210', '24AABCP1234K1ZP', '', '12 Station Rd', 'Near Bus Stand', '', 'Gujarat', '380001', 1500]]);
     expect(tallyRows(xml, 'suppliers').slice(1).map((r) => [r[0], r[9]])).toEqual([['Shree Traders', 2000]]);
     expect(tallyRows(xml, 'items').slice(1)).toEqual([['Fan 1200mm', 'Nos', 2000, 18, '8414', 'Fans', 10, 1500, '']]);
+  });
+});
+
+describe('R10.4 field visits', () => {
+  it('check-in with or without location; staff see their own; the report lists the day', async () => {
+    const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Ravi', role: 'staff', seriesCode: 'A' };
+    const v1 = await checkIn(staff, { id: 'c1', name: 'Mehta' }, { lat: 23.0225, lng: 72.5714, accuracy: 12 });
+    await setOutcome(staff, v1, 'no_order', { note: 'Owner away' });
+    await checkIn(owner, { id: 'c2', name: 'Shah' }, null);
+    const today = v1.date;
+    expect((await visitsIn('b1', today, today)).length).toBe(2);
+    expect((await visitsIn('b1', today, today, 'u-staff')).map((v) => v.customerName)).toEqual(['Mehta']);
+    expect(mapLink(v1)).toBe('https://www.google.com/maps?q=23.0225,72.5714');
+    const tbl = await visitsTable('b1', today, today);
+    expect(tbl.rows.map((r) => [r[2], r[3], r[4]])).toEqual([['Ravi', 'Mehta', 'No order'], ['Owner', 'Shah', 'Visited']]);
   });
 });
