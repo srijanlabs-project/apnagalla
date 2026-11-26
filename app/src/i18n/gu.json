@@ -2393,5 +2393,6 @@
   "{n} {kind} with them": "{n} {kind} તેમની પાસે",
   "{qty} there": "ત્યાં {qty}",
   "{tier} member · points": "{tier} મેમ્બર · પોઇન્ટ",
-  "₹ per g": "₹ પ્રતિ g"
+  "₹ per g": "₹ પ્રતિ g",
+  "Only {got} received: {short} short.": "ફક્ત {got} મળ્યા: {short} ઓછા."
 }

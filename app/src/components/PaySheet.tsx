@@ -59,7 +59,9 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
     }
   }, [isOpen, amount, kind]);
 
-  const total = rows.reduce((a, r) => a + (r.amount || 0), 0);
+  // Cash handed over that is less than the amount is what was actually received.
+  const paidOf = (r: Row) => (r.mode === 'cash' && kind === 'payment' && r.tendered != null && r.tendered > 0 && r.tendered < r.amount ? r.tendered : r.amount || 0);
+  const total = rows.reduce((a, r) => a + paidOf(r), 0);
   const left = amount - total;
   const tooMuch = total > amount;
   const short = !!requireFull && left > 0;
@@ -71,7 +73,7 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
     if (busy || (!payLater && (total <= 0 || tooMuch || short))) return;
     setBusy(true);
     try {
-      await onConfirm(payLater ? [] : rows.filter((r) => r.amount > 0).map(({ tendered: _t, ...r }) => r), date, payLater ? 0 : change);
+      await onConfirm(payLater ? [] : rows.map((r) => ({ ...r, amount: paidOf(r) })).filter((r) => r.amount > 0).map(({ tendered: _t, ...r }) => r), date, payLater ? 0 : change);
     } finally {
       setBusy(false);
     }
@@ -123,6 +125,9 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
                   <strong>{r.tendered && r.tendered >= r.amount ? rupees(r.tendered - r.amount) : '—'}</strong>
                 </div>
               </div>
+            )}
+            {r.mode === 'cash' && kind === 'payment' && !!r.tendered && r.tendered < r.amount && (
+              <p className="text-danger">{t('Only {got} received: {short} short.', { got: rupees(r.tendered), short: rupees(r.amount - r.tendered) })}</p>
             )}
 
             {r.mode === 'upi' && kind === 'payment' && upi && r.amount > 0 && <UpiQr upi={upi} amount={r.amount} note={qrNote} />}

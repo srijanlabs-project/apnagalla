@@ -107,6 +107,8 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
     const c = customerId ? await db.customers.get(customerId) : undefined;
     return c ? (await khataOf(actor.businessId, c)).advance : 0;
   }, [customerId, actor.businessId, ledger]);
+  const [emailOn, setEmailOn] = useState(false);
+  useEffect(() => void api.features().then((f) => setEmailOn(!!f.email)).catch(() => setEmailOn(false)), []);
   if (!doc) return null;
   const inv = kind === 'invoice' ? (doc as Invoice) : null;
   const est = kind === 'estimate' ? (doc as Estimate) : null;
@@ -128,8 +130,6 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   // The invoice link is placed wherever the language puts it in the sentence.
   const [againstBefore, againstAfter = ''] = note ? t('Against invoice {number} of {date}', { date: dateIN(note.invoiceDate) }).split('{number}') : ['', ''];
 
-  const [emailOn, setEmailOn] = useState(false);
-  useEffect(() => void api.features().then((f) => setEmailOn(!!f.email)).catch(() => setEmailOn(false)), []);
   const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : t('Something went wrong'), duration: 2500, color: 'danger' });
 
   async function makePdf() {
