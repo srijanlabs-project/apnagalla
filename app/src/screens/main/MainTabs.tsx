@@ -3,6 +3,7 @@ import FullBackupScreen from '../settings/FullBackupScreen';
 import ActivityScreen from './ActivityScreen';
 import RemindersScreen from '../customers/RemindersScreen';
 import VisitsScreen from '../customers/VisitsScreen';
+import CratesScreen from '../customers/CratesScreen';
 import ContactImportScreen from '../customers/ContactImportScreen';
 import LoyaltyScreen from '../settings/LoyaltyScreen';
 import Gstr2bScreen from '../reports/Gstr2bScreen';
@@ -38,6 +39,7 @@ import BulkPriceScreen from '../items/BulkPriceScreen';
 import LabelsScreen from '../items/LabelsScreen';
 import TransferScreen from '../items/TransferScreen';
 import GodownsScreen from '../items/GodownsScreen';
+import { RatesScreen, WastageScreen } from '../items/FreshScreens';
 import AllStoresScreen from '../stores/AllStoresScreen';
 import { EmployeeScreen, EmployeesScreen } from '../staff/StaffScreens';
 import StockScreen from '../items/StockScreen';
@@ -89,6 +91,7 @@ export default function MainTabs() {
           <Route path="customers/new" element={<CustomerEditScreen />} />
           <Route path="customers/reminders" element={<RemindersScreen />} />
           <Route path="customers/visits" element={<VisitsScreen />} />
+          <Route path="customers/crates" element={<CratesScreen />} />
           <Route path="customers/import-contacts" element={<ContactImportScreen />} />
           <Route path="customers/:id" element={<CustomerDetailScreen />} />
           <Route path="customers/:id/edit" element={<CustomerEditScreen />} />
@@ -105,6 +108,8 @@ export default function MainTabs() {
           <Route path="items/labels" element={<LabelsScreen />} />
           <Route path="items/transfer" element={<TransferScreen />} />
           <Route path="items/godowns" element={<GodownsScreen />} />
+          <Route path="items/rates" element={<RatesScreen />} />
+          <Route path="items/wastage" element={<WastageScreen />} />
           <Route path="items/:id/stock" element={<StockScreen />} />
           <Route path="items/:id" element={<ItemEditScreen />} />
 

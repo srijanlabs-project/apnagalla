@@ -39,6 +39,12 @@ export const SYNC_TABLES = [
   'journals',
   // R10
   'visits',
+  // R11
+  'crates',
+  'schemes',
+  'vouchers',
+  'rentals',
+  'recipes',
 ] as const;
 export type SyncTable = (typeof SYNC_TABLES)[number];
 
@@ -60,6 +66,9 @@ export const R7_TABLES: readonly SyncTable[] = ['ledgers', 'journals'];
 /** Tables added in R10 (sent to apps of schema 7 or later): field sales visits. */
 export const R10_TABLES: readonly SyncTable[] = ['visits'];
 
+/** Tables added in R11 (sent to apps of schema 8 or later): crates, supplier schemes, gift vouchers, rentals, recipes. */
+export const R11_TABLES: readonly SyncTable[] = ['crates', 'schemes', 'vouchers', 'rentals', 'recipes'];
+
 /** Bank moves, other income, loans, repeating expenses and the books: the owner and the accountant login see them. */
 export const MONEY_TABLES: readonly SyncTable[] = [...R6_TABLES, ...R7_TABLES];
 
@@ -67,13 +76,13 @@ export const MONEY_TABLES: readonly SyncTable[] = [...R6_TABLES, ...R7_TABLES];
 export const OWNER_PRIVATE_TABLES: readonly SyncTable[] = ['employees', 'attendance'];
 
 /** The data layout the phone understands; sent on pull. Older apps send none (= 1). */
-export const SYNC_SCHEMA = 7;
+export const SYNC_SCHEMA = 8;
 
 /**
  * Purchase prices live in these tables: staff of a store that hides costs from staff never
  * receive them and can't add to them.
  */
-export const COST_TABLES: readonly SyncTable[] = ['suppliers', 'purchaseOrders', 'purchases', 'supplierPayments'];
+export const COST_TABLES: readonly SyncTable[] = ['suppliers', 'purchaseOrders', 'purchases', 'supplierPayments', 'schemes'];
 
 /** Records that are only ever added (a mistake is voided by the owner, never edited or deleted). */
 export const APPEND_ONLY_TABLES: readonly SyncTable[] = ['payments', 'supplierPayments', 'stockMoves'];

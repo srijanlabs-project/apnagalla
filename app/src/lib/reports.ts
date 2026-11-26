@@ -69,7 +69,8 @@ export type ReportId =
   | 'salesByCustomer'
   | 'purchasesByItem'
   | 'expensesByPaidTo'
-  | 'visits';
+  | 'visits'
+  | 'wastage';
 
 const inRange = (d: string, p: Period) => d >= p.from && d <= p.to;
 const periodText = (p: Period) => {
@@ -870,6 +871,7 @@ export const REPORTS: ReportInfo[] = [
   { id: 'stock', title: () => t('Stock report'), group: 'stock', period: false, cost: true, run: (c) => stock(c) },
   { id: 'lowStock', title: () => t('Low stock'), group: 'stock', period: false, run: (c) => stock(c, true) },
   { id: 'godownStock', title: () => t('Stock by godown'), group: 'stock', period: false, run: async (c) => import('./godowns').then(async (m) => m.godownStockTable(c.businessId, (await db.settings.get(c.businessId)) ?? {})) },
+  { id: 'wastage', title: () => t('Wastage'), group: 'stock', period: true, cost: true, run: (c) => import('./fresh').then((m) => m.wastageTable(c.businessId, c.from, c.to)) },
   { id: 'expiry', title: () => t('Expiring stock'), group: 'stock', period: false, run: (c) => import('./batches').then((m) => m.expiryTable(c.businessId, 3, true)) },
   { id: 'slow', title: () => t('Slow movers'), group: 'stock', period: true, cost: true, run: slow },
   { id: 'salesRegister', title: () => t('Sales register'), group: 'gst', period: true, ownerOnly: true, filters: ['customer'], run: salesRegister },

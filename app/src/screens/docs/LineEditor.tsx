@@ -25,6 +25,7 @@ import { db, type DocLine, type Item, type PriceLevel } from '../../lib/db';
 import { customerPrice, sellable, unitOptions, type CustomPrices } from '../../lib/pricing';
 import { serialsInStock } from '../../lib/serials';
 import { batchStock, isExpired, pickBatch } from '../../lib/batches';
+import { qtyForAmount } from '../../lib/fresh';
 import { OFF } from '../../lib/offers';
 import { t } from '../../lib/i18n';
 import { isAreaLine, lineSize, rupees } from '../../lib/format';
@@ -319,6 +320,7 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
               ) : (
                 <div className="field-row">
                   <NumberField label={t('Quantity')} value={l.qty} onChange={(qty) => set({ qty: qty ?? 0 })} min={0} />
+                  {l.rate > 0 && <MoneyField label={t('Or sell for ₹')} value={null} onChange={(v) => v && set({ qty: qtyForAmount(v, l.rate, l.taxPct, l.rateIncludesTax) })} />}
                   {lineItem?.altUnits?.length ? (
                     <SelectField
                       label={t('Unit')}

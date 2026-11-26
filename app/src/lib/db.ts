@@ -374,6 +374,12 @@ export interface Invoice extends DocBase {
   fromEstimateId?: string | null;
   /** A counter bill put on hold (draft) while the next customer is served. */
   held?: boolean;
+  /** R11: one bill for several delivery challans (daily delivery, weekly bill): their ids. */
+  fromChallanIds?: string[];
+  /** R11: paid in instalments run by the shop. */
+  instalments?: { count: number; every: 'month' | 'week'; first: string; downPayment: number } | null;
+  /** R11: contractor's site / project the bill is for. */
+  site?: string;
   /** R10: e-invoice from the IRP (printed with its signed QR). */
   einvoice?: { irn: string; ackNo: string; ackDate: string; qr: string; cancelledAt?: string } | null;
   /** Legacy (R1.3): credit notes are now added up from the creditNotes table. */
@@ -468,7 +474,7 @@ export interface JobInfo {
 
 /* ---------- R2: stock, purchases, money ---------- */
 
-export type StockReason = 'opening' | 'damage' | 'theft' | 'expired' | 'count' | 'gift' | 'own_use' | 'other' | 'transfer';
+export type StockReason = 'opening' | 'damage' | 'theft' | 'expired' | 'count' | 'gift' | 'own_use' | 'other' | 'transfer' | 'wastage';
 
 /**
  * Opening stock or a manual change (damage, theft, physical count…). Added, never edited: the
@@ -856,6 +862,81 @@ export interface Visit extends SyncedRecord {
   byName: string;
 }
 
+/* ---------- R11: features for kinds of shop ---------- */
+
+/** Crates, cans, bottles given to or taken from a party (+out = they have ours). */
+export interface CrateEntry extends SyncedRecord {
+  partyType: 'customer' | 'supplier';
+  partyId: string;
+  partyName: string;
+  /** Crate, can, bottle, tray… */
+  kind: string;
+  date: string;
+  out: number;
+  back: number;
+  /** Deposit taken from the party (+) or paid to them (−), paise. */
+  deposit?: number;
+  note?: string;
+}
+
+/** A distributor's scheme: buy so much, get free goods / a rate difference / a bonus. */
+export interface Scheme extends SyncedRecord {
+  supplierId: string;
+  supplierName: string;
+  name: string;
+  from: string;
+  to: string;
+  /** What counts: value bought (paise) or quantity of chosen items. */
+  basis: 'value' | 'qty';
+  itemIds?: string[];
+  target: number;
+  /** What the shop gets when the target is met (text) and its worth (paise). */
+  reward: string;
+  rewardValue?: number;
+  received?: boolean;
+  note?: string;
+}
+
+/** A gift voucher sold by the shop; anyone can use it on a bill until it runs out or expires. */
+export interface Voucher extends SyncedRecord {
+  code: string;
+  amount: number;
+  soldTo?: string;
+  date: string;
+  validTill?: string;
+  /** Sale of the voucher: how it was paid. */
+  mode: 'cash' | 'upi' | 'card' | 'bank' | 'other';
+  voidedAt?: string | null;
+}
+
+/** Goods rented out: deposit, rent, return date, late and damage charges. */
+export interface Rental extends SyncedRecord {
+  number: string;
+  customerId?: string | null;
+  customerName: string;
+  phone?: string;
+  date: string;
+  dueBack: string;
+  lines: { itemId?: string | null; name: string; qty: number; ratePerDay: number }[];
+  deposit: number;
+  depositMode: 'cash' | 'upi' | 'card' | 'bank' | 'other';
+  returnedAt?: string | null;
+  lateCharge?: number;
+  damageCharge?: number;
+  /** The bill made when the goods came back. */
+  invoiceId?: string | null;
+  status: 'out' | 'returned' | 'cancelled';
+  note?: string;
+}
+
+/** A recipe (bakery, sweets, kitchen): making `yieldQty` of an item uses these raw materials. */
+export interface Recipe extends SyncedRecord {
+  itemId: string;
+  itemName: string;
+  yieldQty: number;
+  inputs: { itemId: string; name: string; qty: number }[];
+}
+
 export type SyncedTable = SyncTable;
 
 export interface OutboxEntry {
@@ -903,6 +984,11 @@ export const db = new Dexie('apnagalla') as Dexie & {
   ledgers: EntityTable<Ledger, 'id'>;
   journals: EntityTable<Journal, 'id'>;
   visits: EntityTable<Visit, 'id'>;
+  crates: EntityTable<CrateEntry, 'id'>;
+  schemes: EntityTable<Scheme, 'id'>;
+  vouchers: EntityTable<Voucher, 'id'>;
+  rentals: EntityTable<Rental, 'id'>;
+  recipes: EntityTable<Recipe, 'id'>;
   catalogItems: EntityTable<CatalogItemDto, 'id'>;
   catalogAliases: EntityTable<CatalogAliasDto, 'word'>;
   outbox: EntityTable<OutboxEntry, 'seq'>;
@@ -976,6 +1062,13 @@ db.version(10).stores({
 db.version(11).stores({
   visits: 'id, businessId, [businessId+date], customerId',
 });
+db.version(12).stores({
+  crates: 'id, businessId, partyId',
+  schemes: 'id, businessId',
+  vouchers: 'id, businessId, code',
+  rentals: 'id, businessId, [businessId+date]',
+  recipes: 'id, businessId, itemId',
+});
 
 export const ALL_TABLES = [
   db.profiles,
@@ -1008,6 +1101,11 @@ export const ALL_TABLES = [
   db.ledgers,
   db.journals,
   db.visits,
+  db.crates,
+  db.schemes,
+  db.vouchers,
+  db.rentals,
+  db.recipes,
   db.outbox,
   db.meta,
 ];

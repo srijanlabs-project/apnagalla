@@ -97,6 +97,12 @@ export default function ItemsScreen() {
               <IonButton size="small" fill="clear" routerLink="/tabs/items/import">
                 <IonIcon icon={cloudUploadOutline} slot="start" /> {t('Import')}
               </IonButton>
+              <IonButton size="small" fill="clear" routerLink="/tabs/items/rates">
+                {t('Today’s rates')}
+              </IonButton>
+              <IonButton size="small" fill="clear" routerLink="/tabs/items/wastage">
+                {t('Wastage')}
+              </IonButton>
               <IonButton size="small" fill="clear" onClick={sharePriceList}>
                 <IonIcon icon={shareSocialOutline} slot="start" /> {t('Price list')}
               </IonButton>

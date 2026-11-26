@@ -10,6 +10,7 @@ import {
   R6_TABLES,
   R7_TABLES,
   R10_TABLES,
+  R11_TABLES,
   MONEY_TABLES,
   OWNER_PRIVATE_TABLES,
   PAYMENT_MODES,
@@ -340,7 +341,7 @@ export class SyncService {
    */
   async pull(businessId: string, since: number, limit = SYNC_PULL_MAX, opts: { hideCost?: boolean; schema?: number; notOwner?: boolean; seesMoney?: boolean } = {}): Promise<SyncPullResponse> {
     const schema = opts.schema ?? 1;
-    const skip = [...(schema < 2 ? R2_TABLES : []), ...(schema < 3 ? R3_TABLES : []), ...(schema < 4 ? R4_TABLES : []), ...(schema < 5 ? R6_TABLES : []), ...(schema < 6 ? R7_TABLES : []), ...(schema < 7 ? R10_TABLES : []), ...(opts.notOwner && !opts.seesMoney ? MONEY_TABLES : []), ...(opts.hideCost ? COST_TABLES : []), ...(opts.notOwner ? OWNER_PRIVATE_TABLES : [])];
+    const skip = [...(schema < 2 ? R2_TABLES : []), ...(schema < 3 ? R3_TABLES : []), ...(schema < 4 ? R4_TABLES : []), ...(schema < 5 ? R6_TABLES : []), ...(schema < 6 ? R7_TABLES : []), ...(schema < 7 ? R10_TABLES : []), ...(schema < 8 ? R11_TABLES : []), ...(opts.notOwner && !opts.seesMoney ? MONEY_TABLES : []), ...(opts.hideCost ? COST_TABLES : []), ...(opts.notOwner ? OWNER_PRIVATE_TABLES : [])];
     const rows = await this.db
       .select({ table: syncRecords.tableName, id: syncRecords.id, data: syncRecords.data, seq: syncRecords.seq })
       .from(syncRecords)

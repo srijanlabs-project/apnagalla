@@ -168,6 +168,7 @@ function SupplierSelect({ businessId, value, onChange, disabled }: { businessId:
 export function PurchaseEditScreen() {
   const { id } = useParams<{ id: string }>();
   const { actor, isOwner, settings } = useBusiness();
+  const [alert] = useIonAlert();
   const canBuy = useCanBuy();
   const router = useIonRouter();
   const [toast] = useIonToast();
@@ -425,9 +426,44 @@ export function PurchaseEditScreen() {
             </div>
           ))}
           {!locked && (
-            <IonButton size="small" fill="outline" onClick={() => patch({ charges: [...(p.charges ?? []), { label: t('Freight'), amount: 0, taxPct: 0 }] })}>
-              <IonIcon icon={addOutline} slot="start" /> {t('Add charge')}
-            </IonButton>
+            <div className="filter-chips wrap">
+              <IonButton size="small" fill="outline" onClick={() => patch({ charges: [...(p.charges ?? []), { label: t('Freight'), amount: 0, taxPct: 0 }] })}>
+                <IonIcon icon={addOutline} slot="start" /> {t('Add charge')}
+              </IonButton>
+              {[
+                [t('Commission (arhat)'), true],
+                [t('Market fee (mandi)'), true],
+                [t('Labour (hamali)'), false],
+                [t('Transport'), false],
+              ].map(([label, pct]) => (
+                <IonButton
+                  key={String(label)}
+                  size="small"
+                  fill="clear"
+                  onClick={() =>
+                    pct
+                      ? void alert({
+                          header: String(label),
+                          inputs: [{ name: 'pct', type: 'number', placeholder: '%', min: 0, max: 20 }],
+                          buttons: [
+                            { text: t('Cancel'), role: 'cancel' },
+                            {
+                              text: t('Add'),
+                              handler: (v: { pct: string }) => {
+                                const goods = (totals?.lines ?? []).reduce((a, r) => a + r.taxable, 0);
+                                const amount = Math.round((goods * (Number(v.pct) || 0)) / 100);
+                                patch({ charges: [...(p.charges ?? []), { label: `${label} ${Number(v.pct) || 0}%`, amount, taxPct: 0 }] });
+                              },
+                            },
+                          ],
+                        })
+                      : patch({ charges: [...(p.charges ?? []), { label: String(label), amount: 0, taxPct: 0 }] })
+                  }
+                >
+                  + {label}
+                </IonButton>
+              ))}
+            </div>
           )}
           {(p.charges ?? []).some((c) => c.amount > 0) && (
             <ToggleRow label={t('Add these into the items\' cost')} checked={p.spreadCharges !== false} onChange={(spreadCharges) => patch({ spreadCharges })} disabled={locked || p.status !== 'draft'} />

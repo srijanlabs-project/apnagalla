@@ -1,7 +1,8 @@
-import { IonButton, IonCard, IonCardContent, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonModal, IonNote, IonSegment, IonSegmentButton, IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, useIonToast } from '@ionic/react';
+import { IonButton, IonCard, IonCardContent, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonModal, IonNote, IonSegment, IonSegmentButton, IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, useIonToast, IonRouterLink, useIonRouter } from '@ionic/react';
 import { addDaysISO, formatIndianMobile, todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { loyaltyOf, pointsOf, tierFor, yearSpend } from '../../lib/loyalty';
+import { billChallans, crateBalances, unbilledChallans } from '../../lib/shopKinds';
 import { callOutline, cashOutline, createOutline, documentTextOutline, logoWhatsapp, notificationsOutline } from 'ionicons/icons';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -25,6 +26,7 @@ export default function CustomerDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const { actor, profile, upiIds } = useBusiness();
   const [toast] = useIonToast();
+  const router = useIonRouter();
   const [tab, setTab] = useState<'khata' | 'bills'>('khata');
   const [receiving, setReceiving] = useState(false);
   const [statement, setStatement] = useState(false);
@@ -32,6 +34,8 @@ export default function CustomerDetailScreen() {
   const [to, setTo] = useState(todayISO());
   const c = useLiveQuery(() => db.customers.get(id!), [id]);
   const khata = useLiveQuery(async () => (c ? khataOf(actor.businessId, c) : undefined), [c, actor.businessId]);
+  const challans = useLiveQuery(() => (id ? unbilledChallans(actor.businessId, id) : []), [actor.businessId, id]);
+  const crates = useLiveQuery(async () => (await crateBalances(actor.businessId)).filter((b) => b.partyId === id && b.out > 0), [actor.businessId, id]);
   const { settings } = useBusiness();
   const loyalty = useLiveQuery(async () => {
     const l = loyaltyOf(settings);
@@ -133,6 +137,26 @@ export default function CustomerDetailScreen() {
         </IonButton>
       </div>
 
+      {(challans ?? []).length > 0 && CAN_CREATE_INVOICES && (
+        <div className="day-end-banner">
+          {t('{n} challans not billed ({amount})', { n: challans!.length, amount: rupees(challans!.reduce((a, c) => a + c.totals.grandTotal, 0)) })}{' '}
+          <IonButton
+            size="small"
+            onClick={() =>
+              void billChallans(actor, challans!.map((c) => c.id))
+                .then((inv) => router.push(`/tabs/invoices/${inv.id}/edit`))
+                .catch((e: Error) => toast({ message: e.message, duration: 2500, color: 'danger' }))
+            }
+          >
+            {t('Make one bill')}
+          </IonButton>
+        </div>
+      )}
+      {(crates ?? []).length > 0 && (
+        <IonRouterLink routerLink="/tabs/customers/crates">
+          <p className="section-note">{crates!.map((b) => t('{n} {kind} with them', { n: b.out, kind: b.kind })).join(' · ')}</p>
+        </IonRouterLink>
+      )}
       <IonSegment value={tab} onIonChange={(e) => setTab(e.detail.value as 'khata' | 'bills')}>
         <IonSegmentButton value="khata">
           <IonLabel>{t('Khata')}</IonLabel>

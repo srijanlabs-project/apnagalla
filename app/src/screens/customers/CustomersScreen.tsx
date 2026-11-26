@@ -54,6 +54,9 @@ export default function CustomersScreen() {
         </div>
       )}
       <div className="filter-chips">
+        <IonButton size="small" fill="clear" routerLink="/tabs/customers/crates">
+          {t('Crates')}
+        </IonButton>
         <IonButton size="small" fill="clear" routerLink="/tabs/customers/visits">
           <IonIcon icon={locationOutline} slot="start" /> {t('Field visits')}
         </IonButton>

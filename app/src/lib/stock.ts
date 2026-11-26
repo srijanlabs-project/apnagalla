@@ -58,7 +58,7 @@ export async function stockEvents(businessId: string, upTo?: string): Promise<Ma
     for (const l of c.lines) add(l.itemId, { date: c.date, qty: -l.qty * (l.unitFactor ?? 1), kind: 'sale', label: t('Challan {number}', { number: c.number }), href: `/tabs/estimates/${c.id}`, batch: l.batch, expiry: l.expiry, godownId: c.godownId });
   }
   for (const inv of invoices) {
-    if (inv.fromEstimateId && fromChallan.has(inv.fromEstimateId)) continue;
+    if ((inv.fromEstimateId && fromChallan.has(inv.fromEstimateId)) || inv.fromChallanIds?.length) continue;
     for (const l of inv.lines) add(l.itemId, { date: inv.date, qty: -l.qty * (l.unitFactor ?? 1), kind: 'sale', label: t('Sale {number}', { number: inv.number }), href: `/tabs/invoices/${inv.id}`, batch: l.batch, expiry: l.expiry, godownId: inv.godownId });
   }
   for (const n of notes) {
@@ -101,7 +101,7 @@ export function suggestedOrder(item: Pick<Item, 'lowStock' | 'reorderQty'>, qty:
   return Math.max(1, Math.ceil(target - qty));
 }
 
-export const STOCK_REASONS: StockReason[] = ['damage', 'theft', 'expired', 'count', 'gift', 'own_use', 'other'];
+export const STOCK_REASONS: StockReason[] = ['damage', 'wastage', 'theft', 'expired', 'count', 'gift', 'own_use', 'other'];
 
 const REASON_TEXT: Record<StockReason, () => string> = {
   opening: () => t('Opening stock'),
@@ -113,6 +113,7 @@ const REASON_TEXT: Record<StockReason, () => string> = {
   own_use: () => t('Own use'),
   other: () => t('Other'),
   transfer: () => t('Stock transfer'),
+  wastage: () => t('Wastage (spoilt)'),
 };
 export const reasonLabel = (r: StockReason): string => REASON_TEXT[r]?.() ?? r;
 
