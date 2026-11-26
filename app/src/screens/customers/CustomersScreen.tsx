@@ -1,8 +1,9 @@
-import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
+import { remindersDue } from '../../lib/reminders';
+import { IonBadge, IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
 import { groupsIn } from '../../components/GroupField';
 import { formatIndianMobile } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { add, peopleOutline, cloudUploadOutline } from 'ionicons/icons';
+import { add, cloudUploadOutline, notificationsOutline, peopleOutline } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
@@ -16,6 +17,8 @@ export default function CustomersScreen() {
   const { actor, ledger, isOwner } = useBusiness();
   const [q, setQ] = useState('');
   const [group, setGroup] = useState<string | null>(null);
+  const { settings } = useBusiness();
+  const dueCount = useLiveQuery(async () => (await remindersDue(actor.businessId, settings)).length, [actor.businessId, settings, ledger]);
   const customers = useLiveQuery(
     () =>
       db.customers
@@ -50,6 +53,12 @@ export default function CustomersScreen() {
           ))}
         </div>
       )}
+      <div className="filter-chips">
+        <IonButton size="small" fill="clear" routerLink="/tabs/customers/reminders">
+          <IonIcon icon={notificationsOutline} slot="start" /> {t('Payment reminders')}
+          {(dueCount ?? 0) > 0 && <IonBadge color="danger">{dueCount}</IonBadge>}
+        </IonButton>
+      </div>
       {isOwner && (
         <div className="filter-chips">
           <IonButton size="small" fill="clear" routerLink="/tabs/items/import?kind=customers">

@@ -117,6 +117,8 @@ export interface BusinessSettings extends SyncedRecord {
   closingTime?: string;
   /** Days before this are never asked to be closed (set when the rule is turned on). */
   dayEndFrom?: string;
+  /** R9: payment reminder schedule (see lib/reminders.ts). */
+  reminders?: Partial<import('./reminders').ReminderRules>;
   /** R9: loyalty points and membership levels (see lib/loyalty.ts). */
   loyalty?: Partial<import('./loyalty').LoyaltySettings>;
   /** R8: weighing-scale barcode layout (see lib/scale.ts). */
@@ -170,6 +172,9 @@ export interface Customer extends SyncedRecord {
   itemPrices?: Record<string, number>;
   /** R9: a group (Hotels, Contractors, Family…) for lists, reminders and reports. */
   group?: string;
+  /** R9: last payment reminder sent, and how many in this overdue spell. */
+  remindedAt?: string;
+  remindCount?: number;
   /** Warn when what the customer owes would go above this (paise). */
   creditLimit?: number | null;
   phone?: string;

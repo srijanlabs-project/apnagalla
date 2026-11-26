@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { supplierDues } from './purchases';
+import { remindersDue } from './reminders';
 import { todayISO } from '@invoice/shared';
 import { db } from './db';
 import { rupees } from './format';
@@ -30,7 +31,7 @@ export const DEFAULT_ALERTS: AlertSettings = { lowStock: true, overdue: true, su
 
 /** Shop alerts use ids below this; delivery alerts are above it. */
 export const SHOP_ALERT_MAX_ID = 0x10000;
-const ID = { lowStock: 101, overdue: 102, summary: 103, supplierDue: 104 };
+const ID = { lowStock: 101, overdue: 102, summary: 103, supplierDue: 104, reminders: 105 };
 
 export async function loadAlertSettings(): Promise<AlertSettings> {
   return { ...DEFAULT_ALERTS, ...((await kv.get<Partial<AlertSettings>>(KEYS.alerts)) ?? {}) };
@@ -83,6 +84,12 @@ export async function shopAlerts(actor: Actor, s: AlertSettings, opts: { canSeeM
         at: nextAt(s.morning, now),
       });
     }
+  }
+  if (s.overdue && opts.canSeeMoney) {
+    const st = await db.settings.get(actor.businessId);
+    const at = nextAt(s.morning, now);
+    const due = st ? await remindersDue(actor.businessId, st, todayISO(at)) : [];
+    if (due.length) out.push({ id: ID.reminders, title: prefix + t('{count} payment reminders to send', { count: due.length }), body: due.slice(0, 3).map((d) => d.customer.name).join(', '), at });
   }
   if (s.overdue && opts.canSeeMoney && opts.canSeePurchases !== false) {
     const at = nextAt(s.morning, now);

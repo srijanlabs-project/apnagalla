@@ -1,4 +1,5 @@
 import RecycleBinScreen from './RecycleBinScreen';
+import RemindersScreen from '../customers/RemindersScreen';
 import LoyaltyScreen from '../settings/LoyaltyScreen';
 import DayEndGate from '../../components/DayEndGate';
 import { IonIcon, IonLabel, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/react';
@@ -79,6 +80,7 @@ export default function MainTabs() {
 
           <Route path="customers" element={<CustomersScreen />} />
           <Route path="customers/new" element={<CustomerEditScreen />} />
+          <Route path="customers/reminders" element={<RemindersScreen />} />
           <Route path="customers/:id" element={<CustomerDetailScreen />} />
           <Route path="customers/:id/edit" element={<CustomerEditScreen />} />
 

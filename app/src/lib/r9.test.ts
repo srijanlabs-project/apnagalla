@@ -5,6 +5,7 @@ import { db } from './db';
 import { customerPrice, repriceLines } from './pricing';
 import { billMoney, ensureBusinessRecords, newCreditNoteDraft, newInvoiceDraft, putRecord, saveCreditNote, saveInvoice, settingsOf, type Actor } from './repo';
 import { DEFAULT_LOYALTY, pointsOf, redeemPoints } from './loyalty';
+import { markReminded, remindersDue } from './reminders';
 
 export const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 export const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Staff', role: 'staff', seriesCode: 'A' };
@@ -57,5 +58,22 @@ describe('R9.2 loyalty points', () => {
   });
   it('is off by default', async () => {
     expect((await sell(900000)).pointsEarned).toBeUndefined();
+  });
+});
+
+describe('R9.3 payment reminders', () => {
+  it('first reminder after the due date, then every few days, at most a few times', async () => {
+    const d = await newInvoiceDraft(owner);
+    await saveInvoice(owner, { ...d, date: '2026-01-01', dueDate: '2026-01-10', billTo: { customerId: 'c1', name: 'Hotel Raj', address: {} }, lines: [line('x', 'Tea', 1, 500000)] }, { finalize: true });
+    const st = (await settingsOf('b1'))!;
+    expect(await remindersDue('b1', st, '2026-01-10')).toHaveLength(0); // not late yet
+    let due = await remindersDue('b1', st, '2026-01-11');
+    expect(due.map((x) => [x.customer.name, x.overdue, x.daysLate])).toEqual([['Hotel Raj', 500000, 1]]);
+    await markReminded(staff, due[0]!.customer, due[0]!.times);
+    await db.customers.update('c1', { remindedAt: '2026-01-11T10:00:00.000Z' });
+    expect(await remindersDue('b1', st, '2026-01-15')).toHaveLength(0); // within 7 days
+    due = await remindersDue('b1', st, '2026-01-18');
+    expect(due[0]!.times).toBe(1);
+    expect(await remindersDue('b1', { ...st, reminders: { enabled: false } }, '2026-01-18')).toHaveLength(0);
   });
 });
