@@ -9,7 +9,8 @@ import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import { OnlineStoreService, onlineOrderBody } from './services/store';
 import { renderStorePage, storeNotFound } from './services/storePage';
-import { sql } from 'drizzle-orm';
+import { and, desc, eq, lt, sql } from 'drizzle-orm';
+import { auditLog, users } from './db/schema';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { z, ZodError, type ZodType } from 'zod';
 import {
@@ -404,6 +405,20 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     await accounts.requireRole(uid(req), req.params.businessId);
     const info = await gst.lookup(req.params.businessId, req.params.gstin);
     return { found: !!info, info };
+  });
+
+  /* ---------- R7 activity log (owner) ---------- */
+  app.get<{ Params: BizParams; Querystring: { before?: string } }>('/v1/businesses/:businessId/activity', authed, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
+    const before = req.query.before && !Number.isNaN(Date.parse(req.query.before)) ? new Date(req.query.before) : new Date(Date.now() + 60_000);
+    const rows = await db
+      .select({ at: auditLog.at, action: auditLog.action, detail: auditLog.detail, name: users.name, phone: users.phone })
+      .from(auditLog)
+      .leftJoin(users, eq(users.id, auditLog.actorUserId))
+      .where(and(eq(auditLog.businessId, req.params.businessId), lt(auditLog.at, before)))
+      .orderBy(desc(auditLog.at))
+      .limit(100);
+    return { rows: rows.map((r) => ({ at: r.at.toISOString(), action: r.action, detail: r.detail ?? {}, by: r.name || r.phone || '' })) };
   });
 
   /* ---------- R9 online store ---------- */

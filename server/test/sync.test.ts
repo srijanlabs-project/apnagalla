@@ -573,3 +573,18 @@ describe('R9 online store', () => {
     expect((await app.inject({ method: 'GET', url: `/v1/businesses/${other.biz.id}/store-slug/raj-kirana`, headers: other.oH })).json()).toEqual({ free: false });
   });
 });
+
+describe('R7 activity log', () => {
+  it('the owner sees bills saved and records deleted or brought back, with who did it', async () => {
+    const { biz, oH, sH } = await setupStore('987031092');
+    await pushOk(biz.id, sH, [{ table: 'invoices', id: 'a1', data: invoice('a1', { number: 'INV-B/26-27/0007', numberSeries: undefined }) }]);
+    await pushOk(biz.id, oH, [{ table: 'customers', id: 'c9', data: { id: 'c9', name: 'Gupta', billingAddress: {}, openingBalance: 0, updatedAt: at(0) } }]);
+    await pushOk(biz.id, oH, [{ table: 'customers', id: 'c9', data: { id: 'c9', name: 'Gupta', billingAddress: {}, openingBalance: 0, deleted: true, updatedAt: at(1) } }]);
+    await pushOk(biz.id, oH, [{ table: 'customers', id: 'c9', data: { id: 'c9', name: 'Gupta', billingAddress: {}, openingBalance: 0, deleted: false, updatedAt: at(2) } }]);
+    const r = await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/activity`, headers: oH });
+    expect(r.statusCode).toBe(200);
+    const actions = r.json<{ rows: { action: string; by: string }[] }>().rows.map((x) => x.action);
+    expect(actions).toEqual(expect.arrayContaining(['record.restored', 'record.deleted']));
+    expect((await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/activity`, headers: sH })).statusCode).toBe(403);
+  });
+});

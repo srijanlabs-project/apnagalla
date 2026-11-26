@@ -171,6 +171,7 @@ export const api = {
   adminAudit: (id: string) => request<{ entries: AuditEntryDto[] }>('GET', `/v1/admin/stores/${id}/audit`),
   features: () => request<{ scanBill: boolean; email?: boolean }>('GET', '/v1/features'),
   emailDoc: (id: string, body: { to: string; subject: string; body: string; fileName: string; pdfBase64: string }) => request<{ sent: boolean }>('POST', `/v1/businesses/${id}/email-doc`, body, { timeoutMs: 40_000 }),
+  activity: (id: string, before?: string) => request<{ rows: ActivityRow[] }>('GET', `/v1/businesses/${id}/activity${before ? `?before=${encodeURIComponent(before)}` : ''}`),
   storeSlugFree: (id: string, slug: string) => request<{ free: boolean }>('GET', `/v1/businesses/${id}/store-slug/${encodeURIComponent(slug)}`),
   billing: (id: string) => request<{ status: BillingStatusDto; plans: PlanDto[] }>('GET', `/v1/businesses/${id}/billing`),
   billingQuote: (id: string, body: { planId: string; period: 'month' | 'year'; code?: string | null }) =>
@@ -232,3 +233,9 @@ export interface ExportSettingsDto {
   available: { email: boolean; google: boolean; onedrive: boolean; dropbox: boolean };
 }
 
+export interface ActivityRow {
+  at: string;
+  action: string;
+  detail: Record<string, unknown>;
+  by: string;
+}

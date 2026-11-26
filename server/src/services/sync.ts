@@ -507,5 +507,12 @@ function auditEvent(table: SyncTable, data: Data, existing: Data | undefined): {
   if (table === 'items' && existing && (existing.rate !== data.rate || (data.purchasePrice !== undefined && existing.purchasePrice !== data.purchasePrice))) {
     return { action: 'item.price_changed', detail: { name: data.name, from: existing.rate, to: data.rate } };
   }
+  // R7 activity log: bills saved, anything deleted or brought back from the recycle bin.
+  if (table === 'invoices' && data.status === 'saved' && existing?.status !== 'saved') {
+    return { action: 'invoice.saved', detail: { number: num(data), total: (data.totals as Data | undefined)?.grandTotal } };
+  }
+  const label = (d: Data | undefined) => num(d) ?? (typeof d?.name === 'string' ? d.name : typeof d?.supplierBillNo === 'string' ? d.supplierBillNo : undefined);
+  if (existing && data.deleted === true && existing.deleted !== true) return { action: 'record.deleted', detail: { table, name: label(existing) } };
+  if (existing && data.deleted !== true && existing.deleted === true) return { action: 'record.restored', detail: { table, name: label(data) } };
   return null;
 }

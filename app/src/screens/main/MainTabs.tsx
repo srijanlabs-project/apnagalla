@@ -1,4 +1,5 @@
 import RecycleBinScreen from './RecycleBinScreen';
+import ActivityScreen from './ActivityScreen';
 import RemindersScreen from '../customers/RemindersScreen';
 import ContactImportScreen from '../customers/ContactImportScreen';
 import LoyaltyScreen from '../settings/LoyaltyScreen';
@@ -140,6 +141,7 @@ export default function MainTabs() {
           <Route path="more/dashboard" element={<AllStoresScreen />} />
           <Route path="more/staff" element={<EmployeesScreen />} />
           <Route path="more/deleted" element={<RecycleBinScreen />} />
+          <Route path="more/activity" element={<ActivityScreen />} />
           <Route path="more/staff/:id" element={<EmployeeScreen />} />
           <Route path="more/devices" element={<DevicesScreen />} />
           <Route path="more/printer" element={<PrinterScreen />} />

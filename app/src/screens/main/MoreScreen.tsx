@@ -38,6 +38,7 @@ import {
   giftOutline,
   globeOutline,
   bookOutline,
+  timeOutline,
 } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
@@ -205,6 +206,12 @@ export default function MoreScreen() {
           <IonIcon icon={ribbonOutline} slot="start" />
           <IonLabel>{t('Plan and billing')}</IonLabel>
         </IonItem>
+        {isOwner && (
+          <IonItem routerLink="/tabs/more/activity" detail lines="full">
+            <IonIcon icon={timeOutline} slot="start" />
+            <IonLabel>{t('Activity log')}</IonLabel>
+          </IonItem>
+        )}
         {isOwner && (
           <IonItem routerLink="/tabs/more/deleted" detail lines="full">
             <IonIcon icon={trashOutline} slot="start" />
