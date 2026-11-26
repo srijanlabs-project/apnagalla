@@ -420,7 +420,7 @@ email / Drive / OneDrive / Dropbox, Tally export, and phone alerts.
 | Release | What it adds |
 |---|---|
 | **R6 Money and books** | Bank accounts with opening balance and a **bank book**; every UPI / card / bank / cheque entry goes to an account; **cash ↔ bank** deposits, withdrawals and transfers; **other income**; expenses with **own categories, paid-to, photo and repeating (rent, salary…)**; **loans** taken and given (EMI, interest); **payment receipts** (customer) and **payment vouchers** (supplier) as PDF / WhatsApp; reports: **bank statement, cash flow, profit & loss statement, other income**; financial-year filters; Home shows bank balance and this month's expenses and profit |
-| R7 Accounts and GST returns | Ledgers for every party and account, **journal entries**, chart of accounts (Tally-style groups), **trial balance, balance sheet**, capital and drawings; **GSTR-2B match** (upload the portal file, see missing / mismatched bills), proper **GSTR-3B** and **GSTR-9** sheets, input / output tax registers, taxable / exempt / nil sales; owner **activity log** in the app; reports **purchases by item**, **expenses by paid-to**, **sales by customer**; **customer, item and category filters** on reports; Home cards for **total purchases**, **stock value** and **other income** |
+| R7 Accounts and GST returns (built) | Ledgers for every party and account, **journal entries**, chart of accounts (Tally-style groups), **trial balance, balance sheet**, capital and drawings; **GSTR-2B match** (upload the portal file, see missing / mismatched bills), proper **GSTR-3B** and **GSTR-9** sheets, input / output tax registers, taxable / exempt / nil sales; owner **activity log** in the app; reports **purchases by item**, **expenses by paid-to**, **sales by customer**; **customer, item and category filters** on reports; Home cards for **total purchases**, **stock value** and **other income** |
 | R8 Orders and stock depth (built) | **Sales orders** (status, part delivered, pending order report, order → bill), **proforma invoice**, **batch and expiry** (pharmacy, FMCG: pick batch on sale, expiry report), **godowns** inside a store with transfers, **item stock history**, purchase **expenses spread into cost** (freight, loading), purchase **due dates and supplier reminders**, **recycle bin** (restore deleted items, customers, bills), **weighing-scale barcodes** (price / weight inside the barcode), **consignment** (goods sent on sale-or-return: what is out with whom, sold, returned) |
 | R9 Customers and online store (built) | **Party groups**, **customer-specific prices**, **loyalty points**, **automatic payment reminders** (WhatsApp / SMS on a schedule), **online store** (catalogue link with prices, customer orders → bill), share catalogue, import phone contacts, email bills |
 | R10 Government links and data | **E-invoice (IRN, QR)** and **e-way bill** through a GSP, **Tally import**, full **backup and restore** (Google Drive / file, one tap), field sales staff (visits with location, orders taken in the field), import from Vyapar backups |
@@ -565,6 +565,37 @@ R9 decisions (defaults):
   on any phone). The store name in the link is unique across ApnaGalla.
 - Email: the PDF is made on the phone and sent by the server from EXPORT_EMAIL_FROM; 30 emails an hour
   per person. The button shows only when the server has email set up.
+
+#### Release 7 — accounts and GST returns (built 27 Nov 2026, auto mode)
+
+| Step | Scope | Status |
+|---|---|---|
+| R7.1 Books | Double-entry ledgers worked out from every record (no second entry anywhere); own ledgers in Tally-style groups; journal entries; owner's capital and drawings; trial balance; balance sheet; ledger of any account month by month (More → Books; Reports → Money) | Done |
+| R7.2 GST sheets | GSTR-3B (3.1 outward taxable / nil / non-GST, 4 ITC, 5 exempt inward, 6.1 tax to pay after credit) and GSTR-9 annual summary; sales and purchase registers were already there | Done |
+| R7.3 GSTR-2B | Upload the 2B (or 2A) JSON from the portal: matched, tax differs, in 2B not entered, entered not in 2B; share as Excel | Done |
+| R7.4 Activity log | Owner sees who saved, cancelled or changed bills, voided payments, changed prices, deleted or brought back records (from the server's audit trail; needs the internet) | Done |
+| R7.5 Reports | Sales by customer, purchases by item, expenses by who was paid; customer / item / category filters on the sales, item, category, profit and register reports; Home cards for purchases this month, stock value and other income | Done |
+
+R7 decisions (defaults):
+- The books are added up from the records each time, like stock, so they always agree with bills,
+  payments and the cash book; journals only add what the app doesn't record (capital, drawings,
+  depreciation, deposits, opening balances of own ledgers).
+- Stock in the books: opening stock entered on items is a direct expense when entered; the stock on
+  hand at today's cost price is the closing stock (asset, and off the cost of goods). Old stock
+  isn't revalued at the price on the day it was bought.
+- Walk-in sales go to one "Walk-in customers" account; customers who paid ahead show as advances
+  under liabilities. Cheques sit in "Cheques not yet cleared" until marked cleared.
+- Moving money inside a customer's account (advance or credit note used) makes no entry; loyalty
+  points used are an expense ("Loyalty points used"). Cash short / excess at day end is its own
+  account. Opening balances of customers, suppliers, banks, loans and own ledgers go against
+  "Opening balances" (capital).
+- GSTR-3B: credit notes reduce the month's outward supplies; 0% lines on tax invoices are nil /
+  exempt; bills without GST are non-GST supplies. Tax to pay uses IGST credit first, then CGST and
+  SGST credit, as the portal does. Reverse charge, imports and cess are not covered.
+- GSTR-2B: matched by supplier GSTIN and bill number (letters and digits only, zeros after letters
+  ignored); tax within ₹1 counts as matched; "entered, not in 2B" looks at the 2B's month.
+- Journals and own ledgers are owner-only; the accountant login sees them; older phones (before
+  this update) don't receive them.
 
 #### Release 11 — features for particular kinds of shop (planned 26 Nov 2026)
 Found by asking what retailers need that neither ApnaGalla nor the Vyapar list has. Design-first.

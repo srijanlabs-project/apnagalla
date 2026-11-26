@@ -1,4 +1,4 @@
-import { IonButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonSegment, IonSegmentButton, IonSpinner, useIonToast } from '@ionic/react';
+import { IonButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonSegment, IonSegmentButton, IonSpinner, useIonToast, IonChip } from '@ionic/react';
 import { financialYearLabel, formatPaise, todayISO } from '@invoice/shared';
 import { documentOutline, gridOutline } from 'ionicons/icons';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { SelectField } from '../../components/Fields';
 import PageShell from '../../components/PageShell';
+import CustomerPicker from '../docs/CustomerPicker';
+import ItemPicker from '../../components/ItemPicker';
 import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { shareTable, type CellValue, type ExportTable } from '../../lib/exportTable';
@@ -129,6 +131,11 @@ export function ReportScreen() {
   const [preset, setPreset] = useState<Preset>('month');
   const [custom, setCustom] = useState<Period>({ from: todayISO(), to: todayISO() });
   const [staffId, setStaffId] = useState('');
+  const [customer, setCustomer] = useState<{ id: string; name: string } | null>(null);
+  const [item, setItem] = useState<{ id: string; name: string } | null>(null);
+  const [categoryId, setCategoryId] = useState('');
+  const [picking, setPicking] = useState<'customer' | 'item' | null>(null);
+  const categories = useLiveQuery(() => db.categories.where('businessId').equals(actor.businessId).filter((c) => !c.deleted).sortBy('name'), [actor.businessId]);
   const [table, setTable] = useState<ExportTable | null>(null);
   const [busy, setBusy] = useState(false);
   const period = useMemo(() => presetPeriod(preset, custom), [preset, custom]);
@@ -153,7 +160,7 @@ export function ReportScreen() {
     let live = true;
     setBusy(true);
     void info
-      .run({ businessId: actor.businessId, ...period, staffId: isOwner ? staffId || null : null, stores })
+      .run({ businessId: actor.businessId, ...period, staffId: isOwner ? staffId || null : null, stores, customerId: customer?.id ?? null, itemId: item?.id ?? null, categoryId: categoryId || null })
       .then((tbl) => live && setTable(tbl))
       .catch((e) => toast({ message: (e as Error).message, duration: 2500, color: 'danger' }))
       .finally(() => live && setBusy(false));
@@ -161,7 +168,7 @@ export function ReportScreen() {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [info, period, staffId, actor.businessId, stores]);
+  }, [info, period, staffId, actor.businessId, stores, customer, item, categoryId]);
 
   if (!info || !allowed(info)) return null;
   const share = (as: 'pdf' | 'excel') => table && void shareTable(actor.businessId, table, as).catch((e) => toast({ message: (e as Error).message, duration: 2500, color: 'danger' }));
@@ -200,6 +207,40 @@ export function ReportScreen() {
       {staffFilter && (
         <SelectField label={t('Person')} value={staffId} options={[{ value: '', label: t('Everyone') }, ...people.map((p) => ({ value: p.id, label: p.name }))]} onChange={setStaffId} />
       )}
+      {(info.filters ?? []).length > 0 && (
+        <div className="filter-chips wrap">
+          {info.filters!.includes('customer') && (
+            <IonChip outline={!customer} color={customer ? 'primary' : undefined} onClick={() => (customer ? setCustomer(null) : setPicking('customer'))}>
+              {customer ? `${customer.name} ✕` : t('All customers')}
+            </IonChip>
+          )}
+          {info.filters!.includes('item') && (
+            <IonChip outline={!item} color={item ? 'primary' : undefined} onClick={() => (item ? setItem(null) : setPicking('item'))}>
+              {item ? `${item.name} ✕` : t('All items')}
+            </IonChip>
+          )}
+          {info.filters!.includes('category') && (categories ?? []).length > 0 && (
+            <SelectField label={t('Category')} value={categoryId} options={[{ value: '', label: t('All categories') }, ...(categories ?? []).map((c) => ({ value: c.id, label: c.name }))]} onChange={setCategoryId} />
+          )}
+        </div>
+      )}
+      <CustomerPicker
+        isOpen={picking === 'customer'}
+        onClose={() => setPicking(null)}
+        onPick={(_p, c) => {
+          setCustomer(c ? { id: c.id, name: c.name } : null);
+          setPicking(null);
+        }}
+      />
+      <ItemPicker
+        isOpen={picking === 'item'}
+        onClose={() => setPicking(null)}
+        businessId={actor.businessId}
+        onPick={(it) => {
+          setItem({ id: it.id, name: it.name });
+          setPicking(null);
+        }}
+      />
       <div className="detail-actions">
         <IonButton size="small" fill="outline" disabled={!table} onClick={() => share('pdf')}>
           <IonIcon icon={documentOutline} slot="start" /> PDF

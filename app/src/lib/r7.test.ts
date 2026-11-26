@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { gstr3b } from './gstReturns';
+import { REPORTS } from './reports';
 import { match2b, parsePortalJson } from './gstr2b';
 import { balanceSheet, ledgerOf, ownerMoney, saveJournal, trialBalance } from './books';
 import { cashDay, closeDay } from './cashbook';
@@ -124,5 +125,26 @@ describe('R7.3 GSTR-2B match', () => {
       ['notIn2b', 'HV-99'],
       ['matched', 'HV12'],
     ]);
+  });
+});
+
+describe('R7.5 reports and filters', () => {
+  it('sales by customer, item sales for one customer, purchases by item, expenses by paid-to', async () => {
+    const sell = async (cid: string | null, qty: number) => {
+      const d = await newInvoiceDraft(owner);
+      return saveInvoice(owner, { ...d, date: D, billTo: cid ? { customerId: cid, name: 'Mehta', address: {} } : { customerId: null, name: 'Walk-in', address: {} }, lines: [line('a', 'Fan', qty, 200000, { itemId: 'i1' })] }, { finalize: true });
+    };
+    await sell('c1', 2);
+    await sell(null, 1);
+    const run = (id: string, extra = {}) => REPORTS.find((r) => r.id === id)!.run({ businessId: 'b1', from: '2026-04-01', to: '2026-04-30', ...extra });
+    const byCust = await run('salesByCustomer');
+    expect(byCust.rows.map((r) => [r[0], r[4]])).toEqual([['Mehta', 400000], ['Walk-in customers', 200000]]);
+    expect((await run('items', { customerId: 'c1' })).rows.map((r) => r[1])).toEqual([2]);
+    const pd = await newPurchaseDraft(owner);
+    await savePurchase(owner, { ...pd, date: D, lines: [line('p', 'Fan', 4, 150000, { itemId: 'i1' })] } as never, { finalize: true });
+    expect((await run('purchasesByItem')).rows.map((r) => [r[0], r[1], r[4]])).toEqual([['Fan', 4, 600000]]);
+    await saveExpense(owner, { ...blank, id: 'e1', category: 'transport', paidTo: 'Raju Tempo', amount: 30000, mode: 'cash', date: D } as never);
+    await saveExpense(owner, { ...blank, id: 'e2', category: 'transport', paidTo: 'raju tempo ', amount: 20000, mode: 'cash', date: D } as never);
+    expect((await run('expensesByPaidTo')).rows.map((r) => [r[0], r[2], r[3]])).toEqual([['Raju Tempo', 2, 50000]]);
   });
 });

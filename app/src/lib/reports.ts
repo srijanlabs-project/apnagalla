@@ -26,6 +26,10 @@ export interface ReportContext extends Period {
   staffId?: string | null;
   /** Owner's stores, for the store-wise report. */
   stores?: { id: string; name: string }[];
+  /** R7 filters: one customer, one item, one category (and its sub-categories). */
+  customerId?: string | null;
+  itemId?: string | null;
+  categoryId?: string | null;
 }
 
 export type ReportId =
@@ -61,7 +65,10 @@ export type ReportId =
   | 'trialBalance'
   | 'balanceSheet'
   | 'gstr3b'
-  | 'gstr9';
+  | 'gstr9'
+  | 'salesByCustomer'
+  | 'purchasesByItem'
+  | 'expensesByPaidTo';
 
 const inRange = (d: string, p: Period) => d >= p.from && d <= p.to;
 const periodText = (p: Period) => {
@@ -78,7 +85,7 @@ async function salesData(ctx: ReportContext) {
     db.profiles.get(ctx.businessId),
   ]);
   const ledger = buildLedger(payments, notes);
-  const mine = (d: { createdBy?: string }) => !ctx.staffId || d.createdBy === ctx.staffId;
+  const mine = (d: { createdBy?: string; billTo?: { customerId?: string | null } | null }) => (!ctx.staffId || d.createdBy === ctx.staffId) && (!ctx.customerId || d.billTo?.customerId === ctx.customerId);
   return {
     invoices: invoices.filter((i) => inRange(i.date, ctx) && mine(i)),
     allInvoices: invoices,
@@ -152,8 +159,11 @@ async function itemSales(ctx: ReportContext) {
   const { invoices, notes } = await salesData(ctx);
   const items = new Map((await db.items.where('businessId').equals(ctx.businessId).toArray()).map((i) => [i.id, i]));
   const by = new Map<string, { name: string; unit: string; qty: number; amount: number; cost: number; item?: Item }>();
+  const cats = ctx.categoryId ? await categoryAndBelow(ctx.businessId, ctx.categoryId) : null;
   const add = (doc: Invoice | CreditNote, sign: 1 | -1) =>
     doc.lines.forEach((l, idx) => {
+      if (ctx.itemId && l.itemId !== ctx.itemId) return;
+      if (cats && !(l.itemId && cats.has(items.get(l.itemId)?.categoryId ?? ''))) return;
       const key = l.itemId || `name:${l.name.toLowerCase()}`;
       const item = l.itemId ? items.get(l.itemId) : undefined;
       const s = by.get(key) ?? (by.set(key, { name: item?.name ?? l.name, unit: item?.unit ?? l.unit, qty: 0, amount: 0, cost: 0, item }), by.get(key)!);
@@ -166,6 +176,95 @@ async function itemSales(ctx: ReportContext) {
   invoices.forEach((i) => add(i, 1));
   notes.filter((n) => n.reason === 'return').forEach((n) => add(n, -1));
   return { by, items };
+}
+
+/** A category and every category under it. */
+async function categoryAndBelow(businessId: string, id: string): Promise<Set<string>> {
+  const all = await db.categories.where('businessId').equals(businessId).toArray();
+  const out = new Set([id]);
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const c of all) if (c.parentId && out.has(c.parentId) && !out.has(c.id)) (out.add(c.id), (grew = true));
+  }
+  return out;
+}
+
+/** R7: sales by customer (walk-ins together), biggest first. */
+async function salesByCustomer(ctx: ReportContext): Promise<ExportTable> {
+  const { invoices, notes, ledger } = await salesData(ctx);
+  const m = new Map<string, { name: string; bills: number; sales: number; returns: number; pending: number }>();
+  const slot = (id: string | null | undefined, name: string) => {
+    const k = id || 'walkin';
+    return m.get(k) ?? (m.set(k, { name: id ? name : t('Walk-in customers'), bills: 0, sales: 0, returns: 0, pending: 0 }), m.get(k)!);
+  };
+  for (const i of invoices) {
+    const s = slot(i.billTo?.customerId, i.billTo?.name ?? '');
+    s.bills++;
+    s.sales += i.totals.grandTotal;
+    s.pending += moneyOf(i, ledger).pending;
+  }
+  for (const n of notes) slot(n.billTo?.customerId, n.billTo?.name ?? '').returns += n.totals.grandTotal;
+  const rows = [...m.values()].sort((a, b) => b.sales - b.returns - (a.sales - a.returns)).map((s) => [s.name, s.bills, s.sales, s.returns, s.sales - s.returns, s.pending] as CellValue[]);
+  return {
+    title: t('Sales by customer'),
+    subtitle: [periodText(ctx)],
+    columns: [{ label: t('Customer') }, { label: t('Bills'), kind: 'qty' }, { label: t('Sales'), kind: 'money' }, { label: t('Returns'), kind: 'money' }, { label: t('Net sales'), kind: 'money' }, { label: t('Still to collect'), kind: 'money' }],
+    rows,
+    foot: [[t('Total'), sum(rows, 1), sum(rows, 2), sum(rows, 3), sum(rows, 4), sum(rows, 5)]],
+    fileBase: `Sales-by-customer-${ctx.from}-${ctx.to}`,
+  };
+}
+
+/** R7: purchases by item (cost before tax, returns taken off). */
+async function purchasesByItem(ctx: ReportContext): Promise<ExportTable> {
+  const purchases = await purchaseData(ctx);
+  const items = new Map((await db.items.where('businessId').equals(ctx.businessId).toArray()).map((i) => [i.id, i]));
+  const cats = ctx.categoryId ? await categoryAndBelow(ctx.businessId, ctx.categoryId) : null;
+  const m = new Map<string, { name: string; unit: string; qty: number; amount: number; bills: Set<string> }>();
+  for (const p of purchases) {
+    const sign = p.kind === 'return' ? -1 : 1;
+    p.lines.forEach((l, idx) => {
+      if (ctx.itemId && l.itemId !== ctx.itemId) return;
+      if (cats && !(l.itemId && cats.has(items.get(l.itemId)?.categoryId ?? ''))) return;
+      const it = l.itemId ? items.get(l.itemId) : undefined;
+      const k = l.itemId || `name:${l.name.toLowerCase()}`;
+      const s = m.get(k) ?? (m.set(k, { name: it?.name ?? l.name, unit: it?.unit ?? l.unit, qty: 0, amount: 0, bills: new Set() }), m.get(k)!);
+      s.qty += sign * l.qty * (l.unitFactor ?? 1);
+      s.amount += sign * (p.totals.lines[idx]?.taxable ?? Math.round(l.qty * l.rate));
+      s.bills.add(p.id);
+    });
+  }
+  const rows = [...m.values()].sort((a, b) => b.amount - a.amount).map((s) => [s.name, Math.round(s.qty * 1000) / 1000, s.unit, s.bills.size, s.amount, s.qty ? Math.round(s.amount / s.qty) : null] as CellValue[]);
+  return {
+    title: t('Purchases by item'),
+    subtitle: [periodText(ctx), t('Cost before tax; returns to suppliers taken off.')],
+    columns: [{ label: t('Item') }, { label: t('Quantity'), kind: 'qty' }, { label: t('Unit'), width: 'auto' }, { label: t('Bills'), kind: 'qty' }, { label: t('Cost'), kind: 'money' }, { label: t('Average cost'), kind: 'money' }],
+    rows,
+    foot: [[t('Total'), null, '', null, sum(rows, 4), null]],
+    fileBase: `Purchases-by-item-${ctx.from}-${ctx.to}`,
+  };
+}
+
+/** R7: expenses by who was paid. */
+async function expensesByPaidTo(ctx: ReportContext): Promise<ExportTable> {
+  const list = await expensesIn(ctx);
+  const m = new Map<string, { name: string; count: number; amount: number; cats: Set<string> }>();
+  for (const e of list) {
+    const k = (e.paidTo ?? '').trim().toLowerCase() || '—';
+    const s = m.get(k) ?? (m.set(k, { name: e.paidTo?.trim() || t('Not noted'), count: 0, amount: 0, cats: new Set() }), m.get(k)!);
+    s.count++;
+    s.amount += e.amount;
+    s.cats.add(expenseLabel(e.category));
+  }
+  const rows = [...m.values()].sort((a, b) => b.amount - a.amount).map((s) => [s.name, [...s.cats].join(', '), s.count, s.amount] as CellValue[]);
+  return {
+    title: t('Expenses by who was paid'),
+    subtitle: [periodText(ctx)],
+    columns: [{ label: t('Paid to') }, { label: t('Kinds') }, { label: t('Times'), kind: 'qty' }, { label: t('Amount'), kind: 'money' }],
+    rows,
+    foot: [[t('Total'), '', sum(rows, 2), sum(rows, 3)]],
+    fileBase: `Expenses-by-paid-to-${ctx.from}-${ctx.to}`,
+  };
 }
 
 async function items(ctx: ReportContext): Promise<ExportTable> {
@@ -752,14 +851,17 @@ export interface ReportInfo {
   /** Contains purchase costs: owner, or staff allowed to see costs. */
   cost?: boolean;
   ownerOnly?: boolean;
+  /** R7: filters this report understands. */
+  filters?: ('customer' | 'item' | 'category')[];
   run: (ctx: ReportContext) => Promise<ExportTable>;
 }
 
 export const REPORTS: ReportInfo[] = [
-  { id: 'sales', title: () => t('Sales report'), group: 'sales', period: true, run: sales },
+  { id: 'sales', title: () => t('Sales report'), group: 'sales', period: true, filters: ['customer'], run: sales },
+  { id: 'salesByCustomer', title: () => t('Sales by customer'), group: 'sales', period: true, run: salesByCustomer },
   { id: 'collections', title: () => t('Money received by mode'), group: 'sales', period: true, run: collections },
-  { id: 'items', title: () => t('Item-wise sales'), group: 'sales', period: true, run: items },
-  { id: 'categories', title: () => t('Category-wise sales'), group: 'sales', period: true, run: categories },
+  { id: 'items', title: () => t('Item-wise sales'), group: 'sales', period: true, filters: ['customer', 'item', 'category'], run: items },
+  { id: 'categories', title: () => t('Category-wise sales'), group: 'sales', period: true, filters: ['customer', 'category'], run: categories },
   { id: 'deliveries', title: () => t('Delivery report'), group: 'sales', period: true, run: deliveries },
   { id: 'consignment', title: () => t('Goods on sale or return'), group: 'sales', period: false, run: (ctx) => import('./consignment').then((m) => m.consignmentTable(ctx.businessId)) },
   { id: 'pendingOrders', title: () => t('Pending orders'), group: 'sales', period: false, run: (ctx) => import('./orders').then((m) => m.pendingOrdersTable(ctx.businessId)) },
@@ -769,18 +871,20 @@ export const REPORTS: ReportInfo[] = [
   { id: 'godownStock', title: () => t('Stock by godown'), group: 'stock', period: false, run: async (c) => import('./godowns').then(async (m) => m.godownStockTable(c.businessId, (await db.settings.get(c.businessId)) ?? {})) },
   { id: 'expiry', title: () => t('Expiring stock'), group: 'stock', period: false, run: (c) => import('./batches').then((m) => m.expiryTable(c.businessId, 3, true)) },
   { id: 'slow', title: () => t('Slow movers'), group: 'stock', period: true, cost: true, run: slow },
-  { id: 'salesRegister', title: () => t('Sales register'), group: 'gst', period: true, ownerOnly: true, run: salesRegister },
+  { id: 'salesRegister', title: () => t('Sales register'), group: 'gst', period: true, ownerOnly: true, filters: ['customer'], run: salesRegister },
   { id: 'purchaseRegister', title: () => t('Purchase register'), group: 'gst', period: true, ownerOnly: true, run: purchaseRegister },
+  { id: 'purchasesByItem', title: () => t('Purchases by item'), group: 'stock', period: true, cost: true, filters: ['item', 'category'], run: purchasesByItem },
   { id: 'hsn', title: () => t('HSN summary'), group: 'gst', period: true, ownerOnly: true, run: hsn },
   { id: 'gstr3b', title: () => 'GSTR-3B', group: 'gst', period: true, ownerOnly: true, run: (c) => import('./gstReturns').then((m) => m.gstr3bTable(c.businessId, c)) },
   { id: 'gstr9', title: () => t('GSTR-9 (annual)'), group: 'gst', period: true, ownerOnly: true, run: (c) => import('./gstReturns').then((m) => m.gstr9Table(c.businessId, c.to)) },
   { id: 'gstSummary', title: () => t('GST summary'), group: 'gst', period: true, ownerOnly: true, run: gstSummary },
   { id: 'pnl', title: () => t('Profit & loss statement'), group: 'money', period: true, ownerOnly: true, cost: true, run: pnl },
-  { id: 'profit', title: () => t('Profit report'), group: 'money', period: true, ownerOnly: true, run: profit },
+  { id: 'profit', filters: ['customer', 'item', 'category'], title: () => t('Profit report'), group: 'money', period: true, ownerOnly: true, run: profit },
   { id: 'cashFlow', title: () => t('Cash flow'), group: 'money', period: true, ownerOnly: true, run: cashFlow },
   { id: 'bankStatement', title: () => t('Bank statement'), group: 'money', period: true, ownerOnly: true, run: bankStatement },
   { id: 'otherIncome', title: () => t('Other income'), group: 'money', period: true, ownerOnly: true, run: otherIncome },
   { id: 'expenses', title: () => t('Expenses'), group: 'money', period: true, run: expenses },
+  { id: 'expensesByPaidTo', title: () => t('Expenses by who was paid'), group: 'money', period: true, ownerOnly: true, run: expensesByPaidTo },
   { id: 'dayBook', title: () => t('Day book'), group: 'money', period: true, ownerOnly: true, run: dayBook },
   { id: 'receivables', title: () => t('To collect from customers'), group: 'money', period: false, run: receivablesReport },
   { id: 'payables', title: () => t('To pay suppliers'), group: 'money', period: false, cost: true, run: payablesReport },
@@ -808,6 +912,9 @@ export interface Today {
   bank?: number;
   monthExpenses?: number;
   monthProfit?: number;
+  monthPurchases?: number;
+  monthOtherIncome?: number;
+  stockValue?: number;
 }
 
 export async function todaySummary(businessId: string, withPayables: boolean, withMoney = false): Promise<Today> {
@@ -821,11 +928,18 @@ export async function todaySummary(businessId: string, withPayables: boolean, wi
     cashDay(businessId, today),
   ]);
   const money = (mode: string) => payments.filter((p) => p.mode === mode).reduce((a, p) => a + (p.kind === 'refund' ? -p.amount : p.amount), 0);
-  let extra: Pick<Today, 'bank' | 'monthExpenses' | 'monthProfit'> = {};
+  let extra: Pick<Today, 'bank' | 'monthExpenses' | 'monthProfit' | 'monthPurchases' | 'monthOtherIncome' | 'stockValue'> = {};
   if (withMoney) {
     const month = { businessId, from: `${today.slice(0, 8)}01`, to: today };
-    const [balances, profitNow] = await Promise.all([bankBalances(businessId), netProfit(month)]);
-    extra = { bank: balances.reduce((a, b) => a + b.balance, 0), monthExpenses: profitNow.expenses, monthProfit: profitNow.net };
+    const [balances, profitNow, buys, incomes] = await Promise.all([bankBalances(businessId), netProfit(month), purchaseData(month), incomesIn(month)]);
+    extra = {
+      bank: balances.reduce((a, b) => a + b.balance, 0),
+      monthExpenses: profitNow.expenses,
+      monthProfit: profitNow.net,
+      monthPurchases: buys.reduce((a, p) => a + (p.kind === 'return' ? -1 : 1) * p.totals.grandTotal, 0),
+      monthOtherIncome: incomes.reduce((a, i) => a + i.amount, 0),
+      stockValue: items.reduce((a, i) => a + Math.max(0, levels.get(i.id) ?? 0) * (i.purchasePrice ?? 0), 0),
+    };
   }
   return {
     ...extra,

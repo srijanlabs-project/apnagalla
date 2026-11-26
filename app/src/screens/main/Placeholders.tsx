@@ -139,6 +139,24 @@ export function HomeScreen() {
               <strong className={today.bank < 0 ? 'text-danger' : undefined}>{rupeesShort(today.bank)}</strong>
             </IonRouterLink>
           )}
+          {today.monthPurchases != null && (
+            <IonRouterLink routerLink="/tabs/purchases" className="dash-card">
+              <span>{t('Purchases this month')}</span>
+              <strong>{rupeesShort(today.monthPurchases)}</strong>
+            </IonRouterLink>
+          )}
+          {today.stockValue != null && (
+            <IonRouterLink routerLink="/tabs/reports/stock" className="dash-card">
+              <span>{t('Stock value (at cost)')}</span>
+              <strong>{rupeesShort(today.stockValue)}</strong>
+            </IonRouterLink>
+          )}
+          {!!today.monthOtherIncome && (
+            <IonRouterLink routerLink="/tabs/income" className="dash-card">
+              <span>{t('Other income this month')}</span>
+              <strong>{rupeesShort(today.monthOtherIncome)}</strong>
+            </IonRouterLink>
+          )}
           {today.monthExpenses != null && (
             <IonRouterLink routerLink="/tabs/expenses" className="dash-card">
               <span>{t('Expenses this month')}</span>
