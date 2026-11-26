@@ -527,3 +527,23 @@ describe('app version', () => {
     expect(bad.statusCode).toBe(200);
   });
 });
+
+describe('R6 money and books', () => {
+  it('bank moves, income and loans: the owner writes them; the accountant sees them; other staff never receive them', async () => {
+    const { biz, oH, sH, staff } = await setupStore('987021080');
+    const rows = [
+      { table: 'moneyMoves', id: 'm1', data: { id: 'm1', kind: 'deposit', from: 'cash', to: 'acc', amount: 500000, date: '2026-11-25', updatedAt: at(0) } },
+      { table: 'incomes', id: 'i1', data: { id: 'i1', category: 'interest', amount: 3200, mode: 'bank', date: '2026-11-25', updatedAt: at(0) } },
+      { table: 'loans', id: 'l1', data: { id: 'l1', kind: 'taken', name: 'HDFC', openingBalance: 0, startDate: '2026-11-01', updatedAt: at(0) } },
+    ] as const;
+    expect((await pushOk(biz.id, oH, [...rows])).map((r) => r.status)).toEqual(['ok', 'ok', 'ok']);
+    expect((await pushOk(biz.id, sH, [{ table: 'incomes', id: 'i2', data: { id: 'i2', category: 'other', amount: 1, mode: 'cash', date: '2026-11-25', updatedAt: at(0) } }]))[0]!.status).toBe('rejected');
+    const tables = async (h: Record<string, string>, schema = 5) =>
+      new Set((await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/sync/pull?since=0&schema=${schema}`, headers: h })).json<SyncPullResponse>().changes.map((c) => c.table));
+    expect([...(await tables(oH))]).toEqual(expect.arrayContaining(['moneyMoves', 'incomes', 'loans']));
+    expect((await tables(sH)).has('incomes')).toBe(false);
+    expect((await tables(oH, 4)).has('incomes')).toBe(false); // an older app doesn't know the tables
+    await app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/members/${staff.me.user.id}/permissions`, headers: oH, payload: { access: 'readonly' } });
+    expect([...(await tables(sH))]).toEqual(expect.arrayContaining(['moneyMoves', 'incomes', 'loans']));
+  });
+});

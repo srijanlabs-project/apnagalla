@@ -34,7 +34,8 @@ export function HomeScreen() {
       .then(({ status }) => setRenew((status.state === 'trial' || status.state === 'active' || status.state === 'grace') && (status.daysLeft ?? 99) <= 7 ? status : null))
       .catch(() => setRenew(null));
   }, [actor.businessId, isOwner]);
-  const today = useLiveQuery(() => todaySummary(actor.businessId, canBuy), [actor.businessId, canBuy, ledger]);
+  const seesMoney = isOwner || perms.access === 'readonly';
+  const today = useLiveQuery(() => todaySummary(actor.businessId, canBuy, seesMoney && canBuy), [actor.businessId, canBuy, seesMoney, ledger]);
   const recent = useLiveQuery(
     () =>
       db.invoices
@@ -108,6 +109,24 @@ export function HomeScreen() {
               <strong>{rupeesShort(today.payable)}</strong>
             </IonRouterLink>
           ) : null}
+          {today.bank != null && (
+            <IonRouterLink routerLink="/tabs/bank" className="dash-card">
+              <span>{t('In bank accounts')}</span>
+              <strong className={today.bank < 0 ? 'text-danger' : undefined}>{rupeesShort(today.bank)}</strong>
+            </IonRouterLink>
+          )}
+          {today.monthExpenses != null && (
+            <IonRouterLink routerLink="/tabs/expenses" className="dash-card">
+              <span>{t('Expenses this month')}</span>
+              <strong>{rupeesShort(today.monthExpenses)}</strong>
+            </IonRouterLink>
+          )}
+          {today.monthProfit != null && (
+            <IonRouterLink routerLink="/tabs/reports/pnl" className="dash-card">
+              <span>{t('Profit this month')}</span>
+              <strong className={today.monthProfit < 0 ? 'text-danger' : 'text-success'}>{rupeesShort(today.monthProfit)}</strong>
+            </IonRouterLink>
+          )}
           {today.lowStock > 0 && (
             <IonRouterLink routerLink="/tabs/items/low-stock" className="dash-card">
               <span>{t('Low on stock')}</span>

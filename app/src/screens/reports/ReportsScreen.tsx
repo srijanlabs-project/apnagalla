@@ -78,7 +78,7 @@ export function ReportsScreen() {
   );
 }
 
-type Preset = 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth' | 'fy' | 'custom';
+type Preset = 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth' | 'fy' | 'lastFy' | 'custom';
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -99,6 +99,10 @@ function presetPeriod(p: Preset, custom: Period): Period {
   if (p === 'fy') {
     const startYear = 2000 + Number(financialYearLabel(today).slice(0, 2));
     return { from: `${startYear}-04-01`, to: today };
+  }
+  if (p === 'lastFy') {
+    const startYear = 2000 + Number(financialYearLabel(today).slice(0, 2)) - 1;
+    return { from: `${startYear}-04-01`, to: `${startYear + 1}-03-31` };
   }
   return custom;
 }
@@ -171,6 +175,7 @@ export function ReportScreen() {
                 ['month', t('This month')],
                 ['lastMonth', t('Last month')],
                 ['fy', t('This year')],
+                ['lastFy', t('Last year')],
                 ['custom', t('Dates')],
               ] as const
             ).map(([v, label]) => (

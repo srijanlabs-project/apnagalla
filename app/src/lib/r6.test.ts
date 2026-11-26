@@ -184,3 +184,40 @@ describe('R6.4 receipts', () => {
     expect(v.number.startsWith('PV-')).toBe(true);
   });
 });
+
+describe('R6.5 money reports', () => {
+  it('profit & loss: gross profit − expenses − loan interest + other income; cash flow and bank statement add up', async () => {
+    const { REPORTS, todaySummary } = await import('./reports');
+    const { addLoanEntry, saveIncome, saveLoan } = await import('./money');
+    const run = (id: string) => REPORTS.find((r) => r.id === id)!.run({ businessId: 'b1', from: TODAY, to: TODAY });
+    await account('hdfc', { isDefault: true, openingBalance: 1_000_00 });
+    await putRecord('items', owner, { id: 'wire', name: 'Wire', unit: 'pcs', rate: 10_000, purchasePrice: 6_000, taxPct: 0, rateIncludesTax: false } as never);
+    const d = await newInvoiceDraft(owner);
+    const inv = await saveInvoice(owner, { ...d, lines: [{ id: 'l', itemId: 'wire', name: 'Wire', qty: 10, unit: 'pcs', rate: 10_000, rateIncludesTax: false, taxPct: 0 }] } as never, { finalize: true });
+    await recordPayments(owner, inv.id, [{ mode: 'upi', amount: 1_000_00 }]);
+    await saveExpense(owner, { id: newId(), category: 'rent', amount: 150_00, mode: 'cash', date: TODAY } as never);
+    await saveIncome(owner, { id: 'i1', category: 'commission', amount: 50_00, mode: 'cash', date: TODAY });
+    await saveLoan(owner, { id: 'L', kind: 'taken', name: 'Bank', openingBalance: 0, startDate: TODAY });
+    await addLoanEntry(owner, { loanId: 'L', kind: 'interest', amount: 20_00, mode: 'bank', date: TODAY });
+
+    const p = await run('pnl');
+    // Sales 1,000 − cost 600 = 400; − rent 150 − interest 20 + commission 50 = 280.
+    expect(p.foot![0]).toEqual(['Net profit', 280_00]);
+    expect(p.rows.map((r) => r[0])).toContain('   Rent');
+    expect(p.rows.map((r) => r[0])).toContain('   Commission');
+
+    const f = await run('cashFlow');
+    const row = (label: string) => f.rows.find((r) => r[0] === label)!;
+    expect(row('Received from customers')).toEqual(['Received from customers', 0, 1_000_00, 1_000_00]);
+    expect(row('Expenses')).toEqual(['Expenses', -150_00, 0, -150_00]);
+    expect(f.foot![0]).toEqual(['Net change', -100_00, 980_00, 880_00]);
+
+    const b = await run('bankStatement');
+    expect(b.rows[0]).toEqual([TODAY, expect.stringContaining('Opening'), null, null, 1_000_00]);
+    expect(b.rows.at(-1)).toEqual([TODAY, expect.stringContaining('Closing'), null, null, 1_980_00]);
+
+    const home = await todaySummary('b1', true, true);
+    expect(home).toMatchObject({ bank: 1_980_00, monthExpenses: 170_00, monthProfit: 280_00 });
+    expect((await todaySummary('b1', true, false)).bank).toBeUndefined();
+  });
+});

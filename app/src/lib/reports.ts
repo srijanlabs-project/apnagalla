@@ -7,6 +7,7 @@ import { t } from './i18n';
 import { receivables } from './khata';
 import { buildLedger, modeLabel, moneyOf } from './ledger';
 import { expenseLabel, payables } from './purchases';
+import { accountName, bankAccountsOf, bankBalances, bankBook, incomeLabel, moneyEvents, type MoneyEvent } from './money';
 import { isLow, stockEvents, stockLevels, tracksStock } from './stock';
 
 /**
@@ -46,7 +47,11 @@ export type ReportId =
   | 'stores'
   | 'deliveries'
   | 'receivables'
-  | 'payables';
+  | 'payables'
+  | 'pnl'
+  | 'cashFlow'
+  | 'bankStatement'
+  | 'otherIncome';
 
 const inRange = (d: string, p: Period) => d >= p.from && d <= p.to;
 const periodText = (p: Period) => {
@@ -563,6 +568,157 @@ async function payablesReport(ctx: ReportContext): Promise<ExportTable> {
   };
 }
 
+/* ---------- R6: money reports ---------- */
+
+async function incomesIn(ctx: ReportContext) {
+  return db.incomes.where('businessId').equals(ctx.businessId).filter((i) => !i.deleted && inRange(i.date, ctx)).toArray();
+}
+
+/** Interest and charges paid on loans taken (expense) and interest received on loans given (income). */
+async function loanInterestIn(ctx: ReportContext) {
+  const [loans, entries] = await Promise.all([
+    db.loans.where('businessId').equals(ctx.businessId).toArray(),
+    db.loanEntries.where('businessId').equals(ctx.businessId).filter((e) => !e.deleted && inRange(e.date, ctx) && (e.kind === 'interest' || e.kind === 'charge')).toArray(),
+  ]);
+  const kindOf = new Map(loans.map((l) => [l.id, l.kind]));
+  let paid = 0;
+  let received = 0;
+  for (const e of entries) {
+    if (kindOf.get(e.loanId) === 'given') received += e.amount;
+    else paid += e.amount;
+  }
+  return { paid, received };
+}
+
+const byCategory = <T extends { category: string; amount: number }>(list: T[]) => {
+  const m = new Map<string, number>();
+  for (const e of list) m.set(e.category, (m.get(e.category) ?? 0) + e.amount);
+  return [...m.entries()].sort((a, b) => b[1] - a[1]);
+};
+
+/** Net profit for a period: gross profit − expenses − loan interest + other income. */
+export async function netProfit(ctx: ReportContext) {
+  const { by } = await itemSales(ctx);
+  const sales = [...by.values()].reduce((a, s) => a + s.amount, 0);
+  const cost = [...by.values()].reduce((a, s) => a + s.cost, 0);
+  const noCost = [...by.values()].filter((s) => s.qty > 0 && !s.item?.purchasePrice).length;
+  const [exps, incomes, interest] = await Promise.all([expensesIn(ctx), incomesIn(ctx), loanInterestIn(ctx)]);
+  const expRows = byCategory(exps);
+  const incRows = byCategory(incomes);
+  const expenses = expRows.reduce((a, [, v]) => a + v, 0) + interest.paid;
+  const income = incRows.reduce((a, [, v]) => a + v, 0) + interest.received;
+  return { sales, cost, gross: sales - cost, expRows, incRows, interest, expenses, income, net: sales - cost - expenses + income, noCost };
+}
+
+async function pnl(ctx: ReportContext): Promise<ExportTable> {
+  const p = await netProfit(ctx);
+  const rows: CellValue[][] = [
+    [t('Sales (before tax, less returns)'), p.sales],
+    [t('Cost of goods sold'), -p.cost],
+    [t('Gross profit'), p.gross],
+    ['', null],
+    [t('Expenses'), null],
+    ...p.expRows.map(([c, v]) => [`   ${expenseLabel(c as never)}`, -v] as CellValue[]),
+    ...(p.interest.paid ? [[`   ${t('Loan interest and charges')}`, -p.interest.paid] as CellValue[]] : []),
+    [t('Total expenses'), -p.expenses],
+    ['', null],
+    [t('Other income'), null],
+    ...p.incRows.map(([c, v]) => [`   ${incomeLabel(c)}`, v] as CellValue[]),
+    ...(p.interest.received ? [[`   ${t('Interest on loans given')}`, p.interest.received] as CellValue[]] : []),
+    [t('Total other income'), p.income],
+  ];
+  return {
+    title: t('Profit & loss statement'),
+    subtitle: [periodText(ctx), t('Cost uses each item’s current purchase price.')],
+    columns: [{ label: '' }, { label: t('Amount'), kind: 'money' }],
+    rows,
+    foot: [[p.net >= 0 ? t('Net profit') : t('Net loss'), p.net]],
+    after: p.noCost ? [t('{count} items sold have no purchase price, so their cost is counted as 0.', { count: p.noCost })] : [],
+    fileBase: `Profit-and-loss-${ctx.from}-${ctx.to}`,
+  };
+}
+
+const FLOW_TEXT: Record<MoneyEvent['kind'], () => string> = {
+  sales: () => t('Received from customers'),
+  income: () => t('Other income'),
+  loanIn: () => t('Loan money in'),
+  refund: () => t('Refunds to customers'),
+  supplier: () => t('Paid to suppliers'),
+  expense: () => t('Expenses'),
+  loanOut: () => t('Loans repaid / lent'),
+  interest: () => t('Loan interest and charges'),
+  move: () => t('Cash ↔ bank moves and corrections'),
+};
+
+async function cashFlow(ctx: ReportContext): Promise<ExportTable> {
+  const events = (await moneyEvents(ctx.businessId)).filter((e) => inRange(e.date, ctx));
+  const sums = new Map<MoneyEvent['kind'], { cash: number; bank: number }>();
+  for (const e of events) {
+    const cur = sums.get(e.kind) ?? { cash: 0, bank: 0 };
+    if (e.place === 'cash') cur.cash += e.amount;
+    else cur.bank += e.amount;
+    sums.set(e.kind, cur);
+  }
+  const order: MoneyEvent['kind'][] = ['sales', 'income', 'loanIn', 'refund', 'supplier', 'expense', 'loanOut', 'interest', 'move'];
+  const rows: CellValue[][] = order
+    .filter((k) => sums.has(k))
+    .map((k) => {
+      const v = sums.get(k)!;
+      return [FLOW_TEXT[k](), v.cash, v.bank, v.cash + v.bank];
+    });
+  const cash = rows.reduce((a, r) => a + (r[1] as number), 0);
+  const bank = rows.reduce((a, r) => a + (r[2] as number), 0);
+  return {
+    title: t('Cash flow'),
+    subtitle: [periodText(ctx), t('Money in (+) and out (−) of the cash drawer and the bank accounts. Pending cheques are not counted.')],
+    columns: [{ label: '' }, { label: t('Cash'), kind: 'money' }, { label: t('Bank'), kind: 'money' }, { label: t('Total'), kind: 'money' }],
+    rows,
+    foot: [[t('Net change'), cash, bank, cash + bank]],
+    fileBase: `Cash-flow-${ctx.from}-${ctx.to}`,
+  };
+}
+
+async function bankStatement(ctx: ReportContext): Promise<ExportTable> {
+  const accounts = await bankAccountsOf(ctx.businessId);
+  const rows: CellValue[][] = [];
+  let totalIn = 0;
+  let totalOut = 0;
+  for (const a of accounts) {
+    const book = await bankBook(ctx.businessId, a.id, ctx.from, ctx.to);
+    if (!book) continue;
+    rows.push([ctx.from, `${accountName(a)} · ${t('Opening')}`, null, null, book.opening]);
+    for (const l of book.lines) {
+      if (l.amount > 0) totalIn += l.amount;
+      else totalOut -= l.amount;
+      rows.push([l.date, l.label, l.amount > 0 ? l.amount : null, l.amount < 0 ? -l.amount : null, l.balance]);
+    }
+    rows.push([ctx.to, `${accountName(a)} · ${t('Closing')}`, null, null, book.closing]);
+  }
+  const now = await bankBalances(ctx.businessId, ctx.to);
+  return {
+    title: t('Bank statement'),
+    subtitle: [periodText(ctx)],
+    columns: [{ label: t('Date'), kind: 'date' }, { label: t('Particulars') }, { label: t('In'), kind: 'money' }, { label: t('Out'), kind: 'money' }, { label: t('Balance'), kind: 'money' }],
+    rows,
+    foot: [[t('All accounts'), '', totalIn, totalOut, now.reduce((x, b) => x + b.balance, 0)]],
+    after: accounts.length ? [] : [t('No bank account yet. Add one in Payment details.')],
+    fileBase: `Bank-statement-${ctx.from}-${ctx.to}`,
+  };
+}
+
+async function otherIncome(ctx: ReportContext): Promise<ExportTable> {
+  const list = (await incomesIn(ctx)).sort((a, b) => a.date.localeCompare(b.date));
+  const rows: CellValue[][] = list.map((i) => [i.date, incomeLabel(i.category), i.from ?? '', modeLabel(i.mode), i.amount]);
+  return {
+    title: t('Other income'),
+    subtitle: [periodText(ctx)],
+    columns: [{ label: t('Date'), kind: 'date' }, { label: t('Kind') }, { label: t('From') }, { label: t('Mode') }, { label: t('Amount'), kind: 'money' }],
+    rows,
+    foot: [[t('Total'), '', '', '', sum(rows, 4)]],
+    fileBase: `Other-income-${ctx.from}-${ctx.to}`,
+  };
+}
+
 export interface ReportInfo {
   id: ReportId;
   title: () => string;
@@ -588,7 +744,11 @@ export const REPORTS: ReportInfo[] = [
   { id: 'purchaseRegister', title: () => t('Purchase register'), group: 'gst', period: true, ownerOnly: true, run: purchaseRegister },
   { id: 'hsn', title: () => t('HSN summary'), group: 'gst', period: true, ownerOnly: true, run: hsn },
   { id: 'gstSummary', title: () => t('GST summary'), group: 'gst', period: true, ownerOnly: true, run: gstSummary },
+  { id: 'pnl', title: () => t('Profit & loss statement'), group: 'money', period: true, ownerOnly: true, cost: true, run: pnl },
   { id: 'profit', title: () => t('Profit report'), group: 'money', period: true, ownerOnly: true, run: profit },
+  { id: 'cashFlow', title: () => t('Cash flow'), group: 'money', period: true, ownerOnly: true, run: cashFlow },
+  { id: 'bankStatement', title: () => t('Bank statement'), group: 'money', period: true, ownerOnly: true, run: bankStatement },
+  { id: 'otherIncome', title: () => t('Other income'), group: 'money', period: true, ownerOnly: true, run: otherIncome },
   { id: 'expenses', title: () => t('Expenses'), group: 'money', period: true, run: expenses },
   { id: 'dayBook', title: () => t('Day book'), group: 'money', period: true, ownerOnly: true, run: dayBook },
   { id: 'receivables', title: () => t('To collect from customers'), group: 'money', period: false, run: receivablesReport },
@@ -610,9 +770,13 @@ export interface Today {
   payable: number;
   lowStock: number;
   cashInDrawer: number;
+  /** R6, owner and accountant: money in the bank accounts, this month's expenses and net profit. */
+  bank?: number;
+  monthExpenses?: number;
+  monthProfit?: number;
 }
 
-export async function todaySummary(businessId: string, withPayables: boolean): Promise<Today> {
+export async function todaySummary(businessId: string, withPayables: boolean, withMoney = false): Promise<Today> {
   const today = todayISO();
   const { invoices, payments, ledger } = await salesData({ businessId, from: today, to: today });
   const [rec, pay, items, levels, drawer] = await Promise.all([
@@ -623,7 +787,14 @@ export async function todaySummary(businessId: string, withPayables: boolean): P
     cashDay(businessId, today),
   ]);
   const money = (mode: string) => payments.filter((p) => p.mode === mode).reduce((a, p) => a + (p.kind === 'refund' ? -p.amount : p.amount), 0);
+  let extra: Pick<Today, 'bank' | 'monthExpenses' | 'monthProfit'> = {};
+  if (withMoney) {
+    const month = { businessId, from: `${today.slice(0, 8)}01`, to: today };
+    const [balances, profitNow] = await Promise.all([bankBalances(businessId), netProfit(month)]);
+    extra = { bank: balances.reduce((a, b) => a + b.balance, 0), monthExpenses: profitNow.expenses, monthProfit: profitNow.net };
+  }
   return {
+    ...extra,
     sales: invoices.reduce((a, i) => a + i.totals.grandTotal, 0),
     bills: invoices.length,
     cash: money('cash'),
