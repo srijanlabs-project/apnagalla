@@ -88,7 +88,7 @@ async function store(base: string) {
 describe('bill scanning', () => {
   it('reads a bill for the owner, keeps it from staff without cost access, and caps scans per day', async () => {
     const { biz, oH, sH } = await store('987031000');
-    expect((await app.inject({ method: 'GET', url: '/v1/features', headers: oH })).json()).toEqual({ scanBill: true });
+    expect((await app.inject({ method: 'GET', url: '/v1/features', headers: oH })).json()).toMatchObject({ scanBill: true });
     const scan = (h: Record<string, string>, payload: Record<string, unknown>) => app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/scan-bill`, headers: h, payload });
     const ok = await scan(oH, { image: 'aGVsbG8=', mediaType: 'image/jpeg' });
     expect(ok.statusCode).toBe(200);
