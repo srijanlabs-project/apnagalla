@@ -285,3 +285,6 @@
 .att-half { background: var(--ion-color-warning); color: #000; border-color: transparent; }
 .att-leave { background: var(--ion-color-tertiary); color: #fff; border-color: transparent; }
 .app-version { text-align: center; font-size: 12px; color: var(--ion-color-medium); margin: 8px 0 24px; }
+
+.list-summary { margin: 4px 16px 0; font-size: 13px; color: var(--ion-color-medium); }
+.pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px 16px 88px; font-size: 14px; }

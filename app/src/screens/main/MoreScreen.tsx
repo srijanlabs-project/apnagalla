@@ -99,6 +99,10 @@ export default function MoreScreen() {
         <IonListHeader>
           <IonLabel>{t('Money and stock')}</IonLabel>
         </IonListHeader>
+        <IonItem routerLink="/tabs/estimates" detail lines="full">
+          <IonIcon icon={clipboardOutline} slot="start" />
+          <IonLabel>{t('Estimates, work orders and challans')}</IonLabel>
+        </IonItem>
         <IonItem routerLink="/tabs/jobs" detail lines="full">
           <IonIcon icon={constructOutline} slot="start" />
           <IonLabel>{t('Jobs and repairs')}</IonLabel>
@@ -176,10 +180,6 @@ export default function MoreScreen() {
         <IonItem routerLink="/tabs/more/design" detail lines="full">
           <IonIcon icon={colorPaletteOutline} slot="start" />
           <IonLabel>{t('Invoice design')}</IonLabel>
-        </IonItem>
-        <IonItem routerLink="/tabs/estimates" detail lines="full">
-          <IonIcon icon={clipboardOutline} slot="start" />
-          <IonLabel>{t('Estimates')}</IonLabel>
         </IonItem>
         <IonItem routerLink="/tabs/more/plan" detail lines="full">
           <IonIcon icon={ribbonOutline} slot="start" />

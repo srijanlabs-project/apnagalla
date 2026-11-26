@@ -78,11 +78,11 @@ export function ReportsScreen() {
   );
 }
 
-type Preset = 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth' | 'fy' | 'lastFy' | 'custom';
+export type Preset = 'today' | 'yesterday' | 'week' | 'month' | 'lastMonth' | 'fy' | 'lastFy' | 'custom';
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-function presetPeriod(p: Preset, custom: Period): Period {
+export function presetPeriod(p: Preset, custom: Period): Period {
   const now = new Date();
   const today = todayISO();
   if (p === 'today') return { from: today, to: today };
