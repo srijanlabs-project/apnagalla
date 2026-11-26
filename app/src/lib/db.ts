@@ -117,6 +117,8 @@ export interface BusinessSettings extends SyncedRecord {
   closingTime?: string;
   /** Days before this are never asked to be closed (set when the rule is turned on). */
   dayEndFrom?: string;
+  /** R8: weighing-scale barcode layout (see lib/scale.ts). */
+  scale?: Partial<import('./scale').ScaleSettings>;
   /** R8: godowns inside this store (the shop itself is not listed; it is place ""). */
   godowns?: { id: string; name: string; deleted?: boolean }[];
   /** Staff can't bill on credit beyond a customer's credit limit (the owner still can). */
@@ -202,6 +204,8 @@ export interface Item extends SyncedRecord {
   supplierId?: string | null;
   /** Electronics: each piece has a serial / IMEI number, recorded in and out. */
   trackSerial?: boolean;
+  /** R8: the item's code on the weighing scale (PLU), for scale-printed labels. */
+  scaleCode?: string;
   /** R8: keeps batch number and expiry (medicines, packaged food…). */
   trackBatch?: boolean;
   /** Warranty from the date of sale, in months. */

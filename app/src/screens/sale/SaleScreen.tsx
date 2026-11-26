@@ -53,6 +53,7 @@ import { repriceLines, sellable } from '../../lib/pricing';
 import { useScanToBill } from '../../lib/useScanToBill';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from '../docs/LineEditor';
+import { scaleOf } from '../../lib/scale';
 import { addOrMerge } from '../../lib/mergeLines';
 
 /** What the counter shows after a sale is saved. */
@@ -166,6 +167,8 @@ export default function SaleScreen() {
       addItem(it);
     },
     addOne: (lineId) => step(lineId, 1),
+    scale: scaleOf(settings),
+    addWeighed: (it, qty) => patch((cur) => ({ lines: [...cur.lines, { ...lineFromItem(it, level), qty }] })),
     unknown: (code) => void byBarcode(code),
   });
 

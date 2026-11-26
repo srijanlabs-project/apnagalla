@@ -59,6 +59,7 @@ import { repriceLines } from '../../lib/pricing';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from './LineEditor';
 import { godownsOf } from '../../lib/godowns';
+import { scaleOf } from '../../lib/scale';
 import { addOrMerge } from '../../lib/mergeLines';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import { useScanToBill } from '../../lib/useScanToBill';
@@ -160,6 +161,8 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
       } else setDoc((cur) => (cur ? { ...cur, lines: addOrMerge(cur.lines, line) } : cur));
     },
     addOne: (lineId) => setDoc((cur) => (cur ? { ...cur, lines: cur.lines.map((l) => (l.id === lineId ? { ...l, qty: l.qty + 1 } : l)) } : cur)),
+    scale: scaleOf(settings),
+    addWeighed: (it, qty) => setDoc((cur) => (cur ? { ...cur, lines: [...cur.lines, { ...lineFromItem(it, level), qty }] } : cur)),
     unknown: (code) => {
       setScanning(false);
       void alert({

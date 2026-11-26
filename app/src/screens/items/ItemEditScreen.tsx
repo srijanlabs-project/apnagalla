@@ -18,6 +18,7 @@ import { flattenCategories, useCategories } from '../../lib/categories';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
 import { isLow, qtyText, setOpeningStock, stockLevels, tracksStock } from '../../lib/stock';
+import { scaleOf } from '../../lib/scale';
 import { BatchSection, PriceLevelsSection, ReturnSection, SerialSection, UnitsSection, VariantsSection } from './ItemExtras';
 import { withPriceHistory } from '../../lib/pricing';
 
@@ -115,6 +116,9 @@ export function ItemForm({
           )}
         </div>
         <BarcodeScanner isOpen={scanning} onClose={() => setScanning(false)} onScan={(barcode) => patch({ barcode })} />
+        {scaleOf(settings).enabled && (it.pricing ?? 'unit') === 'unit' && (
+          <TextField label={t('Code on the weighing scale (PLU)')} value={it.scaleCode} onChange={(v) => patch({ scaleCode: v.replace(/\D/g, '') || undefined })} inputmode="numeric" disabled={priceLocked} />
+        )}
       </FormSection>
       <FormSection title={t('Price & tax')} note={priceLocked ? t('Only the owner can change prices.') : undefined}>
         <MoneyField label={it.rateIncludesTax ? t('Price (incl. tax)') : t('Price (before tax)')} value={it.rate} onChange={(v) => patch({ rate: v ?? 0 })} disabled={priceLocked} />

@@ -7,6 +7,7 @@ import { convertEstimate, ensureBusinessRecords, newEstimateDraft, newInvoiceDra
 import { landedCosts, newPurchaseDraft, recordSupplierPayment, savePurchase, supplierDues } from './purchases';
 import { moveBetweenGodowns, stockByPlace } from './godowns';
 import { stockLevels } from './stock';
+import { DEFAULT_SCALE, ean13Check, parseScaleBarcode, scaleQty } from './scale';
 import { transfersOf } from './transfers';
 
 export const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
@@ -109,5 +110,19 @@ describe('R8.4 freight into cost, bills to pay', () => {
       ['2026-01-16', 3030000 - 1000000, 4],
       ['2026-01-25', 100000, -5],
     ]);
+  });
+});
+
+describe('R8.5 weighing-scale barcodes', () => {
+  it('reads PLU and weight or price from a scale label', () => {
+    const on = { ...DEFAULT_SCALE, enabled: true };
+    const d12 = '2001234' + '01250';
+    const code = d12 + ean13Check(d12);
+    expect(parseScaleBarcode(code, on)).toEqual({ plu: '1234', grams: 1250 });
+    expect(parseScaleBarcode(code, DEFAULT_SCALE)).toBeNull(); // switched off
+    expect(parseScaleBarcode(d12 + ((ean13Check(d12) + 1) % 10), on)).toBeNull(); // bad check digit
+    expect(scaleQty({ unit: 'kg', rate: 4000 }, { grams: 1250 })).toBe(1.25);
+    expect(scaleQty({ unit: 'g', rate: 40 }, { grams: 250 })).toBe(250);
+    expect(scaleQty({ unit: 'kg', rate: 40000 }, { paise: 50000 })).toBe(1.25);
   });
 });

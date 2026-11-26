@@ -1,3 +1,4 @@
+import { scaleOf } from '../../lib/scale';
 import { IonButton, IonChip, IonIcon, IonInput, IonLabel } from '@ionic/react';
 import { closeCircle } from 'ionicons/icons';
 import { useState } from 'react';
@@ -298,6 +299,34 @@ export default function InvoiceSettingsScreen() {
           disabled={ro}
         />
         <TextField label={t('Store closing time')} type="time" value={s.closingTime ?? '21:00'} onChange={(closingTime) => patch({ closingTime: closingTime || '21:00' })} disabled={ro} helper={t('After this time, Home reminds you to close the day.')} />
+      </FormSection>
+
+      <FormSection title={t('Weighing-scale labels')} note={t('For loose goods weighed on a label-printing scale: the barcode carries the item\'s scale code and the weight or price. Match these to the scale\'s settings.')}>
+        <ToggleRow label={t('Read weighing-scale barcodes')} checked={scaleOf(s).enabled} onChange={(enabled) => patch({ scale: { ...scaleOf(s), enabled } })} disabled={ro} />
+        {scaleOf(s).enabled && (
+          <>
+            <div className="field-row">
+              <TextField label={t('Starts with')} value={scaleOf(s).prefix} onChange={(prefix) => patch({ scale: { ...scaleOf(s), prefix: prefix.replace(/\D/g, '').slice(0, 2) || '2' } })} inputmode="numeric" disabled={ro} />
+              <NumberField label={t('Item code digits')} value={scaleOf(s).codeDigits} onChange={(n) => patch({ scale: { ...scaleOf(s), codeDigits: Math.max(1, Math.min(7, Math.round(n ?? 6))) } })} min={1} max={7} disabled={ro} />
+            </div>
+            <div className="field-row">
+              <SelectField
+                label={t('The label carries')}
+                value={scaleOf(s).value}
+                options={[
+                  { value: 'weight', label: t('Weight (grams)') },
+                  { value: 'price', label: t('Price (paise)') },
+                ]}
+                onChange={(value) => patch({ scale: { ...scaleOf(s), value } })}
+                disabled={ro}
+              />
+              <NumberField label={t('Value digits')} value={scaleOf(s).valueDigits} onChange={(n) => patch({ scale: { ...scaleOf(s), valueDigits: Math.max(3, Math.min(7, Math.round(n ?? 5))) } })} min={3} max={7} disabled={ro} />
+            </div>
+            {scaleOf(s).prefix.length + scaleOf(s).codeDigits + scaleOf(s).valueDigits + 1 !== 13 && (
+              <p className="text-danger">{t('Starts with + item code + value + 1 check digit must make 13 digits.')}</p>
+            )}
+          </>
+        )}
       </FormSection>
 
       <FormSection title={t('Scanning')}>
