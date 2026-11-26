@@ -39,6 +39,9 @@ const fakeScanner: BillScanner = {
     scans.push(img.mediaType);
     return BILL;
   },
+  async readOrder(text) {
+    return { customerName: '', lines: text.includes('aloo') ? [{ name: 'Potato', qty: 2, unit: 'kg' }] : [] };
+  },
 };
 
 let app: FastifyInstance;
@@ -210,5 +213,17 @@ describe('R10 e-invoice', () => {
     expect(calls[0]!.headers).toMatchObject({ gstin: '27AAPFU0939F1ZV', client_id: 'cid' });
     vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ status: 0, ErrorDetails: [], message: 'Duplicate IRN' }), { status: 200 }));
     await expect(gsp.generate('27AAPFU0939F1ZV', {})).rejects.toThrow('Duplicate IRN');
+  });
+});
+
+describe('R11 order from a message', () => {
+  it('reads a WhatsApp order into items', async () => {
+    const owner = await login('9870310931');
+    const oH = bearer(owner.accessToken);
+    const biz = (await app.inject({ method: 'POST', url: '/v1/businesses', headers: oH, payload: { name: 'Sabzi' } })).json<{ id: string }>();
+    expect((await app.inject({ method: 'GET', url: '/v1/features', headers: oH })).json()).toMatchObject({ readOrder: true });
+    const r = await app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/read-order`, headers: oH, payload: { text: '2 kg aloo bhej do' } });
+    expect(r.statusCode).toBe(200);
+    expect(r.json()).toEqual({ customerName: '', lines: [{ name: 'Potato', qty: 2, unit: 'kg' }] });
   });
 });

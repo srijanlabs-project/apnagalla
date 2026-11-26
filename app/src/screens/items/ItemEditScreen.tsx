@@ -273,6 +273,18 @@ export default function ItemEditScreen() {
       )}
       <SerialSection it={it} patch={patch} disabled={priceLocked} />
       <BatchSection it={it} patch={patch} disabled={priceLocked} />
+      {(it.pricing ?? 'unit') === 'unit' && (
+        <FormSection>
+          <NumberField
+            label={t('Covers (sq ft per {unit})', { unit: it.unit })}
+            value={it.coverage ?? null}
+            onChange={(coverage) => patch({ coverage: coverage && coverage > 0 ? coverage : undefined })}
+            min={0}
+            helper={t('Tiles: sq ft in a box. Paint: sq ft a litre covers in one coat. Bills then work out the quantity from the area.')}
+            disabled={priceLocked}
+          />
+        </FormSection>
+      )}
       {!it.hasVariants && <ReturnSection it={it} patch={patch} disabled={priceLocked} />}
       <VariantsSection it={it} saved={!isNew} />
       {isNew && tracksStock(it) && (

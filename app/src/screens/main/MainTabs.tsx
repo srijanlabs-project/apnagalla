@@ -1,4 +1,5 @@
 import RecycleBinScreen from './RecycleBinScreen';
+import MessageOrderScreen from '../sale/MessageOrderScreen';
 import FullBackupScreen from '../settings/FullBackupScreen';
 import ActivityScreen from './ActivityScreen';
 import RemindersScreen from '../customers/RemindersScreen';
@@ -6,6 +7,7 @@ import VisitsScreen from '../customers/VisitsScreen';
 import CratesScreen from '../customers/CratesScreen';
 import ContactImportScreen from '../customers/ContactImportScreen';
 import LoyaltyScreen from '../settings/LoyaltyScreen';
+import { RentalsScreen, SchemesScreen, VouchersScreen } from '../money/ExtrasScreens';
 import Gstr2bScreen from '../reports/Gstr2bScreen';
 import BooksScreen, { JournalScreen, LedgerScreen } from '../money/BooksScreens';
 import OnlineStoreScreen from '../settings/OnlineStoreScreen';
@@ -74,6 +76,7 @@ export default function MainTabs() {
           <Route path="home" element={<HomeOrDeliveries />} />
           <Route path="deliveries" element={<DeliveriesScreen />} />
           <Route path="sale" element={<DayEndGate><SaleScreen /></DayEndGate>} />
+          <Route path="message-order" element={<MessageOrderScreen />} />
 
           <Route path="invoices" element={<DocListScreen kind="invoice" />} />
           <Route path="invoices/new" element={<DayEndGate backHref="/tabs/invoices"><DocEditorScreen kind="invoice" /></DayEndGate>} />
@@ -114,6 +117,7 @@ export default function MainTabs() {
           <Route path="items/:id" element={<ItemEditScreen />} />
 
           <Route path="suppliers" element={<SuppliersScreen />} />
+          <Route path="suppliers/schemes" element={<SchemesScreen />} />
           <Route path="suppliers/new" element={<SupplierEditScreen />} />
           <Route path="suppliers/:id" element={<SupplierDetailScreen />} />
           <Route path="suppliers/:id/edit" element={<SupplierEditScreen />} />
@@ -164,6 +168,8 @@ export default function MainTabs() {
           <Route path="more/invoice-settings" element={<InvoiceSettingsScreen />} />
           <Route path="more/design" element={<DesignScreen />} />
           <Route path="more/loyalty" element={<LoyaltyScreen />} />
+          <Route path="vouchers" element={<VouchersScreen />} />
+          <Route path="rentals" element={<RentalsScreen />} />
           <Route path="books" element={<BooksScreen />} />
           <Route path="books/ledger/:account" element={<LedgerScreen />} />
           <Route path="books/journal/:id" element={<JournalScreen />} />

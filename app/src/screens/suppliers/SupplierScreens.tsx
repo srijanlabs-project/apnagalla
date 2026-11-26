@@ -56,6 +56,9 @@ export function SuppliersScreen() {
           <IonButton size="small" fill="clear" routerLink="/tabs/items/import?kind=suppliers">
             {t('Import')}
           </IonButton>
+          <IonButton size="small" fill="clear" routerLink="/tabs/suppliers/schemes">
+            {t('Schemes')}
+          </IonButton>
         </div>
       )}
       {total !== 0 && (

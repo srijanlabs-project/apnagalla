@@ -124,6 +124,7 @@ export async function postings({ businessId, upTo }: Ctx): Promise<Posting[]> {
     db.stockMoves.where('businessId').equals(businessId).filter((m) => live(m) && !m.voidedAt && m.kind === 'opening').toArray(),
     db.items.where('businessId').equals(businessId).toArray(),
   ]);
+  const vouchersSold = await db.vouchers.where('businessId').equals(businessId).filter((v) => !v.deleted && !v.voidedAt).toArray();
   const def = accounts[0]?.id ?? null;
   const out: Posting[] = [];
   const pair = (date: string, dr: string, cr: string, amount: number, label: string, href?: string) => {
@@ -178,6 +179,10 @@ export async function postings({ businessId, upTo }: Ctx): Promise<Posting[]> {
     const party = cust(p.invoiceId ? invoiceOf.get(p.invoiceId)?.billTo?.customerId : p.customerId);
     const label = p.kind === 'refund' ? t('Refund') : p.mode === 'points' ? t('Loyalty points used') : t('Received');
     const href = p.invoiceId ? `/tabs/invoices/${p.invoiceId}` : undefined;
+    if (p.mode === 'voucher') {
+      p.kind === 'refund' ? pair(p.date, party, 'vouchers', p.amount, t('Gift voucher'), href) : pair(p.date, 'vouchers', party, p.amount, t('Gift voucher used'), href);
+      continue;
+    }
     if (p.mode === 'buyback') {
       p.kind === 'refund' ? pair(p.date, party, 'purchases', p.amount, t('Old item taken back'), href) : pair(p.date, 'purchases', party, p.amount, t('Old item taken back'), href);
       continue;
@@ -232,6 +237,8 @@ export async function postings({ businessId, upTo }: Ctx): Promise<Posting[]> {
     else if (e.kind === 'interest') loan.kind === 'given' ? pair(e.date, P, 'inc:interest', e.amount, label, href) : pair(e.date, 'exp:interest', P, e.amount, label, href);
     else pair(e.date, 'exp:bank_charges', P, e.amount, label, href);
   }
+
+  for (const v of vouchersSold) pair(v.date, place(v.mode, null), 'vouchers', v.amount, t('Gift voucher sold {code}', { code: v.code }), '/tabs/vouchers');
 
   // Cash ↔ bank, corrections, day-end differences.
   const node = (x: string | null) => (x === 'cash' ? 'cash' : x ? `bank:${x}` : 'othermoney');
@@ -312,6 +319,8 @@ export async function accountBook(businessId: string): Promise<(key: string) => 
         return mk(key, t('Closing stock (taken off cost)'), 'direct_incomes');
       case 'roundoff':
         return mk(key, t('Round off'), 'indirect_expenses');
+      case 'vouchers':
+        return mk(key, t('Gift vouchers not yet used'), 'current_liabilities');
       case 'cash_diff':
         return mk(key, t('Cash short / excess'), 'indirect_expenses');
       case 'suspense':

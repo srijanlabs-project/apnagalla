@@ -42,7 +42,30 @@ export type ScanKind = 'purchase' | 'sale';
 export interface BillScanner {
   readonly name: string;
   scan(image: { mediaType: 'image/jpeg' | 'image/png' | 'image/webp'; base64: string }, kind?: ScanKind): Promise<ScannedBill>;
+  /** R11: a customer's order typed or forwarded as a message ("2 kg aloo, 1 doodh"). */
+  readOrder?(text: string): Promise<ReadOrder>;
 }
+
+export const readOrderShape = z.object({
+  customerName: z.string(),
+  lines: z.array(z.object({ name: z.string(), qty: z.number(), unit: z.string() })),
+});
+export type ReadOrder = z.infer<typeof readOrderShape>;
+
+const ORDER_PROMPT = `This is a customer's order sent to an Indian shop on WhatsApp (English, Hindi, Hinglish, Gujarati or Punjabi, often short: "2 kg aloo, 1 doodh, maggi 4").
+Call the record_order tool once: each item with its quantity and unit as asked (kg, g, l, ml, pcs, packet, dozen…; use "pcs" when none is said, qty 1 when none is said).
+Write item names in plain English shop words where you can (aloo → Potato, doodh → Milk), keeping brand names as written. Put the customer's name if the message says it, else "".
+Ignore greetings and anything that isn't an item.`;
+
+const ORDER_SCHEMA = {
+  type: 'object' as const,
+  additionalProperties: false,
+  required: ['customerName', 'lines'],
+  properties: {
+    customerName: { type: 'string' },
+    lines: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['name', 'qty', 'unit'], properties: { name: { type: 'string' }, qty: { type: 'number' }, unit: { type: 'string' } } } },
+  },
+};
 
 export class ScanError extends Error {}
 
@@ -129,6 +152,26 @@ export class ClaudeBillScanner implements BillScanner {
     if (!call) throw new ScanError('No bill found in the photo. Try a clearer photo of the whole bill.');
     const parsed = scannedBill.safeParse(call.input);
     if (!parsed.success) throw new ScanError('The bill could not be read. Please enter it by hand.');
+    return parsed.data;
+  }
+
+  async readOrder(text: string): Promise<ReadOrder> {
+    const response = await this.client.beta.messages.create({
+      model: this.model,
+      max_tokens: 4000,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      output_config: { effort: 'low' },
+      tools: [{ name: 'record_order', description: 'Record the items the customer asked for.', strict: true, input_schema: ORDER_SCHEMA }],
+      tool_choice: { type: 'auto' },
+      messages: [{ role: 'user', content: [{ type: 'text', text: `${ORDER_PROMPT}
+
+The message:
+${text.slice(0, 4000)}` }] }],
+    });
+    const call = response.content.find((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === 'tool_use' && b.name === 'record_order');
+    const parsed = call ? readOrderShape.safeParse(call.input) : null;
+    if (!parsed?.success) throw new ScanError('No items found in the message.');
     return parsed.data;
   }
 }

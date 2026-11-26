@@ -443,7 +443,19 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
   /* ---------- bill scanning ---------- */
   const scanner = billScanner === undefined ? billScannerFromEnv(env) : billScanner;
   const eInvoice = eInvoiceProvider === undefined ? eInvoiceProviderFromEnv(env) : eInvoiceProvider;
-  app.get('/v1/features', authed, async () => ({ scanBill: !!scanner, email: emailReady(env), eInvoice: !!eInvoice }));
+  app.get('/v1/features', authed, async () => ({ scanBill: !!scanner, readOrder: !!scanner?.readOrder, email: emailReady(env), eInvoice: !!eInvoice }));
+
+  /* ---------- R11 read a WhatsApp order ---------- */
+  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/read-order', { ...authed, config: { rateLimit: { max: 60, timeWindow: '1 hour' } } }, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId);
+    if (!scanner?.readOrder) throw badRequest('read_off', 'Reading messages is not set up yet');
+    const b = parse(z.object({ text: z.string().trim().min(2).max(4000) }), req.body);
+    try {
+      return await scanner.readOrder(b.text);
+    } catch (e) {
+      throw badRequest('read_failed', (e as Error).message);
+    }
+  });
 
   /* ---------- R10 e-invoice (owner) ---------- */
   const eInvoiceBody = z.object({ gstin: z.string().regex(/^\d{2}[A-Z0-9]{13}$/), payload: z.record(z.string(), z.unknown()) });

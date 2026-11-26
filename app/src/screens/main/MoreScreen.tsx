@@ -40,6 +40,8 @@ import {
   bookOutline,
   timeOutline,
   saveOutline,
+  pricetagOutline,
+  repeatOutline,
 } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
@@ -186,6 +188,14 @@ export default function MoreScreen() {
         <IonItem routerLink="/tabs/more/invoice-settings" detail lines="full">
           <IonIcon icon={settingsOutline} slot="start" />
           <IonLabel>{t('Invoice settings')}</IonLabel>
+        </IonItem>
+        <IonItem routerLink="/tabs/vouchers" detail lines="full">
+          <IonIcon icon={pricetagOutline} slot="start" />
+          <IonLabel>{t('Gift vouchers')}</IonLabel>
+        </IonItem>
+        <IonItem routerLink="/tabs/rentals" detail lines="full">
+          <IonIcon icon={repeatOutline} slot="start" />
+          <IonLabel>{t('Rentals')}</IonLabel>
         </IonItem>
         {isOwner && (
           <IonItem routerLink="/tabs/more/online-store" detail lines="full">

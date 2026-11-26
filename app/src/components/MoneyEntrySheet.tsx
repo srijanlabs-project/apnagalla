@@ -7,7 +7,7 @@ import { sync } from '../lib/sync';
 import AccountField from './AccountField';
 import { MoneyField, SelectField, TextField } from './Fields';
 
-export type CashMode = Exclude<PaymentMode, 'advance' | 'creditnote' | 'points' | 'buyback'>;
+export type CashMode = Exclude<PaymentMode, 'advance' | 'creditnote' | 'points' | 'buyback' | 'voucher'>;
 export const CASH_MODES: CashMode[] = ['cash', 'upi', 'bank', 'cheque', 'card', 'other'];
 
 export interface MoneyEntry {

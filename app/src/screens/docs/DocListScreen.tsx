@@ -307,6 +307,7 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
                       { text: t('Counter sale'), handler: () => router.push('/tabs/sale') },
                       { text: t('Estimate / quotation'), handler: () => router.push('/tabs/estimates/new') },
                       { text: t('Sales order'), handler: () => router.push('/tabs/estimates/new?order=1') },
+                      { text: t('Order from a WhatsApp message'), handler: () => router.push('/tabs/message-order') },
                       { text: t('Proforma invoice'), handler: () => router.push('/tabs/estimates/new?proforma=1') },
                       { text: t('Work order'), handler: () => router.push('/tabs/estimates/new?work=1') },
                       { text: t('Delivery challan'), handler: () => router.push('/tabs/estimates/new?challan=1') },

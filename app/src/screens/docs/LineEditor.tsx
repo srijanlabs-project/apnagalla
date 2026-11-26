@@ -26,6 +26,7 @@ import { customerPrice, sellable, unitOptions, type CustomPrices } from '../../l
 import { serialsInStock } from '../../lib/serials';
 import { batchStock, isExpired, pickBatch } from '../../lib/batches';
 import { qtyForAmount } from '../../lib/fresh';
+import { unitsForArea } from '../../lib/retailExtras';
 import { bookedQty } from '../../lib/orders';
 import { stockLevels } from '../../lib/stock';
 import { OFF } from '../../lib/offers';
@@ -102,6 +103,8 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
   );
   // The catalogue item of this line, for its other units (box, dozen…).
   const lineItem = useLiveQuery(async () => (l?.itemId ? db.items.get(l.itemId) : undefined), [l?.itemId]);
+  const [coverArea, setCoverArea] = useState<number | null>(null);
+  const [coats, setCoats] = useState(1);
   const free = useLiveQuery(async () => {
     if (!lineItem) return null;
     const [levels, booked] = await Promise.all([stockLevels(actor.businessId), bookedQty(actor.businessId)]);
@@ -230,6 +233,14 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
           </IonList>
         ) : (
           <>
+            {!!lineItem?.coverage && (
+              <FormSection title={t('From the area')} note={t('{cov} sq ft per {unit}', { cov: lineItem.coverage, unit: lineItem.unit })}>
+                <div className="field-row">
+                  <NumberField label={t('Area (sq ft)')} value={coverArea} onChange={(a) => (setCoverArea(a), set({ qty: unitsForArea(a ?? 0, lineItem.coverage!, coats, (lineItem.unit ?? '').toLowerCase().includes('box') ? 5 : 0) }))} min={0} />
+                  <NumberField label={t('Coats')} value={coats} onChange={(c) => (setCoats(c ?? 1), set({ qty: unitsForArea(coverArea ?? 0, lineItem.coverage!, c ?? 1, (lineItem.unit ?? '').toLowerCase().includes('box') ? 5 : 0) }))} min={1} />
+                </div>
+              </FormSection>
+            )}
             {free && l.qty * (l.unitFactor ?? 1) > free.free && (
               <p className="section-note text-danger">{t('Only {free} free: {booked} are booked for sales orders.', { free: Math.max(0, free.free), booked: free.booked })}</p>
             )}

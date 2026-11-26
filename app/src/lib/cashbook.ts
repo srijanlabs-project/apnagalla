@@ -49,7 +49,7 @@ async function cashEvents(businessId: string) {
   const cash: Event[] = [];
   const other: { date: string; mode: string; amount: number }[] = [];
   for (const p of pays) {
-    if (p.mode === 'advance' || p.mode === 'creditnote' || p.mode === 'points' || p.mode === 'buyback') continue;
+    if (p.mode === 'advance' || p.mode === 'creditnote' || p.mode === 'points' || p.mode === 'buyback' || p.mode === 'voucher') continue;
     const signed = p.kind === 'refund' ? -p.amount : p.amount;
     if (p.mode !== 'cash') {
       other.push({ date: p.date, mode: p.mode, amount: signed });
@@ -70,7 +70,7 @@ async function cashEvents(businessId: string) {
   }
   // R6: other income, loans and cash ↔ bank moves (the same events the bank book uses).
   for (const e of await moneyEvents(businessId)) {
-    if (e.place !== 'cash' || (e.kind !== 'income' && e.kind !== 'loanIn' && e.kind !== 'loanOut' && e.kind !== 'interest' && e.kind !== 'move')) continue;
+    if (e.place !== 'cash' || (e.kind !== 'income' && e.kind !== 'loanIn' && e.kind !== 'loanOut' && e.kind !== 'interest' && e.kind !== 'move' && e.kind !== 'voucher')) continue;
     cash.push({ date: e.date, amount: e.amount, line: { label: e.label, amount: Math.abs(e.amount), href: e.href, at: e.at } });
   }
   return { cash, other, closes: new Map(closes.map((c) => [c.date, c])) };

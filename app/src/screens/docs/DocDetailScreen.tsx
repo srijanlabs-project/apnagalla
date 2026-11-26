@@ -60,6 +60,7 @@ import { modeLabel, moneyOf } from '../../lib/ledger';
 import { DOC_BASE } from './DocEditorScreen';
 import EInvoicePanel from '../../components/EInvoicePanel';
 import InstalmentPanel from '../../components/InstalmentPanel';
+import { payWithVoucher } from '../../lib/retailExtras';
 import { api } from '../../lib/api';
 import { orderProgress, orderStateLabel } from '../../lib/orders';
 import { consignmentProgress, takeBackConsignment } from '../../lib/consignment';
@@ -577,6 +578,23 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 }
               >
                 {t('Old item taken back')}
+              </IonButton>
+            )}
+            {inv && inv.status === 'saved' && pending > 0 && CAN_CREATE_INVOICES && (
+              <IonButton
+                fill="clear"
+                onClick={() =>
+                  void alert({
+                    header: t('Pay with gift voucher'),
+                    inputs: [{ name: 'code', placeholder: 'GV123456' }],
+                    buttons: [
+                      { text: t('Cancel'), role: 'cancel' },
+                      { text: t('Use'), handler: (v: { code: string }) => void payWithVoucher(actor, inv, v.code, pending).catch(fail) },
+                    ],
+                  })
+                }
+              >
+                {t('Pay with gift voucher')}
               </IonButton>
             )}
             {inv && inv.status === 'saved' && pending > 0 && CAN_CREATE_INVOICES && (

@@ -9,6 +9,10 @@ import { bookedQty } from './orders';
 import { trialBalance } from './books';
 import { billMoney, recordPayments } from './repo';
 import { sitesOf } from './shopKinds';
+import { festivalTable, payWithVoucher, rentalDays, returnRental, schemeProgress, sellVoucher, startRental, unitsForArea, voucherLeft } from './retailExtras';
+import { matchOrderLines } from './messageOrder';
+import { newPurchaseDraft, savePurchase } from './purchases';
+import { khataOf } from './khata';
 
 export const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 export const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Staff', role: 'staff', seriesCode: 'A' };
@@ -83,5 +87,47 @@ describe('R11.2 furniture and contractors', () => {
     expect(tb.find((b) => b.info.key === 'purchases')!.balance).toBe(500000);
     expect(tb.reduce((a, b) => a + b.balance, 0)).toBe(0);
     expect((await sitesOf('b1', 'c1')).map((x) => [x.site, x.pending])).toEqual([['Sharma house', 2500000]]);
+  });
+});
+
+describe('R11.3 most shops', () => {
+  it('scheme progress from purchases; vouchers sold and used; books still tally', async () => {
+    await putRecord('suppliers', owner, { id: 's1', name: 'HUL', address: {}, openingBalance: 0 } as never);
+    await putRecord('schemes', owner, { id: 'sc', supplierId: 's1', supplierName: 'HUL', name: 'Diwali', from: '2026-11-01', to: '2026-11-30', basis: 'value', target: 1000000, reward: '1 carton free' } as never);
+    const pd = await newPurchaseDraft(owner);
+    await savePurchase(owner, { ...pd, date: D, supplier: { supplierId: 's1', name: 'HUL' }, lines: [line('p', 'Soap', 100, 6000, { unit: 'pcs' })] } as never, { finalize: true });
+    const [p] = await schemeProgress('b1', D);
+    expect([p!.done, p!.pct, p!.reached, p!.daysLeft]).toEqual([600000, 60, false, 10]);
+
+    const v = await sellVoucher(staff, { amount: 100000, mode: 'cash' });
+    const d = await newInvoiceDraft(owner);
+    const inv = await saveInvoice(owner, { ...d, date: D, lines: [line('a', 'Tomato', 10, 3600, { itemId: 'tom' })] }, { finalize: true });
+    await payWithVoucher(owner, inv, v.code.toLowerCase(), 36000, D);
+    expect((await voucherLeft('b1', v.code))!.left).toBe(64000);
+    await expect(payWithVoucher(owner, inv, 'GV000000', 1000, D)).rejects.toThrow();
+    const tb = await trialBalance('b1', '2026-12-31');
+    expect(tb.find((b) => b.info.key === 'vouchers')!.balance).toBe(-64000);
+    expect(tb.reduce((a, b) => a + b.balance, 0)).toBe(0);
+  });
+
+  it('rentals: deposit on account, rent bill on return; festival reorder; area to boxes; message lines matched', async () => {
+    const c = (await db.customers.get('c1'))!;
+    const r = await startRental(staff, c, { lines: [{ name: 'Chair', qty: 50, ratePerDay: 1000 }], dueBack: '2026-11-22', deposit: 200000, depositMode: 'cash' }, '2026-11-20');
+    expect((await khataOf('b1', c)).advance).toBe(200000);
+    expect(rentalDays(r, '2026-11-23')).toBe(3);
+    const bill = await returnRental(owner, r, { late: 20000 }, '2026-11-23');
+    expect(bill.lines.map((l) => [l.qty, l.rate])).toEqual([[50, 3000], [1, 20000]]);
+    expect((await db.rentals.get(r.id))!.status).toBe('returned');
+
+    const last = await newInvoiceDraft(owner);
+    await saveInvoice(owner, { ...last, date: '2025-11-25', lines: [line('a', 'Tomato', 40, 3600, { itemId: 'tom' })] }, { finalize: true });
+    expect((await festivalTable('b1', '2026-11-20')).rows).toEqual([['Tomato', 40, -40, 80, 'kg']]);
+
+    expect(unitsForArea(120, 15, 1, 5)).toBe(8.4);
+    expect(unitsForArea(400, 120, 2)).toBe(6.67);
+
+    const items = [(await db.items.get('tom'))!, { ...(await db.items.get('tom'))!, id: 'pot', name: 'Potato' }];
+    const m = matchOrderLines([{ name: 'Tomato', qty: 2, unit: 'kg' }, { name: 'potatoes', qty: 1, unit: 'kg' }, { name: 'Maggi', qty: 4, unit: 'pcs' }], items);
+    expect(m.map((x) => x.item?.id ?? null)).toEqual(['tom', 'pot', null]);
   });
 });
