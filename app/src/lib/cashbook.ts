@@ -49,7 +49,7 @@ async function cashEvents(businessId: string) {
   const cash: Event[] = [];
   const other: { date: string; mode: string; amount: number }[] = [];
   for (const p of pays) {
-    if (p.mode === 'advance' || p.mode === 'creditnote') continue;
+    if (p.mode === 'advance' || p.mode === 'creditnote' || p.mode === 'points') continue;
     const signed = p.kind === 'refund' ? -p.amount : p.amount;
     if (p.mode !== 'cash') {
       other.push({ date: p.date, mode: p.mode, amount: signed });

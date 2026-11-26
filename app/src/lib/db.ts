@@ -117,6 +117,8 @@ export interface BusinessSettings extends SyncedRecord {
   closingTime?: string;
   /** Days before this are never asked to be closed (set when the rule is turned on). */
   dayEndFrom?: string;
+  /** R9: loyalty points and membership levels (see lib/loyalty.ts). */
+  loyalty?: Partial<import('./loyalty').LoyaltySettings>;
   /** R8: weighing-scale barcode layout (see lib/scale.ts). */
   scale?: Partial<import('./scale').ScaleSettings>;
   /** R8: godowns inside this store (the shop itself is not listed; it is place ""). */
@@ -308,6 +310,8 @@ export interface PaymentInfo {
 export interface DocBase extends SyncedRecord {
   /** Final number; empty for drafts. */
   number: string;
+  /** R9: loyalty points this bill earned (a return: negative), fixed when it was saved. */
+  pointsEarned?: number;
   /** R8: godown the goods leave from (none = the shop). */
   godownId?: string;
   /** Series ("bill:26-27") and running number the number came from; the server uses them to never repeat a number. */
@@ -400,6 +404,8 @@ export interface PaymentEntry extends SyncedRecord {
   voidedBy?: string;
   voidedByName?: string;
   voidReason?: string;
+  /** R9: loyalty points used (mode "points"). */
+  points?: number;
 }
 
 /** Reduces a saved invoice: goods returned or a price cut. Its own number series. */
@@ -570,7 +576,7 @@ export interface SupplierPayment extends SyncedRecord {
   purchaseId?: string | null;
   kind: 'payment' | 'refund';
   amount: number;
-  mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points'>;
   /** R6: bank account paid from (not cash); none = the default account. */
   accountId?: string | null;
   date: string;
@@ -590,7 +596,7 @@ export interface Expense extends SyncedRecord {
   /** One of EXPENSE_CATEGORIES or the store's own category name (R6). */
   category: ExpenseCategory | (string & {});
   amount: number;
-  mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points'>;
   /** R6: bank account paid from (not cash); none = the default account. */
   accountId?: string | null;
   date: string;
@@ -678,7 +684,7 @@ export type IncomeCategory = (typeof INCOME_CATEGORIES)[number];
 export interface Income extends SyncedRecord {
   category: IncomeCategory | (string & {});
   amount: number;
-  mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points'>;
   accountId?: string | null;
   date: string;
   from?: string;
@@ -714,7 +720,7 @@ export interface LoanEntry extends SyncedRecord {
   loanId: string;
   kind: 'received' | 'repaid' | 'given' | 'interest' | 'charge';
   amount: number;
-  mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points'>;
   accountId?: string | null;
   date: string;
   reference?: string;
@@ -726,7 +732,7 @@ export interface LoanEntry extends SyncedRecord {
 export interface RecurringExpense extends SyncedRecord {
   category: Expense['category'];
   amount: number;
-  mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points'>;
   accountId?: string | null;
   paidTo?: string;
   note?: string;

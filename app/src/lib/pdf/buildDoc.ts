@@ -271,6 +271,7 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
   /* ---------- payment block (left of summary) ---------- */
   const payBlock: Content[] = [];
   if (show.amountInWords) payBlock.push({ text: [{ text: 'Amount in words: ', bold: true }, amountInWords(totals.grandTotal)], margin: [0, 0, 0, 6] });
+  if (doc.pointsEarned && kind === 'invoice') payBlock.push({ text: [{ text: 'Loyalty points earned: ', bold: true }, String(doc.pointsEarned)], margin: [0, 0, 0, 6] });
   if (show.bankDetails && input.bank) {
     const bk = input.bank;
     payBlock.push({

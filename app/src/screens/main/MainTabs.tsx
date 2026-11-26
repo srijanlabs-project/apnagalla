@@ -1,4 +1,5 @@
 import RecycleBinScreen from './RecycleBinScreen';
+import LoyaltyScreen from '../settings/LoyaltyScreen';
 import DayEndGate from '../../components/DayEndGate';
 import { IonIcon, IonLabel, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/react';
 import { cubeOutline, documentTextOutline, ellipsisHorizontal, homeOutline, peopleOutline } from 'ionicons/icons';
@@ -143,6 +144,7 @@ export default function MainTabs() {
           <Route path="more/payment" element={<PaymentDetailsScreen />} />
           <Route path="more/invoice-settings" element={<InvoiceSettingsScreen />} />
           <Route path="more/design" element={<DesignScreen />} />
+          <Route path="more/loyalty" element={<LoyaltyScreen />} />
 
           <Route index element={<Navigate to="home" replace />} />
         </IonRouterOutlet>

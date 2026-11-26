@@ -1,6 +1,7 @@
 import { IonButton, IonCard, IonCardContent, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonModal, IonNote, IonSegment, IonSegmentButton, IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, useIonToast } from '@ionic/react';
-import { formatIndianMobile, todayISO } from '@invoice/shared';
+import { addDaysISO, formatIndianMobile, todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { loyaltyOf, pointsOf, tierFor, yearSpend } from '../../lib/loyalty';
 import { callOutline, cashOutline, createOutline, documentTextOutline, logoWhatsapp, notificationsOutline } from 'ionicons/icons';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -31,6 +32,13 @@ export default function CustomerDetailScreen() {
   const [to, setTo] = useState(todayISO());
   const c = useLiveQuery(() => db.customers.get(id!), [id]);
   const khata = useLiveQuery(async () => (c ? khataOf(actor.businessId, c) : undefined), [c, actor.businessId]);
+  const { settings } = useBusiness();
+  const loyalty = useLiveQuery(async () => {
+    const l = loyaltyOf(settings);
+    if (!l.enabled || !c) return null;
+    const [{ balance, rows }, spend] = await Promise.all([pointsOf(actor.businessId, c.id), yearSpend(actor.businessId, c.id, addDaysISO(todayISO(), 1))]);
+    return { balance, rows, tier: tierFor(spend, l), worth: balance * l.pointValue };
+  }, [c, actor.businessId, settings]);
   const invoices = useLiveQuery(
     () =>
       db.invoices
@@ -82,6 +90,14 @@ export default function CustomerDetailScreen() {
           <span>{khata.balance >= 0 ? t('To collect') : t('We owe them')}</span>
           <strong className={khata.balance > 0 ? 'text-danger' : ''}>{rupees(Math.abs(khata.balance))}</strong>
         </div>
+        {loyalty && (
+          <div className="mini-stat">
+            <span>{loyalty.tier ? t('{tier} member · points', { tier: loyalty.tier.name }) : t('Points')}</span>
+            <strong className="text-success">
+              {loyalty.balance} <small>({rupees(loyalty.worth)})</small>
+            </strong>
+          </div>
+        )}
         {khata.advance > 0 && (
           <div className="mini-stat">
             <span>{t('Advance')}</span>

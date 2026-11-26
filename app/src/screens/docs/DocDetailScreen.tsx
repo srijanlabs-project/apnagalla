@@ -60,6 +60,7 @@ import { modeLabel, moneyOf } from '../../lib/ledger';
 import { DOC_BASE } from './DocEditorScreen';
 import { orderProgress, orderStateLabel } from '../../lib/orders';
 import { consignmentProgress, takeBackConsignment } from '../../lib/consignment';
+import { loyaltyOf, pointsOf, redeemPoints } from '../../lib/loyalty';
 
 export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const { id } = useParams<{ id: string }>();
@@ -97,6 +98,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const estAdvance = useLiveQuery(async () => (kind === 'estimate' && id ? jobAdvance(actor.businessId, id) : 0), [kind, id, actor.businessId, ledger]);
   // Money the customer left on account, to use on this bill.
   const customerId = kind === 'invoice' ? (doc as Invoice | undefined)?.billTo?.customerId : undefined;
+  const points = useLiveQuery(async () => (kind === 'invoice' && customerId && loyaltyOf(settings).enabled ? (await pointsOf(actor.businessId, customerId)).balance : 0), [kind, customerId, settings, ledger]);
   const advance = useLiveQuery(async () => {
     const c = customerId ? await db.customers.get(customerId) : undefined;
     return c ? (await khataOf(actor.businessId, c)).advance : 0;
@@ -528,6 +530,19 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 }
               >
                 {t("Move to customer's advance")}
+              </IonButton>
+            )}
+            {inv && inv.status === 'saved' && pending > 0 && (points ?? 0) >= loyaltyOf(settings).minRedeem && CAN_CREATE_INVOICES && (
+              <IonButton
+                fill="outline"
+                color="tertiary"
+                onClick={() =>
+                  void redeemPoints(actor, inv, points!, settings)
+                    .then((p) => void (p && toast({ message: t('{n} points used', { n: p.points ?? 0 }), duration: 1500, position: 'top', color: 'success' })))
+                    .catch(fail)
+                }
+              >
+                {t('Use {n} points ({amount})', { n: Math.min(points!, Math.floor(pending / loyaltyOf(settings).pointValue)), amount: rupees(Math.min(points! * loyaltyOf(settings).pointValue, pending - (pending % loyaltyOf(settings).pointValue))) })}
               </IonButton>
             )}
             {inv && pending > 0 && (

@@ -95,7 +95,7 @@ export async function moneyEvents(businessId: string): Promise<MoneyEvent[]> {
   };
 
   for (const p of pays) {
-    if (p.mode === 'advance' || p.mode === 'creditnote') continue;
+    if (p.mode === 'advance' || p.mode === 'creditnote' || p.mode === 'points') continue;
     // A cheque is in the bank once it clears (a pending one is not money yet).
     if (p.mode === 'cheque' && p.kind === 'payment' && p.chequeStatus === 'pending') continue;
     const date = p.mode === 'cheque' && p.chequeClearedAt ? p.chequeClearedAt.slice(0, 10) : p.date;

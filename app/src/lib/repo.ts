@@ -459,6 +459,8 @@ export async function saveInvoice(actor: Actor, inv: Invoice, opts: { finalize: 
   if (finalizing) {
     Object.assign(next, await numberFor('invoice', actor, next));
     next.status = 'saved';
+    const st = await db.settings.get(actor.businessId);
+    if (st) next.pointsEarned = (await (await import('./loyalty')).pointsOnSave(actor.businessId, st, next)) || undefined;
     next.businessSnapshot = await snapshotBusiness(actor.businessId);
     next.history.push(historyEntry(actor, 'saved', next.number));
   } else if (existing && existing.status === 'saved') {
@@ -820,6 +822,8 @@ export async function saveCreditNote(actor: Actor, note: CreditNote, opts: { fin
   if (finalizing) {
     Object.assign(next, await numberFor('credit', actor, next));
     next.status = 'saved';
+    const st = await db.settings.get(actor.businessId);
+    if (st) next.pointsEarned = (await import('./loyalty')).pointsOnReturn(st, next) || undefined;
     next.businessSnapshot = await snapshotBusiness(actor.businessId);
     next.history.push(historyEntry(actor, 'saved', next.number));
   } else if (existing && existing.status === 'saved') {

@@ -54,6 +54,7 @@ import { useScanToBill } from '../../lib/useScanToBill';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from '../docs/LineEditor';
 import { scaleOf } from '../../lib/scale';
+import { loyaltyOf, pointsOf, redeemPoints } from '../../lib/loyalty';
 import { addOrMerge } from '../../lib/mergeLines';
 
 /** What the counter shows after a sale is saved. */
@@ -87,6 +88,7 @@ export default function SaleScreen() {
 
   const heldId = new URLSearchParams(location.search).get('held');
   const [creditUse, setCreditUse] = useState<{ noteId: string; number: string; left: number } | null>(null);
+  const [usePoints, setUsePoints] = useState(false);
   const [creditPick, setCreditPick] = useState(false);
   // Exchange: goods returned on an old bill (credit note made) pay for this one.
   const exchangeFrom = new URLSearchParams(location.search).get('exchange');
@@ -120,6 +122,7 @@ export default function SaleScreen() {
   );
   // Wholesale / special customers get those prices.
   const customerId = bill?.billTo?.customerId;
+  const pointsLeft = useLiveQuery(async () => (customerId && loyaltyOf(settings).enabled ? (await pointsOf(actor.businessId, customerId)).balance : 0), [customerId, settings, actor.businessId]) ?? 0;
   const level = useLiveQuery(async () => (customerId ? ((await db.customers.get(customerId))?.priceLevel ?? 'retail') : 'retail'), [customerId]) ?? 'retail';
   const custom = useLiveQuery(async () => (customerId ? (await db.customers.get(customerId))?.itemPrices : undefined), [customerId]);
   const heldBills = useLiveQuery(
@@ -186,6 +189,9 @@ export default function SaleScreen() {
   }
 
   const walkIn = !bill.billTo?.customerId;
+  // Points pay what is left after an exchange / credit note, in whole points.
+  const afterCredit = Math.max(0, totals.grandTotal - (exchange?.credit ?? 0) - Math.min(creditUse?.left ?? 0, Math.max(0, totals.grandTotal - (exchange?.credit ?? 0))));
+  const pointsValue = usePoints ? Math.min(pointsLeft, Math.floor(afterCredit / loyaltyOf(settings).pointValue)) * loyaltyOf(settings).pointValue : 0;
   const patch = (p: Partial<Invoice> | ((cur: Invoice) => Partial<Invoice>)) => setBill((cur) => (cur ? { ...cur, ...(typeof p === 'function' ? p(cur) : p) } : cur));
   const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : t('Something went wrong'), duration: 2500, color: 'danger' });
 
@@ -258,6 +264,8 @@ export default function SaleScreen() {
       if (exchange) await applyExchange(actor, exchange.old.id, saved);
       if (creditUse) await payWithCredit(actor, saved, creditUse.noteId, creditUse.left);
       setCreditUse(null);
+      if (usePoints && pointsLeft >= loyaltyOf(settings).minRedeem) await redeemPoints(actor, saved, pointsLeft, settings);
+      setUsePoints(false);
       const paid = parts.reduce((a, p) => a + p.amount, 0);
       if (paid > 0) await recordPayments(actor, saved.id, parts, { date });
       setPaying(false);
@@ -387,6 +395,14 @@ export default function SaleScreen() {
                   <IonLabel>{t('Use credit note')}</IonLabel>
                 </IonChip>
               ))}
+            {bill.lines.length > 0 && !walkIn && pointsLeft >= loyaltyOf(settings).minRedeem && (
+              <IonChip color={usePoints ? 'success' : undefined} outline={!usePoints} onClick={() => setUsePoints(!usePoints)}>
+                <IonLabel>
+                  {usePoints ? t('Points: {amount} off', { amount: rupees(pointsValue) }) : t('Use {n} points ({amount})', { n: pointsLeft, amount: rupees(pointsLeft * loyaltyOf(settings).pointValue) })}
+                  {usePoints ? ' ✕' : ''}
+                </IonLabel>
+              </IonChip>
+            )}
             {bill.lines.length > 0 && <CouponField businessId={actor.businessId} value={bill.coupon} date={bill.date} invoiceId={bill.id} onChange={(coupon) => patch({ coupon })} />}
             {regular && (
               <IonSegment value={bill.taxMode ?? 'gst'} onIonChange={sync((e) => patch({ taxMode: e.detail.value as 'gst' | 'none' }))} className="sale-tax">
@@ -548,7 +564,7 @@ export default function SaleScreen() {
 
       <PaySheet
         isOpen={paying}
-        amount={Math.max(0, totals.grandTotal - (exchange?.credit ?? 0) - Math.min(creditUse?.left ?? 0, Math.max(0, totals.grandTotal - (exchange?.credit ?? 0))))}
+        amount={Math.max(0, totals.grandTotal - (exchange?.credit ?? 0) - Math.min(creditUse?.left ?? 0, Math.max(0, totals.grandTotal - (exchange?.credit ?? 0))) - pointsValue)}
         upi={upi}
         qrNote={profile.name}
         requireFull={walkIn}

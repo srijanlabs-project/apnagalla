@@ -79,7 +79,7 @@ function newEntryProblem(table: SyncTable, data: Data): string | null {
   if (!PAYMENT_MODES.includes(data.mode as never)) return 'Unknown payment mode';
   if (table === 'supplierPayments') {
     if (typeof data.supplierId !== 'string' || !data.supplierId) return 'A payment belongs to a supplier';
-    if (data.mode === 'advance' || data.mode === 'creditnote') return 'Unknown payment mode';
+    if (data.mode === 'advance' || data.mode === 'creditnote' || data.mode === 'points') return 'Unknown payment mode';
     return null;
   }
   // A customer payment is for a bill, or on account (khata) for a customer.

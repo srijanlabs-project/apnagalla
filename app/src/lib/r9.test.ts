@@ -1,8 +1,10 @@
 import 'fake-indexeddb/auto';
+import { addDaysISO, todayISO } from '@invoice/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { db, type Customer } from './db';
+import { db } from './db';
 import { customerPrice, repriceLines } from './pricing';
-import { ensureBusinessRecords, putRecord, type Actor } from './repo';
+import { billMoney, ensureBusinessRecords, newCreditNoteDraft, newInvoiceDraft, putRecord, saveCreditNote, saveInvoice, settingsOf, type Actor } from './repo';
+import { DEFAULT_LOYALTY, pointsOf, redeemPoints } from './loyalty';
 
 export const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 export const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Staff', role: 'staff', seriesCode: 'A' };
@@ -11,7 +13,7 @@ export const line = (id: string, name: string, qty: number, rate: number, extra 
 beforeEach(async () => {
   await Promise.all(db.tables.map((t) => t.clear()));
   await ensureBusinessRecords('b1', 'Test Co');
-  await putRecord('customers', owner, { id: 'c1', name: 'Hotel Raj', phone: '+919876543210', billingAddress: {}, openingBalance: 0, priceLevel: 'wholesale', itemPrices: { tea: 38000 } } as Customer);
+  await putRecord('customers', owner, { id: 'c1', name: 'Hotel Raj', phone: '+919876543210', billingAddress: {}, openingBalance: 0, priceLevel: 'wholesale', itemPrices: { tea: 38000 } } as never);
   await putRecord('items', owner, { id: 'tea', name: 'Tea 1kg', unit: 'pcs', rate: 45000, prices: { wholesale: 42000 }, taxPct: 5 } as never);
   await putRecord('items', owner, { id: 'sugar', name: 'Sugar 1kg', unit: 'pcs', rate: 5000, prices: { wholesale: 4600 }, taxPct: 5 } as never);
 });
@@ -25,5 +27,35 @@ describe('R9.1 customer prices', () => {
     expect(customerPrice(sugar, c.priceLevel, c.itemPrices)).toBe(4600);
     const lines = await repriceLines([line('a', 'Tea 1kg', 2, 45000, { itemId: 'tea' }), line('b', 'Sugar 1kg', 1, 5000, { itemId: 'sugar' })], c.priceLevel!, c.itemPrices);
     expect(lines.map((l) => l.rate)).toEqual([38000, 4600]);
+  });
+});
+
+describe('R9.2 loyalty points', () => {
+  const sell = async (rate: number, date?: string) => {
+    const d = await newInvoiceDraft(owner);
+    return saveInvoice(owner, { ...d, ...(date ? { date } : {}), billTo: { customerId: 'c1', name: 'Hotel Raj', address: {} }, lines: [line('x', 'Tea 1kg', 1, rate)] }, { finalize: true });
+  };
+  it('bills earn points by level, returns take them back, points pay a later bill', async () => {
+    const st = await settingsOf('b1');
+    await putRecord('settings', owner, { ...st, loyalty: { ...DEFAULT_LOYALTY, enabled: true } });
+    const a = await sell(2600000, addDaysISO(todayISO(), -1)); // yesterday, ₹26,000: Silver (nothing before) → 260 points
+    expect(a.pointsEarned).toBe(260);
+    const b = await sell(100000); // now Gold (₹26,000 in the year) → ₹1,000 × 1.5 = 15
+    expect(b.pointsEarned).toBe(15);
+    const n = await newCreditNoteDraft(owner, b.id);
+    await saveCreditNote(owner, { ...n, reason: 'return' }, { finalize: true });
+    expect((await pointsOf('b1', 'c1')).balance).toBe(260 + 15 - 10);
+    const c = await sell(50000);
+    const used = await redeemPoints(owner, c, 9999, (await settingsOf('b1'))!);
+    expect(c.pointsEarned).toBe(7); // Gold: ₹500 → 5 × 1.5
+    expect(used).toMatchObject({ mode: 'points', points: 272, amount: 27200 });
+    expect((await pointsOf('b1', 'c1')).balance).toBe(0);
+    expect((await billMoney(c.id)).pending).toBe(50000 - used!.amount);
+    // Walk-ins never earn.
+    const w = await newInvoiceDraft(owner);
+    expect((await saveInvoice(owner, { ...w, lines: [line('y', 'Tea', 1, 900000)] }, { finalize: true })).pointsEarned).toBeUndefined();
+  });
+  it('is off by default', async () => {
+    expect((await sell(900000)).pointsEarned).toBeUndefined();
   });
 });
