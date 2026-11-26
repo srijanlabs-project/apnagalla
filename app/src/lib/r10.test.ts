@@ -2,7 +2,8 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from './db';
 import { eInvoiceJson, eInvoiceProblems, ewayBillJson, uqc } from './einvoice';
-import { ensureBusinessRecords, newInvoiceDraft, putRecord, saveInvoice, type Actor } from './repo';
+import { makeBackup, readBackup, restoreBackup, restorePlan } from './backup';
+import { deleteRecord, ensureBusinessRecords, newInvoiceDraft, putRecord, saveInvoice, type Actor } from './repo';
 
 export const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 export const line = (id: string, name: string, qty: number, rate: number, extra = {}) => ({ id, name, qty, unit: 'pcs', rate, rateIncludesTax: false, taxPct: 0, ...extra });
@@ -51,5 +52,27 @@ describe('R10.1 e-invoice and e-way bill', () => {
     expect(problems).toEqual(expect.arrayContaining(['The buyer’s GSTIN is missing (e-invoices are for B2B bills)', 'Every item needs an HSN code']));
     expect(uqc('Kg')).toBe('KGS');
     expect(uqc('thela')).toBe('OTH');
+  });
+});
+
+describe('R10.2 backup and restore', () => {
+  it('a backup brings back deleted and missing records, never older copies over newer work', async () => {
+    await putRecord('customers', owner, { id: 'c1', name: 'Mehta', billingAddress: {}, openingBalance: 0 } as never);
+    await putRecord('customers', owner, { id: 'c2', name: 'Shah', billingAddress: {}, openingBalance: 0 } as never);
+    await putRecord('items', owner, { id: 'i1', name: 'Fan', unit: 'pcs', rate: 100, taxPct: 0 } as never);
+    const file = readBackup(JSON.stringify(await makeBackup('b1', 'Test Co')));
+    expect(file.tables.customers).toHaveLength(2);
+    await deleteRecord('customers', owner, 'c1');
+    await db.customers.delete('c2');
+    await new Promise((r) => setTimeout(r, 5));
+    await putRecord('items', owner, { ...(await db.items.get('i1'))!, rate: 200 });
+    const plan = await restorePlan(file);
+    expect(plan.map((p) => [p.table, p.rows.map((r) => r.id)])).toEqual([['customers', ['c1', 'c2']]]);
+    expect(await restoreBackup(owner, file)).toBe(2);
+    expect((await db.customers.get('c1'))!.deleted).toBe(false);
+    expect((await db.customers.get('c2'))!.name).toBe('Shah');
+    expect((await db.items.get('i1'))!.rate).toBe(200);
+    await expect(restoreBackup(owner, { ...file, businessId: 'other' })).rejects.toThrow();
+    expect(() => readBackup('{"hello":1}')).toThrow();
   });
 });
