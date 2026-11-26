@@ -4,6 +4,7 @@ import { LANGS, LANG_NAMES, formatIndianMobile, type Lang } from '@invoice/share
 import {
   businessOutline,
   languageOutline,
+  libraryOutline,
   barChartOutline,
   gridOutline,
   idCardOutline,
@@ -110,6 +111,12 @@ export default function MoreScreen() {
           <IonIcon icon={cashOutline} slot="start" />
           <IonLabel>{t('Cash book')}</IonLabel>
         </IonItem>
+        {(isOwner || perms.access === 'readonly') && (
+          <IonItem routerLink="/tabs/bank" detail lines="full">
+            <IonIcon icon={libraryOutline} slot="start" />
+            <IonLabel>{t('Bank and cash')}</IonLabel>
+          </IonItem>
+        )}
         <IonItem routerLink="/tabs/cheques" detail lines="full">
           <IonIcon icon={documentTextOutline} slot="start" />
           <IonLabel>{t('Cheques')}</IonLabel>

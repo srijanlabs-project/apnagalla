@@ -495,6 +495,8 @@ export async function saveEstimate(actor: Actor, est: Estimate, opts: { finalize
 export interface NewPayment {
   amount: number;
   mode: PaymentEntry['mode'];
+  /** R6: bank account (UPI, card, bank, cheque); none = the default account. */
+  accountId?: string | null;
   reference?: string;
   note?: string;
 }
@@ -543,6 +545,7 @@ export async function recordPayments(
         kind,
         amount: p.amount,
         mode: p.mode,
+        accountId: p.accountId ?? null,
         date,
         reference: p.reference?.trim() || undefined,
         note: p.note?.trim() || undefined,

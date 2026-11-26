@@ -378,7 +378,9 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     const since = Math.max(0, Number.parseInt(req.query.since ?? '0', 10) || 0);
     const schema = Number.parseInt(req.query.schema ?? '1', 10) || 1;
     const hideCost = role === 'staff' && !(await seesCost(req.params.businessId, uid(req)));
-    return syncService.pull(req.params.businessId, since, undefined, { hideCost, schema, notOwner: role !== 'owner' });
+    // Bank moves, other income and loans: the owner and the accountant (read-only) login.
+    const seesMoney = role === 'owner' || (await accounts.permissionsOf(req.params.businessId, uid(req)))?.access === 'readonly';
+    return syncService.pull(req.params.businessId, since, undefined, { hideCost, schema, notOwner: role !== 'owner', seesMoney });
   });
 
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/numbers/reserve', authed, async (req): Promise<ReserveNumbersResponse> => {

@@ -1,5 +1,6 @@
 import { db, type DayClose } from './db';
 import { t } from './i18n';
+import { moneyEvents } from './money';
 import { expenseLabel } from './purchases';
 import { putRecord, type Actor } from './repo';
 
@@ -65,7 +66,12 @@ async function cashEvents(businessId: string) {
   }
   for (const e of expenses) {
     if (e.mode !== 'cash') continue;
-    cash.push({ date: e.date, amount: -e.amount, line: { label: expenseLabel(e.category) + (e.note ? ` · ${e.note}` : ''), amount: e.amount, href: '/tabs/expenses', at: e.createdAt } });
+    cash.push({ date: e.date, amount: -e.amount, line: { label: expenseLabel(e.category) + (e.paidTo ? ` · ${e.paidTo}` : '') + (e.note ? ` · ${e.note}` : ''), amount: e.amount, href: '/tabs/expenses', at: e.createdAt } });
+  }
+  // R6: other income, loans and cash ↔ bank moves (the same events the bank book uses).
+  for (const e of await moneyEvents(businessId)) {
+    if (e.place !== 'cash' || (e.kind !== 'income' && e.kind !== 'loanIn' && e.kind !== 'loanOut' && e.kind !== 'interest' && e.kind !== 'move')) continue;
+    cash.push({ date: e.date, amount: e.amount, line: { label: e.label, amount: Math.abs(e.amount), href: e.href, at: e.at } });
   }
   return { cash, other, closes: new Map(closes.map((c) => [c.date, c])) };
 }

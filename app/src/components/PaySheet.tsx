@@ -10,6 +10,7 @@ import { MODE_LABEL, modeLabel } from '../lib/ledger';
 import { upiLink } from '../lib/pdf/buildDoc';
 import type { NewPayment } from '../lib/repo';
 import { sync } from '../lib/sync';
+import AccountField from './AccountField';
 import { MoneyField, SelectField, TextField } from './Fields';
 
 interface Props {
@@ -127,6 +128,7 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
             {r.mode === 'upi' && kind === 'payment' && upi && r.amount > 0 && <UpiQr upi={upi} amount={r.amount} note={qrNote} />}
             {r.mode === 'upi' && kind === 'payment' && !upi && <p className="section-note">{t('Add your UPI ID in More → Payment details to show a QR here.')}</p>}
 
+            <AccountField mode={r.mode} value={r.accountId} onChange={(accountId) => set(i, { accountId })} />
             {(r.mode === 'upi' || r.mode === 'cheque' || r.mode === 'bank' || r.mode === 'card') && (
               <TextField
                 label={r.mode === 'cheque' ? t('Cheque no.') : r.mode === 'card' ? t('Card / slip ref. (optional)') : t('Reference (optional)')}

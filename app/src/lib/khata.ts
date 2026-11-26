@@ -82,7 +82,7 @@ export async function khataOf(businessId: string, customer: Customer): Promise<K
  * A khata payment: settles the opening balance first, then the oldest bills; anything left stays
  * on account as an advance. All the entries share one receipt id.
  */
-export async function receiveKhataPayment(actor: Actor, customer: Customer, input: { amount: number; mode: CashMode; date: string; reference?: string; note?: string }): Promise<PaymentEntry[]> {
+export async function receiveKhataPayment(actor: Actor, customer: Customer, input: { amount: number; mode: CashMode; accountId?: string | null; date: string; reference?: string; note?: string }): Promise<PaymentEntry[]> {
   if (!(input.amount > 0)) throw new Error(t('Amount must be more than zero'));
   const k = await khataOf(actor.businessId, customer);
   const receiptId = newId();
@@ -90,6 +90,7 @@ export async function receiveKhataPayment(actor: Actor, customer: Customer, inpu
   const base = {
     kind: 'payment' as const,
     mode: input.mode,
+    accountId: input.accountId ?? null,
     date: input.date || todayISO(),
     reference: input.reference?.trim() || undefined,
     note: input.note?.trim() || undefined,

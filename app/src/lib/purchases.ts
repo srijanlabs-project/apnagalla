@@ -306,7 +306,7 @@ export async function paidOnPurchase(purchaseId: string): Promise<number> {
 
 export async function recordSupplierPayment(
   actor: Actor,
-  input: Pick<SupplierPayment, 'supplierId' | 'amount' | 'mode' | 'date'> & Partial<Pick<SupplierPayment, 'purchaseId' | 'reference' | 'note' | 'kind'>>,
+  input: Pick<SupplierPayment, 'supplierId' | 'amount' | 'mode' | 'date'> & Partial<Pick<SupplierPayment, 'purchaseId' | 'reference' | 'note' | 'kind' | 'accountId'>>,
 ): Promise<SupplierPayment> {
   if (!(input.amount > 0)) throw new Error(t('Amount must be more than zero'));
   return putRecord('supplierPayments', actor, {

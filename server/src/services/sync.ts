@@ -7,6 +7,8 @@ import {
   R2_TABLES,
   R3_TABLES,
   R4_TABLES,
+  R6_TABLES,
+  MONEY_TABLES,
   OWNER_PRIVATE_TABLES,
   PAYMENT_MODES,
   PAYMENT_VOID_FIELDS,
@@ -329,9 +331,9 @@ export class SyncService {
    * or doesn't know yet (an older app: `schema` 1) are left out; an app that updates starts again
    * from 0, so it still gets them.
    */
-  async pull(businessId: string, since: number, limit = SYNC_PULL_MAX, opts: { hideCost?: boolean; schema?: number; notOwner?: boolean } = {}): Promise<SyncPullResponse> {
+  async pull(businessId: string, since: number, limit = SYNC_PULL_MAX, opts: { hideCost?: boolean; schema?: number; notOwner?: boolean; seesMoney?: boolean } = {}): Promise<SyncPullResponse> {
     const schema = opts.schema ?? 1;
-    const skip = [...(schema < 2 ? R2_TABLES : []), ...(schema < 3 ? R3_TABLES : []), ...(schema < 4 ? R4_TABLES : []), ...(opts.hideCost ? COST_TABLES : []), ...(opts.notOwner ? OWNER_PRIVATE_TABLES : [])];
+    const skip = [...(schema < 2 ? R2_TABLES : []), ...(schema < 3 ? R3_TABLES : []), ...(schema < 4 ? R4_TABLES : []), ...(schema < 5 ? R6_TABLES : []), ...(opts.notOwner && !opts.seesMoney ? MONEY_TABLES : []), ...(opts.hideCost ? COST_TABLES : []), ...(opts.notOwner ? OWNER_PRIVATE_TABLES : [])];
     const rows = await this.db
       .select({ table: syncRecords.tableName, id: syncRecords.id, data: syncRecords.data, seq: syncRecords.seq })
       .from(syncRecords)

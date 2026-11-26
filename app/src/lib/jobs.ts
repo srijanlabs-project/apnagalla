@@ -74,7 +74,7 @@ export async function jobAdvance(businessId: string, jobId: string): Promise<num
 }
 
 /** Takes an advance for the job: money on the customer's account, tagged with the job. */
-export async function takeAdvance(actor: Actor, est: Estimate, input: { amount: number; mode: CashMode; date: string; reference?: string; note?: string }): Promise<PaymentEntry> {
+export async function takeAdvance(actor: Actor, est: Estimate, input: { amount: number; mode: CashMode; accountId?: string | null; date: string; reference?: string; note?: string }): Promise<PaymentEntry> {
   const customerId = est.billTo?.customerId ?? null;
   if (!est.number) throw new Error(t('Save it first'));
   if (!(input.amount > 0)) throw new Error(t('Amount must be more than zero'));
@@ -86,6 +86,7 @@ export async function takeAdvance(actor: Actor, est: Estimate, input: { amount: 
     kind: 'payment',
     amount: input.amount,
     mode: input.mode,
+    accountId: input.accountId ?? null,
     date: input.date || todayISO(),
     reference: input.reference?.trim() || undefined,
     note: input.note?.trim() || t('Advance for {job}', { job: est.number || est.job?.title || '' }),
@@ -124,7 +125,7 @@ export async function settleJobAdvance(actor: Actor, invoice: Invoice): Promise<
 }
 
 /** The customer didn't go ahead: give an estimate's advance back. */
-export async function refundAdvance(actor: Actor, est: Estimate, input: { amount: number; mode: CashMode; date: string; reference?: string; note?: string }): Promise<void> {
+export async function refundAdvance(actor: Actor, est: Estimate, input: { amount: number; mode: CashMode; accountId?: string | null; date: string; reference?: string; note?: string }): Promise<void> {
   const left = await jobAdvance(actor.businessId, est.id);
   const amount = Math.min(input.amount, left);
   if (amount <= 0) return;
@@ -136,6 +137,7 @@ export async function refundAdvance(actor: Actor, est: Estimate, input: { amount
     kind: 'refund',
     amount,
     mode: input.mode,
+    accountId: input.accountId ?? null,
     date: input.date || todayISO(),
     reference: input.reference?.trim() || undefined,
     note: input.note?.trim() || t('Advance returned for {number}', { number: est.number }),

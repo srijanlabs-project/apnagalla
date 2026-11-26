@@ -28,6 +28,12 @@ export const SYNC_TABLES = [
   // R4
   'employees',
   'attendance',
+  // R6
+  'moneyMoves',
+  'incomes',
+  'loans',
+  'loanEntries',
+  'recurringExpenses',
 ] as const;
 export type SyncTable = (typeof SYNC_TABLES)[number];
 
@@ -40,11 +46,17 @@ export const R3_TABLES: readonly SyncTable[] = ['offers', 'savedReports'];
 /** Tables added in R4 (sent to apps of schema 4 or later). */
 export const R4_TABLES: readonly SyncTable[] = ['employees', 'attendance'];
 
+/** Tables added in R6 (sent to apps of schema 5 or later). */
+export const R6_TABLES: readonly SyncTable[] = ['moneyMoves', 'incomes', 'loans', 'loanEntries', 'recurringExpenses'];
+
+/** Bank moves, other income, loans and repeating expenses: the owner and the accountant login see them. */
+export const MONEY_TABLES: readonly SyncTable[] = R6_TABLES;
+
 /** Staff pay and attendance: only the owner sees or changes them. */
 export const OWNER_PRIVATE_TABLES: readonly SyncTable[] = ['employees', 'attendance'];
 
 /** The data layout the phone understands; sent on pull. Older apps send none (= 1). */
-export const SYNC_SCHEMA = 4;
+export const SYNC_SCHEMA = 5;
 
 /**
  * Purchase prices live in these tables: staff of a store that hides costs from staff never
@@ -56,7 +68,7 @@ export const COST_TABLES: readonly SyncTable[] = ['suppliers', 'purchaseOrders',
 export const APPEND_ONLY_TABLES: readonly SyncTable[] = ['payments', 'supplierPayments', 'stockMoves'];
 
 /** Store details: only the owner may change them. */
-export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'categories', 'offers', 'savedReports', 'employees', 'attendance'];
+export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'categories', 'offers', 'savedReports', 'employees', 'attendance', ...R6_TABLES];
 
 /** Payment modes for a payment or refund entry. `advance` = paid from money the customer left on account. */
 export const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque', 'other', 'advance', 'finance', 'creditnote'] as const;

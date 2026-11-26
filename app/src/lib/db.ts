@@ -51,6 +51,9 @@ export interface BankAccount extends SyncedRecord {
   branch?: string;
   accountType: 'current' | 'savings';
   isDefault: boolean;
+  /** R6: money in the account on `openingDate` (paise; − = overdraft). */
+  openingBalance?: number;
+  openingDate?: string;
 }
 
 export interface UpiId extends SyncedRecord {
@@ -118,6 +121,9 @@ export interface BusinessSettings extends SyncedRecord {
   lockBillsAfterDays?: number | null;
   /** Books closed up to this date (e.g. the GST return is filed): bills on or before it are locked. */
   booksClosedUntil?: string | null;
+  /** R6: the store's own expense and income categories (besides the built-in ones). */
+  expenseCategories?: string[];
+  incomeCategories?: string[];
   /** Staff may see items' purchase price. Off: the server never sends it to staff phones. */
   staffSeeCost: boolean;
   /** "HH:MM": when the day-before delivery alert rings. */
@@ -353,6 +359,8 @@ export interface PaymentEntry extends SyncedRecord {
   /** Paise, always positive. */
   amount: number;
   mode: PaymentMode;
+  /** R6: bank account the money went to (UPI, card, bank, cheque); none = the default account. */
+  accountId?: string | null;
   date: string;
   /** UPI reference, cheque number… */
   reference?: string;
@@ -510,6 +518,8 @@ export interface SupplierPayment extends SyncedRecord {
   kind: 'payment' | 'refund';
   amount: number;
   mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
+  /** R6: bank account paid from (not cash); none = the default account. */
+  accountId?: string | null;
   date: string;
   reference?: string;
   note?: string;
@@ -524,11 +534,20 @@ export const EXPENSE_CATEGORIES = ['rent', 'salary', 'electricity', 'transport',
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 
 export interface Expense extends SyncedRecord {
-  category: ExpenseCategory;
+  /** One of EXPENSE_CATEGORIES or the store's own category name (R6). */
+  category: ExpenseCategory | (string & {});
   amount: number;
   mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
+  /** R6: bank account paid from (not cash); none = the default account. */
+  accountId?: string | null;
   date: string;
   note?: string;
+  /** R6: who was paid (landlord, electricity board…). */
+  paidTo?: string;
+  /** R6: photo of the bill or receipt (data URL, resized). */
+  photo?: string | null;
+  /** R6: paid from this repeating expense (rent every month…). */
+  recurringId?: string;
   paidByName?: string;
   /** Money paid to a staff member: an advance, or salary for a month (less advance recovered). */
   employeeId?: string;
@@ -572,6 +591,96 @@ export interface DayClose extends SyncedRecord {
   difference: number;
   note?: string;
   closedByName?: string;
+}
+
+/* ---------- R6: money and books ---------- */
+
+/** Where money sits: the cash drawer or one of the store's bank accounts. */
+export type MoneyPlace = 'cash' | string;
+
+/**
+ * Money moved between the drawer and a bank account (deposit, withdrawal), between two accounts
+ * (transfer), or a correction of an account's balance to what the bank shows (adjust).
+ */
+export interface MoneyMove extends SyncedRecord {
+  kind: 'deposit' | 'withdraw' | 'transfer' | 'adjust';
+  /** 'cash' or a bank account id; empty for an adjustment. */
+  from: MoneyPlace | null;
+  /** 'cash' or a bank account id. */
+  to: MoneyPlace | null;
+  /** Paise, more than 0; an adjustment may be below 0 (money less than the app shows). */
+  amount: number;
+  date: string;
+  reference?: string;
+  note?: string;
+  byName?: string;
+}
+
+export const INCOME_CATEGORIES = ['interest', 'rent', 'commission', 'scrap', 'discount', 'other'] as const;
+export type IncomeCategory = (typeof INCOME_CATEGORIES)[number];
+
+/** Money that isn't from selling: bank interest, rent received, commission, scrap sale… */
+export interface Income extends SyncedRecord {
+  category: IncomeCategory | (string & {});
+  amount: number;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
+  accountId?: string | null;
+  date: string;
+  from?: string;
+  note?: string;
+  byName?: string;
+  /** Loan given: interest received on it. */
+  loanId?: string;
+}
+
+/** A loan the store took (bank, person, finance company) or gave. */
+export interface Loan extends SyncedRecord {
+  kind: 'taken' | 'given';
+  /** Lender or borrower: "HDFC Bank", "Ramesh ji". */
+  name: string;
+  /** Owed on `startDate` (paise): the loan amount, or what was left when it was entered. */
+  openingBalance: number;
+  startDate: string;
+  /** Yearly interest, for reference. */
+  interestPct?: number;
+  /** Monthly instalment, for reference. */
+  emi?: number;
+  accountNumber?: string;
+  note?: string;
+  closed?: boolean;
+}
+
+/**
+ * Money on a loan. Loan taken: `received` (loan money in), `repaid` (principal paid back),
+ * `interest` and `charge` (paid; expenses). Loan given: `given` (lent out), `received` (principal
+ * back), `interest` (received; income).
+ */
+export interface LoanEntry extends SyncedRecord {
+  loanId: string;
+  kind: 'received' | 'repaid' | 'given' | 'interest' | 'charge';
+  amount: number;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
+  accountId?: string | null;
+  date: string;
+  reference?: string;
+  note?: string;
+  byName?: string;
+}
+
+/** An expense that comes back (rent each month): listed as due, paid with one tap. */
+export interface RecurringExpense extends SyncedRecord {
+  category: Expense['category'];
+  amount: number;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote'>;
+  accountId?: string | null;
+  paidTo?: string;
+  note?: string;
+  every: 'month' | 'week';
+  /** Month: day of the month (1–28); week: 0 = Sunday … 6. */
+  day: number;
+  /** First date it is due. */
+  startDate: string;
+  stopped?: boolean;
 }
 
 /* ---------- R3: offers, saved reports ---------- */
@@ -651,6 +760,11 @@ export const db = new Dexie('apnagalla') as Dexie & {
   savedReports: EntityTable<SavedReport, 'id'>;
   employees: EntityTable<Employee, 'id'>;
   attendance: EntityTable<Attendance, 'id'>;
+  moneyMoves: EntityTable<MoneyMove, 'id'>;
+  incomes: EntityTable<Income, 'id'>;
+  loans: EntityTable<Loan, 'id'>;
+  loanEntries: EntityTable<LoanEntry, 'id'>;
+  recurringExpenses: EntityTable<RecurringExpense, 'id'>;
   catalogItems: EntityTable<CatalogItemDto, 'id'>;
   catalogAliases: EntityTable<CatalogAliasDto, 'word'>;
   outbox: EntityTable<OutboxEntry, 'seq'>;
@@ -710,6 +824,14 @@ db.version(8).stores({
   catalogAliases: 'word',
 });
 
+db.version(9).stores({
+  moneyMoves: 'id, businessId, [businessId+date]',
+  incomes: 'id, businessId, [businessId+date]',
+  loans: 'id, businessId',
+  loanEntries: 'id, businessId, loanId, [businessId+date]',
+  recurringExpenses: 'id, businessId',
+});
+
 export const ALL_TABLES = [
   db.profiles,
   db.settings,
@@ -733,6 +855,11 @@ export const ALL_TABLES = [
   db.savedReports,
   db.employees,
   db.attendance,
+  db.moneyMoves,
+  db.incomes,
+  db.loans,
+  db.loanEntries,
+  db.recurringExpenses,
   db.outbox,
   db.meta,
 ];

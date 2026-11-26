@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { t } from '../lib/i18n';
 import { modeLabel } from '../lib/ledger';
 import { sync } from '../lib/sync';
+import AccountField from './AccountField';
 import { MoneyField, SelectField, TextField } from './Fields';
 
 export type CashMode = Exclude<PaymentMode, 'advance' | 'creditnote'>;
@@ -12,6 +13,8 @@ export const CASH_MODES: CashMode[] = ['cash', 'upi', 'bank', 'cheque', 'card', 
 export interface MoneyEntry {
   amount: number;
   mode: CashMode;
+  /** R6: bank account for UPI, card, bank, cheque (none = the default account). */
+  accountId?: string | null;
   date: string;
   reference?: string;
   note?: string;
@@ -73,6 +76,7 @@ export default function MoneyEntrySheet({
             onIonInput={sync((ev) => setE((x) => ({ ...x, date: String(ev.detail.value ?? todayISO()) })))}
           />
         </div>
+        <AccountField mode={e.mode} value={e.accountId} onChange={(accountId) => setE((x) => ({ ...x, accountId }))} />
         {e.mode !== 'cash' && <TextField label={t('Reference (UPI ref, cheque no.)')} value={e.reference} onChange={(reference) => setE((x) => ({ ...x, reference }))} />}
         <TextField label={t('Note (optional)')} value={e.note} onChange={(note) => setE((x) => ({ ...x, note }))} />
         <IonButton
