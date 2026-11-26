@@ -398,6 +398,61 @@ R1.5 decisions (25 Nov 2026) and gaps:
   street, city, pincode…}}}, mapped exactly. Railway reads the key from GST_VALIDATION_API_KEY;
   the plain endpoint + Token header is used (the other project's "j" endpoint needs a login).
 
+### Releases 6–10 — everything in the Vyapar feature list
+Planned 26 Nov 2026 from the Vyapar feature list the owner shared ("I want everything in ApnaGalla
+too"). Each line of that list was checked against the app; what ApnaGalla already has is not
+repeated here. The owner asked for R6 to be built in auto mode (defaults below, each can change).
+
+Already in ApnaGalla (no work): GST / non-GST bills, inclusive / exclusive tax, 3 bill designs,
+logo and signature, number patterns, line and bill discounts, CGST / SGST / IGST, estimates and
+quotes → bill, duplicate, cancel, PDF, print (thermal, Wi-Fi, A4), WhatsApp share, UPI QR, counter
+billing, barcode scan and labels, cash / UPI / card / bank / cheque / split, MRP, returns and credit
+notes, categories in a tree, item photos, code / SKU, HSN, GST rate, cost / MRP / retail /
+wholesale / special prices, several units, opening stock, live stock, stock value, low-stock alerts,
+stock count and adjustments, transfer between stores, serial / IMEI, negative stock, Excel import,
+purchase orders → purchase bills, purchase returns, supplier ledger and payments, khata with
+opening balance, credit limit, statements, partial payments and advances settled oldest-first,
+cheques, receivables / payables, cash book, day book, expenses, GSTR-1 (JSON and Excel), GST
+summary for GSTR-3B, HSN summary, delivery challans, job orders, all-stores dashboard, staff logins
+with roles and permissions, accountant login, devices, audit log (admin), nightly Excel backup to
+email / Drive / OneDrive / Dropbox, Tally export, and phone alerts.
+
+| Release | What it adds |
+|---|---|
+| **R6 Money and books** | Bank accounts with opening balance and a **bank book**; every UPI / card / bank / cheque entry goes to an account; **cash ↔ bank** deposits, withdrawals and transfers; **other income**; expenses with **own categories, paid-to, photo and repeating (rent, salary…)**; **loans** taken and given (EMI, interest); **payment receipts** (customer) and **payment vouchers** (supplier) as PDF / WhatsApp; reports: **bank statement, cash flow, profit & loss statement, other income**; financial-year filters; Home shows bank balance and this month's expenses and profit |
+| R7 Accounts and GST returns | Ledgers for every party and account, **journal entries**, chart of accounts (Tally-style groups), **trial balance, balance sheet**, capital and drawings; **GSTR-2B match** (upload the portal file, see missing / mismatched bills), proper **GSTR-3B** and **GSTR-9** sheets, input / output tax registers, taxable / exempt / nil sales; owner **activity log** in the app |
+| R8 Orders and stock depth | **Sales orders** (status, part delivered, pending order report, order → bill), **proforma invoice**, **batch and expiry** (pharmacy, FMCG: pick batch on sale, expiry report), **godowns** inside a store with transfers, **item stock history**, purchase **expenses spread into cost** (freight, loading), purchase **due dates and supplier reminders**, **recycle bin** (restore deleted items, customers, bills), **weighing-scale barcodes** (price / weight inside the barcode) |
+| R9 Customers and online store | **Party groups**, **customer-specific prices**, **loyalty points**, **automatic payment reminders** (WhatsApp / SMS on a schedule), **online store** (catalogue link with prices, customer orders → bill), share catalogue, import phone contacts, email bills |
+| R10 Government links and data | **E-invoice (IRN, QR)** and **e-way bill** through a GSP, **Tally import**, full **backup and restore** (Google Drive / file, one tap), field sales staff (visits with location, orders taken in the field), import from Vyapar backups |
+
+Needed from the client for later releases: a GSP account for e-invoice / e-way bill (R10, paid,
+e.g. through the GST API provider), the SMS DLT templates for automatic reminders (R9), and a
+domain for the online store (R9).
+
+#### Release 6 — money and books
+Started 26 Nov 2026 in auto mode.
+
+| Step | Scope | Status |
+|---|---|---|
+| R6.1 Accounts | Bank accounts get an opening balance (date) and can be marked "not on bills"; UPI / card / bank / cheque payments, supplier payments and expenses carry an account (picked when the store has more than one, else the default); cash ↔ bank deposits, withdrawals, transfers and balance corrections; bank book per account; Home: bank balance | |
+| R6.2 Income and expenses | Other income (interest, rent received, commission, scrap sale, discount received, other + own categories); expenses with own categories, paid-to, bill photo; repeating expenses (every month / week) shown as "due" with a Pay button | |
+| R6.3 Loans | Loans taken (bank, person) and given: opening balance, interest %, EMI; entries for money received / repaid, interest and charges, from cash or a bank account; loan statement | |
+| R6.4 Receipts | Payment receipt for money received (bill or khata), payment voucher for money paid to a supplier: PDF, print and WhatsApp | |
+| R6.5 Reports | Bank statement, cash flow (cash and bank, in and out by kind), profit & loss statement (sales − returns − cost of goods = gross profit; − expenses + other income − loan interest = net profit), other income; This / last financial year in date filters; Home: this month's expenses and profit | |
+
+R6 decisions (defaults):
+- Bank accounts already exist for printing on bills; they now also hold money. An entry without
+  an account (all entries before R6) counts in the store's default account. UPI money goes to
+  the default account unless another is picked.
+- Cash ↔ bank moves, other income, loans and repeating expenses are owner-only (the accountant
+  login sees them, other staff don't). Expenses can still be added by anyone (petty cash).
+- Repeating expenses are never paid by themselves: the Expenses screen lists what is due and
+  "Pay" records it, so two phones can't pay rent twice.
+- Loan interest is an expense (loan taken) or other income (loan given); repaid principal is not
+  an expense. EMI = principal + interest typed per payment (the bank's split), not worked out.
+- Receipts are numbered from the entry (RC-date-short id); they are not a legal series.
+- Profit & loss values goods sold at the item's current cost price, like the profit report.
+
 ## 11. Your action items (can run in parallel with the build)
 - [ ] Start **TRAI DLT registration** with an SMS provider (business entity, sender ID, OTP template). Takes days to weeks; until it's done, OTP runs in test mode.
 - [ ] Create a **Google Play developer account**.
