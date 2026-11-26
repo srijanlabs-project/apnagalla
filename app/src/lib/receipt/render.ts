@@ -1,4 +1,5 @@
 import { batchText } from '../batches';
+import { jewelText } from '../modules';
 import { amountInWordsIn, formatDateIN, formatPaise, type InvoiceTotals, type Lang } from '@invoice/shared';
 import { serialText } from '../serials';
 import QRCode from 'qrcode';
@@ -150,6 +151,7 @@ export async function renderReceipt(input: ReceiptInput): Promise<HTMLCanvasElem
     if (size) text(size, { size: base - 3 });
     if (l.serials?.length || l.warrantyMonths) text(serialText(l, doc.date), { size: base - 3 });
     if (l.batch || l.expiry) text(batchText(l), { size: base - 3 });
+    if (l.jewel) text(jewelText(l), { size: base - 3 });
     if (l.nonReturnable) text(L('Non-returnable'), { size: base - 3 });
     row(`${l.qty} ${l.unit} × ${money(Math.round(r.baseRate))}${view.mode !== 'none' && l.taxPct ? `  (${l.taxPct}%)` : ''}`, money(r.net));
     if (r.lineDiscount) row(`  ${L('Discount')}`, `−${money(r.lineDiscount)}`, { size: base - 3 });

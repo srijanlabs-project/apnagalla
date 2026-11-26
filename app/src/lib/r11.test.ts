@@ -11,6 +11,7 @@ import { billMoney, recordPayments } from './repo';
 import { sitesOf } from './shopKinds';
 import { festivalTable, payWithVoucher, rentalDays, returnRental, schemeProgress, sellVoucher, startRental, unitsForArea, voucherLeft } from './retailExtras';
 import { matchOrderLines } from './messageOrder';
+import { jewelPrice, jewelText, oldMetalValue, produce, recipeCost, saveRecipe, scheduleRegister } from './modules';
 import { newPurchaseDraft, savePurchase } from './purchases';
 import { khataOf } from './khata';
 
@@ -129,5 +130,38 @@ describe('R11.3 most shops', () => {
     const items = [(await db.items.get('tom'))!, { ...(await db.items.get('tom'))!, id: 'pot', name: 'Potato' }];
     const m = matchOrderLines([{ name: 'Tomato', qty: 2, unit: 'kg' }, { name: 'potatoes', qty: 1, unit: 'kg' }, { name: 'Maggi', qty: 4, unit: 'pcs' }], items);
     expect(m.map((x) => x.item?.id ?? null)).toEqual(['tom', 'pot', null]);
+  });
+});
+
+describe('R11.4 trade modules', () => {
+  const rates = { gold24: 700000, silver999: 9000 };
+  it('jewellery: price from weight, purity, wastage, making and stones; old gold value', () => {
+    const j = { metal: 'gold' as const, weight: 10, purity: 22, making: 12, makingType: 'pct' as const, wastagePct: 8, stones: 150000 };
+    // Metal: 10.8 g × 22/24 × ₹7,000 = ₹69,300; making 12% = ₹8,316; stones ₹1,500.
+    expect(jewelPrice(j, rates)).toEqual({ metal: 6930000, making: 831600, total: 7911600 });
+    expect(jewelPrice({ ...j, makingType: 'perGram', making: 50000, wastagePct: 0, stones: 0 }, rates).making).toBe(500000);
+    expect(jewelText({ jewel: j })).toBe('Gold 22K 10.000 g · wastage 8% · making 12% · stones ₹1500.00');
+    // 10 g of 22K at ₹7,000 (24K) less 2% = ₹62,883.
+    expect(oldMetalValue('gold', 10, 22, 2, rates)).toBe(6288333);
+  });
+
+  it('recipes: making adds the product and uses the raw material; cost per piece', async () => {
+    await putRecord('items', owner, { id: 'maida', name: 'Maida', unit: 'kg', rate: 0, purchasePrice: 4000, taxPct: 0 } as never);
+    await putRecord('items', owner, { id: 'ghee', name: 'Ghee', unit: 'kg', rate: 0, purchasePrice: 60000, taxPct: 0 } as never);
+    await putRecord('items', owner, { id: 'nk', name: 'Nankhatai', unit: 'pcs', rate: 1000, taxPct: 5 } as never);
+    await expect(saveRecipe(staff, { id: 'r', itemId: 'nk', itemName: 'Nankhatai', yieldQty: 100, inputs: [] })).rejects.toThrow();
+    const r = await saveRecipe(owner, { id: 'r', itemId: 'nk', itemName: 'Nankhatai', yieldQty: 100, inputs: [{ itemId: 'maida', name: 'Maida', qty: 2 }, { itemId: 'ghee', name: 'Ghee', qty: 1 }] });
+    expect(await recipeCost(r)).toBe(680);
+    const { used } = await produce(staff, r, 50, D);
+    expect(used).toEqual([{ name: 'Maida', qty: 1, short: true }, { name: 'Ghee', qty: 0.5, short: true }]);
+    const lv = await stockLevels('b1');
+    expect([lv.get('nk'), lv.get('maida'), lv.get('ghee')]).toEqual([50, -1, -0.5]);
+  });
+
+  it('pharmacy: scheduled drugs go in the register with the prescription', async () => {
+    await putRecord('items', owner, { id: 'az', name: 'Azithromycin 500', unit: 'strip', rate: 12000, taxPct: 12, schedule: 'H1' } as never);
+    const d = await newInvoiceDraft(owner);
+    await saveInvoice(owner, { ...d, date: D, rx: { patient: 'R. Kumar', doctor: 'Dr Mehta', number: 'RX-9' }, lines: [line('a', 'Azithromycin 500', 1, 12000, { itemId: 'az', unit: 'strip', batch: 'B7' }), line('b', 'Tomato', 1, 3600, { itemId: 'tom' })] }, { finalize: true });
+    expect((await scheduleRegister('b1', D, D)).rows.map((r) => [r[2], r[3], r[4], r[6], r[7]])).toEqual([['H1', 'Azithromycin 500', 'B7', 'R. Kumar', 'Dr Mehta']]);
   });
 });

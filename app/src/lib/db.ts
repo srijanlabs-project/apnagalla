@@ -119,6 +119,8 @@ export interface BusinessSettings extends SyncedRecord {
   dayEndFrom?: string;
   /** R9: the store's public order page at /s/<slug>. */
   onlineStore?: { enabled: boolean; slug: string; note?: string; minOrder?: number };
+  /** R11 jewellery: the day's rates (paise per gram of 24K gold / 999 silver). */
+  jewellery?: { gold24: number; silver999: number; date: string } | null;
   /** R9: payment reminder schedule (see lib/reminders.ts). */
   reminders?: Partial<import('./reminders').ReminderRules>;
   /** R9: loyalty points and membership levels (see lib/loyalty.ts). */
@@ -219,6 +221,11 @@ export interface Item extends SyncedRecord {
   trackSerial?: boolean;
   /** R9: shown with its price on the store's online page. */
   online?: boolean;
+  /** R11 jewellery: the metal and purity of a piece (price from weight × the day's rate). */
+  metal?: 'gold' | 'silver';
+  purity?: number;
+  /** R11 pharmacy: scheduled drug (needs a prescription; goes in the register). */
+  schedule?: 'H' | 'H1' | 'X';
   /** R11: sq ft one unit covers (a box of tiles, a litre of paint per coat): bills can take an area. */
   coverage?: number;
   /** R8: the item's code on the weighing scale (PLU), for scale-printed labels. */
@@ -258,6 +265,8 @@ export interface DocLine {
   id: string;
   /** R8: the order line this bill line delivers. */
   fromLineId?: string;
+  /** R11 jewellery: how this piece was priced. */
+  jewel?: import('./modules').JewelLine;
   /** R8: batch number and expiry month ("YYYY-MM") of a batch item. */
   batch?: string;
   expiry?: string;
@@ -383,6 +392,8 @@ export interface Invoice extends DocBase {
   fromChallanIds?: string[];
   /** R11: paid in instalments run by the shop. */
   instalments?: { count: number; every: 'month' | 'week'; first: string; downPayment: number } | null;
+  /** R11 pharmacy: prescription for scheduled drugs. */
+  rx?: { patient?: string; doctor?: string; number?: string } | null;
   /** R11: contractor's site / project the bill is for. */
   site?: string;
   /** R10: e-invoice from the IRP (printed with its signed QR). */
@@ -479,7 +490,7 @@ export interface JobInfo {
 
 /* ---------- R2: stock, purchases, money ---------- */
 
-export type StockReason = 'opening' | 'damage' | 'theft' | 'expired' | 'count' | 'gift' | 'own_use' | 'other' | 'transfer' | 'wastage';
+export type StockReason = 'opening' | 'damage' | 'theft' | 'expired' | 'count' | 'gift' | 'own_use' | 'other' | 'transfer' | 'wastage' | 'production';
 
 /**
  * Opening stock or a manual change (damage, theft, physical count…). Added, never edited: the

@@ -71,7 +71,8 @@ export type ReportId =
   | 'expensesByPaidTo'
   | 'visits'
   | 'wastage'
-  | 'festival';
+  | 'festival'
+  | 'scheduleRegister';
 
 const inRange = (d: string, p: Period) => d >= p.from && d <= p.to;
 const periodText = (p: Period) => {
@@ -881,6 +882,7 @@ export const REPORTS: ReportInfo[] = [
   { id: 'purchaseRegister', title: () => t('Purchase register'), group: 'gst', period: true, ownerOnly: true, run: purchaseRegister },
   { id: 'purchasesByItem', title: () => t('Purchases by item'), group: 'stock', period: true, cost: true, filters: ['item', 'category'], run: purchasesByItem },
   { id: 'hsn', title: () => t('HSN summary'), group: 'gst', period: true, ownerOnly: true, run: hsn },
+  { id: 'scheduleRegister', title: () => t('Schedule H / H1 register (pharmacy)'), group: 'gst', period: true, ownerOnly: true, run: (c) => import('./modules').then((m) => m.scheduleRegister(c.businessId, c.from, c.to)) },
   { id: 'gstr3b', title: () => 'GSTR-3B', group: 'gst', period: true, ownerOnly: true, run: (c) => import('./gstReturns').then((m) => m.gstr3bTable(c.businessId, c)) },
   { id: 'gstr9', title: () => t('GSTR-9 (annual)'), group: 'gst', period: true, ownerOnly: true, run: (c) => import('./gstReturns').then((m) => m.gstr9Table(c.businessId, c.to)) },
   { id: 'gstSummary', title: () => t('GST summary'), group: 'gst', period: true, ownerOnly: true, run: gstSummary },

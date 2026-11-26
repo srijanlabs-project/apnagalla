@@ -27,6 +27,7 @@ import { serialsInStock } from '../../lib/serials';
 import { batchStock, isExpired, pickBatch } from '../../lib/batches';
 import { qtyForAmount } from '../../lib/fresh';
 import { unitsForArea } from '../../lib/retailExtras';
+import { jewelPrice } from '../../lib/modules';
 import { bookedQty } from '../../lib/orders';
 import { stockLevels } from '../../lib/stock';
 import { OFF } from '../../lib/offers';
@@ -233,6 +234,35 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
           </IonList>
         ) : (
           <>
+            {lineItem?.metal && settings.jewellery && (
+              <FormSection title={t('Jewellery price')} note={t('{metal} rate today {rate}/g (24K / 999)', { metal: lineItem.metal === 'gold' ? t('Gold') : t('Silver'), rate: rupees(lineItem.metal === 'gold' ? settings.jewellery.gold24 : settings.jewellery.silver999) })}>
+                {(() => {
+                  const j = l.jewel ?? { metal: lineItem.metal!, weight: 0, purity: lineItem.purity ?? (lineItem.metal === 'gold' ? 22 : 92.5), making: 12, makingType: 'pct' as const, wastagePct: 0, stones: 0 };
+                  const put = (p: Partial<typeof j>) => {
+                    const next = { ...j, ...p };
+                    const price = jewelPrice(next, settings.jewellery!);
+                    // The piece's price before GST; the bill adds GST from the item's rate.
+                    set({ jewel: next, qty: 1, rate: l.rateIncludesTax ? Math.round(price.total * (1 + l.taxPct / 100)) : price.total });
+                  };
+                  return (
+                    <>
+                      <div className="field-row">
+                        <NumberField label={t('Weight (g)')} value={j.weight || null} onChange={(weight) => put({ weight: weight ?? 0 })} min={0} />
+                        <NumberField label={j.metal === 'gold' ? t('Karat') : t('Purity %')} value={j.purity} onChange={(purity) => put({ purity: purity ?? 0 })} min={0} />
+                      </div>
+                      <div className="field-row">
+                        <NumberField label={j.makingType === 'pct' ? t('Making %') : t('Making ₹ per g')} value={j.makingType === 'pct' ? j.making : j.making / 100} onChange={(v) => put({ making: j.makingType === 'pct' ? (v ?? 0) : Math.round((v ?? 0) * 100) })} min={0} />
+                        <SelectField label={t('Making as')} value={j.makingType} options={[{ value: 'pct', label: '%' }, { value: 'perGram', label: t('₹ per g') }]} onChange={(makingType) => put({ makingType, making: 0 })} />
+                      </div>
+                      <div className="field-row">
+                        <NumberField label={t('Wastage %')} value={j.wastagePct} onChange={(wastagePct) => put({ wastagePct: wastagePct ?? 0 })} min={0} />
+                        <MoneyField label={t('Stones / other')} value={j.stones || null} onChange={(stones) => put({ stones: stones ?? 0 })} />
+                      </div>
+                    </>
+                  );
+                })()}
+              </FormSection>
+            )}
             {!!lineItem?.coverage && (
               <FormSection title={t('From the area')} note={t('{cov} sq ft per {unit}', { cov: lineItem.coverage, unit: lineItem.unit })}>
                 <div className="field-row">

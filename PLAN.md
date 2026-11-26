@@ -632,8 +632,33 @@ Found by asking what retailers need that neither ApnaGalla nor the Vyapar list h
 | Most shops | **Contractor accounts by site** (khata and statement per site); **supplier schemes** (free goods, rate difference, target bonus: what is due from the distributor); **orders from WhatsApp messages and voice notes** read into a draft bill; **rentals** (deposit, return date, late and damage charges); **gift vouchers**; **festival reorder** (what sold last Diwali); **tiles and paint quantities** (area → boxes, wall area → litres) |
 | Own module each | **Jewellery** (gold rate of the day, purity, making charges, wastage %, old gold exchange); **bakery and sweets** (recipes using raw material, same-day expiry); **pharmacy** (on top of R8 batch / expiry: Schedule H register, prescription details) |
 
-Suggested order inside R11: today's rates and wastage; WhatsApp / voice orders; instalments and booked
-stock; contractor sites and supplier schemes; the rest.
+Built 27 Nov 2026 in auto mode:
+
+| Step | Scope | Status |
+|---|---|---|
+| R11.1 Fruit and vegetable | Today's rates (all prices in one list, price history kept) and rate card to WhatsApp; sell by amount on any line; daily wastage entry and Wastage report (cost, margin after wastage); mandi charges on purchases (commission %, market fee %, labour, transport, spread into cost); crates and containers per customer / supplier with deposits; one bill for many delivery challans | Done |
+| R11.2 Furniture | Instalments run by the shop (plan on a saved bill, schedule paid / due / late); booked stock from open sales orders (shown on the item, warning when selling into it); delivery slot and floor; old item taken back as part payment (buy-back); made-to-order details stay on job orders (measurements, notes, photos) | Done |
+| R11.3 Most shops | Contractor sites (site on the bill, pending per site, statement per site); supplier schemes with progress from purchases; orders from WhatsApp messages (and voice through the keyboard mic) read by Claude into a draft order or bill; rentals (deposit on account, rent bill on return, late list, WhatsApp reminder); gift vouchers (sell, use on bills, in the books); festival reorder report; area → quantity for tiles and paint | Done |
+| R11.4 Trade modules | Jewellery (day's gold / silver rate, price from weight × purity + wastage + making + stones, old gold calculator); bakery and sweets (recipes, "made today" adds goods and uses raw material, cost per piece); pharmacy (Schedule H / H1 / X on items, prescription on the bill, register report; batch / expiry from R8) | Done |
+
+R11 decisions (defaults):
+- Wastage is a stock entry with reason "Wastage"; the report also counts expired and damaged stock.
+- One bill for challans copies every challan line (with its challan number and date) and marks the
+  challans billed; it doesn't take stock out again.
+- Instalments: equal parts after the down payment, monthly from the first date; payments on the
+  bill fill them in order; no interest is added (the shop can raise the price instead).
+- Booked stock = what open sales orders still have to deliver; it only warns, never blocks.
+- Buy-back, gift voucher and loyalty points are payment modes that never touch the cash book; in the
+  books buy-back is a purchase and voucher sales are a liability until used.
+- Rentals need a saved customer; the deposit is money on their account, used on the rent bill with
+  "Use advance"; rent = days × rate per day × qty (at least one day).
+- Message orders: Claude only reads the text; matching to the shop's items happens on the phone; items
+  not found stay as free lines to price. Voice works through the phone keyboard's mic (Claude can't
+  take audio).
+- Jewellery GST comes from the item's GST rate (set 3% for gold and silver); the line's price is
+  worked out before GST and shown with its details on the bill.
+- Recipes are owner-only; anyone who bills can record "made today"; stock may go below zero (a
+  warning lists the short raw material).
 
 ## 11. Your action items (can run in parallel with the build)
 - [ ] Start **TRAI DLT registration** with an SMS provider (business entity, sender ID, OTP template). Takes days to weeks; until it's done, OTP runs in test mode.

@@ -42,6 +42,7 @@ import LabelsScreen from '../items/LabelsScreen';
 import TransferScreen from '../items/TransferScreen';
 import GodownsScreen from '../items/GodownsScreen';
 import { RatesScreen, WastageScreen } from '../items/FreshScreens';
+import { JewelleryScreen, RecipesScreen } from '../items/TradeScreens';
 import AllStoresScreen from '../stores/AllStoresScreen';
 import { EmployeeScreen, EmployeesScreen } from '../staff/StaffScreens';
 import StockScreen from '../items/StockScreen';
@@ -113,6 +114,8 @@ export default function MainTabs() {
           <Route path="items/godowns" element={<GodownsScreen />} />
           <Route path="items/rates" element={<RatesScreen />} />
           <Route path="items/wastage" element={<WastageScreen />} />
+          <Route path="items/recipes" element={<RecipesScreen />} />
+          <Route path="more/jewellery" element={<JewelleryScreen />} />
           <Route path="items/:id/stock" element={<StockScreen />} />
           <Route path="items/:id" element={<ItemEditScreen />} />
 

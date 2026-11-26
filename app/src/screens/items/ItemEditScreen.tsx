@@ -273,6 +273,17 @@ export default function ItemEditScreen() {
       )}
       <SerialSection it={it} patch={patch} disabled={priceLocked} />
       <BatchSection it={it} patch={patch} disabled={priceLocked} />
+      {settings.jewellery && (it.pricing ?? 'unit') === 'unit' && (
+        <FormSection title={t('Jewellery')} note={t('A piece priced by weight at the day’s rate: bills ask for its weight, making and wastage.')}>
+          <div className="field-row">
+            <SelectField label={t('Metal')} value={it.metal ?? ''} options={[{ value: '', label: t('Not jewellery') }, { value: 'gold', label: t('Gold') }, { value: 'silver', label: t('Silver') }]} onChange={(m) => patch({ metal: (m || undefined) as Item['metal'], purity: m === 'gold' ? (it.purity ?? 22) : m === 'silver' ? (it.purity ?? 92.5) : undefined })} disabled={priceLocked} />
+            {it.metal && <NumberField label={it.metal === 'gold' ? t('Karat') : t('Purity %')} value={it.purity ?? null} onChange={(purity) => patch({ purity: purity ?? undefined })} min={0} disabled={priceLocked} />}
+          </div>
+        </FormSection>
+      )}
+      <FormSection>
+        <SelectField label={t('Medicine schedule (pharmacy)')} value={it.schedule ?? ''} options={[{ value: '', label: t('Not scheduled') }, { value: 'H', label: 'Schedule H' }, { value: 'H1', label: 'Schedule H1' }, { value: 'X', label: 'Schedule X' }]} onChange={(s) => patch({ schedule: (s || undefined) as Item['schedule'] })} disabled={priceLocked} />
+      </FormSection>
       {(it.pricing ?? 'unit') === 'unit' && (
         <FormSection>
           <NumberField

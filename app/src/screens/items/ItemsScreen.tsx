@@ -103,6 +103,9 @@ export default function ItemsScreen() {
               <IonButton size="small" fill="clear" routerLink="/tabs/items/wastage">
                 {t('Wastage')}
               </IonButton>
+              <IonButton size="small" fill="clear" routerLink="/tabs/items/recipes">
+                {t('Recipes')}
+              </IonButton>
               <IonButton size="small" fill="clear" onClick={sharePriceList}>
                 <IonIcon icon={shareSocialOutline} slot="start" /> {t('Price list')}
               </IonButton>

@@ -114,6 +114,7 @@ const REASON_TEXT: Record<StockReason, () => string> = {
   other: () => t('Other'),
   transfer: () => t('Stock transfer'),
   wastage: () => t('Wastage (spoilt)'),
+  production: () => t('Made / used in making'),
 };
 export const reasonLabel = (r: StockReason): string => REASON_TEXT[r]?.() ?? r;
 

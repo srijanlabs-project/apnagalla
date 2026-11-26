@@ -2,6 +2,7 @@ import { amountInWords, formatDateIN, formatPaise, roundHalfUp, stateCode, type 
 import { serialText } from '../serials';
 import type { Content, ContentTable, TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import { batchText } from '../batches';
+import { jewelText } from '../modules';
 import type { BankAccount, BusinessProfile, DesignSettings, DocBase, SyncedRecord, UpiId } from '../db';
 import { addressLines, lineSize } from '../format';
 import { gstViewOf, taxRows } from '../gstView';
@@ -222,6 +223,7 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
           ...(show.itemDescription && l.description ? [{ text: l.description, color: '#555555', fontSize: base - 1 }] : []),
           ...(serialText(l, doc.date) ? [{ text: serialText(l, doc.date), color: '#333333', fontSize: base - 1 }] : []),
           ...(batchText(l) ? [{ text: batchText(l), color: '#333333', fontSize: base - 1 }] : []),
+          ...(jewelText(l) ? [{ text: jewelText(l), color: '#333333', fontSize: base - 1 }] : []),
           ...(l.nonReturnable ? [{ text: 'Non-returnable', color: '#b00020', fontSize: base - 1, bold: true }] : []),
         ],
       },

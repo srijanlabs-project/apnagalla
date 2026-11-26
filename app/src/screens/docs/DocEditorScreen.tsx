@@ -61,6 +61,7 @@ import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from './LineEditor';
 import { godownsOf } from '../../lib/godowns';
 import { scaleOf } from '../../lib/scale';
+import { needsPrescription } from '../../lib/modules';
 import { addOrMerge } from '../../lib/mergeLines';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import { useScanToBill } from '../../lib/useScanToBill';
@@ -154,6 +155,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
   }, [invoiceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totals = useMemo(() => (doc ? computeTotals(doc) : null), [doc]);
+  const rxNeeded = useLiveQuery(async () => (doc ? needsPrescription(doc.lines) : false), [doc?.lines]);
   const docCustomerId = doc?.billTo?.customerId;
   const [scanning, setScanning] = useState(false);
   const scanToBill = useScanToBill({
@@ -658,6 +660,16 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
                 <TextField label={t('Time / slot')} value={doc.deliverySlot} onChange={(deliverySlot) => patch({ deliverySlot: deliverySlot || undefined })} placeholder={t('Morning, 2–4 pm…')} disabled={locked} />
                 <TextField label={t('Floor / lift')} value={doc.deliveryFloor} onChange={(deliveryFloor) => patch({ deliveryFloor: deliveryFloor || undefined })} placeholder={t('3rd floor, no lift')} disabled={locked} />
               </div>
+            )}
+            {kind === 'invoice' && rxNeeded && (
+              <>
+                <p className="section-note text-danger">{t('Scheduled medicine on this bill: note the prescription.')}</p>
+                <div className="field-row">
+                  <TextField label={t('Patient')} value={(doc as Invoice).rx?.patient} onChange={(patient) => patch({ rx: { ...(doc as Invoice).rx, patient } } as Partial<Invoice>)} disabled={locked} />
+                  <TextField label={t('Doctor')} value={(doc as Invoice).rx?.doctor} onChange={(doctor) => patch({ rx: { ...(doc as Invoice).rx, doctor } } as Partial<Invoice>)} disabled={locked} />
+                </div>
+                <TextField label={t('Prescription no. (optional)')} value={(doc as Invoice).rx?.number} onChange={(number) => patch({ rx: { ...(doc as Invoice).rx, number } } as Partial<Invoice>)} disabled={locked} />
+              </>
             )}
             {kind === 'invoice' && (
               <TextField label={t('Site / project (contractors)')} value={(doc as Invoice).site} onChange={(site) => patch({ site: site || undefined } as Partial<Invoice>)} placeholder={t('e.g. Sharma house, Sector 12')} disabled={locked} />
