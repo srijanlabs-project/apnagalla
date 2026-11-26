@@ -548,6 +548,8 @@ export interface Expense extends SyncedRecord {
   photo?: string | null;
   /** R6: paid from this repeating expense (rent every month…). */
   recurringId?: string;
+  /** R6: the due date it pays (a repeating expense paid late still counts for its month / week). */
+  recurringFor?: string;
   paidByName?: string;
   /** Money paid to a staff member: an advance, or salary for a month (less advance recovered). */
   employeeId?: string;

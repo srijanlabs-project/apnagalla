@@ -4,6 +4,8 @@ import { LANGS, LANG_NAMES, formatIndianMobile, type Lang } from '@invoice/share
 import {
   businessOutline,
   languageOutline,
+  trendingUpOutline,
+  receiptOutline,
   libraryOutline,
   barChartOutline,
   gridOutline,
@@ -133,10 +135,22 @@ export default function MoreScreen() {
             </IonItem>
           </>
         )}
-        <IonItem routerLink="/tabs/expenses" detail lines="none">
+        <IonItem routerLink="/tabs/expenses" detail lines={isOwner || perms.access === 'readonly' ? 'full' : 'none'}>
           <IonIcon icon={walletOutline} slot="start" />
           <IonLabel>{t('Expenses')}</IonLabel>
         </IonItem>
+        {(isOwner || perms.access === 'readonly') && (
+          <>
+            <IonItem routerLink="/tabs/income" detail lines="full">
+              <IonIcon icon={trendingUpOutline} slot="start" />
+              <IonLabel>{t('Other income')}</IonLabel>
+            </IonItem>
+            <IonItem routerLink="/tabs/loans" detail lines="none">
+              <IonIcon icon={receiptOutline} slot="start" />
+              <IonLabel>{t('Loans')}</IonLabel>
+            </IonItem>
+          </>
+        )}
       </IonList>
 
       <IonList inset>

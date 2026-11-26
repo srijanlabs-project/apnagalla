@@ -92,3 +92,62 @@ describe('R6.1 bank accounts', () => {
     expect((await bankBalances('b1'))[0]!.balance).toBe(7_000_00);
   });
 });
+
+describe('R6.2 income and expenses', () => {
+  it('a repeating expense is listed when due, paid once, and late payment still counts for its month', async () => {
+    const { dueDates, dueExpenses, payRecurring, saveRecurring } = await import('./recurring');
+    expect(dueDates({ every: 'month', day: 5, startDate: '2026-09-05' }, '2026-11-26')).toEqual(['2026-09-05', '2026-10-05', '2026-11-05']);
+    expect(dueDates({ every: 'month', day: 31, startDate: '2026-09-01' }, '2026-10-30')).toEqual(['2026-09-28', '2026-10-28']);
+    expect(dueDates({ every: 'week', day: 1, startDate: '2026-11-10' }, '2026-11-26')).toEqual(['2026-11-16', '2026-11-23']); // Mondays
+    const r = await saveRecurring(owner, { id: 'rent', category: 'rent', amount: 15_000_00, mode: 'bank', paidTo: 'Landlord', every: 'month', day: 1, startDate: '2026-10-01' });
+    let due = (await dueExpenses('b1', '2026-11-26'))[0]!;
+    expect(due.due).toEqual(['2026-10-01', '2026-11-01']);
+    expect(due.next).toBe('2026-12-01');
+    await payRecurring(owner, r, '2026-10-01', { amount: 15_000_00, mode: 'bank', date: '2026-10-07' });
+    due = (await dueExpenses('b1', '2026-11-26'))[0]!;
+    expect(due.due).toEqual(['2026-11-01']);
+    const e = (await db.expenses.toArray()).find((x) => x.recurringId === 'rent')!;
+    expect(e).toMatchObject({ category: 'rent', paidTo: 'Landlord', recurringFor: '2026-10-01', date: '2026-10-07' });
+    await expect(saveRecurring(staff, { ...r })).rejects.toBeInstanceOf(PermissionError);
+  });
+
+  it('other income goes into cash or the bank; only the owner adds it', async () => {
+    const { saveIncome } = await import('./money');
+    await account('hdfc', { isDefault: true });
+    await saveIncome(owner, { id: 'i1', category: 'interest', amount: 320_00, mode: 'bank', date: TODAY });
+    await saveIncome(owner, { id: 'i2', category: 'Scrap', amount: 150_00, mode: 'cash', date: TODAY, from: 'Kabadiwala' });
+    expect((await bankBalances('b1'))[0]!.balance).toBe(320_00);
+    expect((await cashDay('b1', TODAY)).cashIn.map((l) => l.label)).toEqual(['Scrap · Kabadiwala']);
+    await expect(saveIncome(staff, { id: 'i3', category: 'interest', amount: 1, mode: 'cash', date: TODAY })).rejects.toBeInstanceOf(PermissionError);
+  });
+
+  it('own expense categories and paid-to show in the cash book', async () => {
+    await saveExpense(staff, { id: newId(), category: 'Packing material', amount: 90_00, mode: 'cash', date: TODAY, paidTo: 'Sharma Packers' } as never);
+    expect((await cashDay('b1', TODAY)).cashOut[0]!.label).toBe('Packing material · Sharma Packers');
+  });
+});
+
+describe('R6.3 loans', () => {
+  it('a bank loan: money in, EMIs split into principal and interest, what is left', async () => {
+    const { addLoanEntry, loanStatement, saveLoan } = await import('./money');
+    await account('hdfc', { isDefault: true });
+    await saveLoan(owner, { id: 'L1', kind: 'taken', name: 'HDFC Business Loan', openingBalance: 0, startDate: '2026-01-01', interestPct: 12, emi: 10_000_00 });
+    await addLoanEntry(owner, { loanId: 'L1', kind: 'received', amount: 2_00_000_00, mode: 'bank', date: TODAY });
+    await addLoanEntry(owner, { loanId: 'L1', kind: 'repaid', amount: 8_000_00, mode: 'bank', date: TODAY });
+    await addLoanEntry(owner, { loanId: 'L1', kind: 'interest', amount: 2_000_00, mode: 'bank', date: TODAY });
+    const st = (await loanStatement('L1'))!;
+    expect(st.balance).toBe(1_92_000_00);
+    expect(st.interestPaid).toBe(2_000_00);
+    expect((await bankBalances('b1'))[0]!.balance).toBe(1_90_000_00); // 2,00,000 in − 10,000 EMI
+  });
+
+  it('a loan given: lent from cash, part returned with interest', async () => {
+    const { addLoanEntry, loanStatement, saveLoan } = await import('./money');
+    await saveLoan(owner, { id: 'L2', kind: 'given', name: 'Ramesh ji', openingBalance: 0, startDate: TODAY });
+    await addLoanEntry(owner, { loanId: 'L2', kind: 'given', amount: 50_000_00, mode: 'cash', date: TODAY });
+    await addLoanEntry(owner, { loanId: 'L2', kind: 'received', amount: 20_000_00, mode: 'cash', date: TODAY });
+    await addLoanEntry(owner, { loanId: 'L2', kind: 'interest', amount: 1_000_00, mode: 'cash', date: TODAY });
+    expect((await loanStatement('L2'))!.balance).toBe(30_000_00);
+    expect((await cashDay('b1', TODAY)).expected).toBe(-29_000_00);
+  });
+});
