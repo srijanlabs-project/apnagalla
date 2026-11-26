@@ -633,21 +633,23 @@ export function PurchaseOrderScreen() {
       </FormSection>
       <FormSection title={t('Items')}>
         {o.lines.map((l) => (
-          <div key={l.id} className="search-row">
-            <IonLabel className="po-line-name">{l.name}</IonLabel>
-            <NumberField
-              label={t('Quantity')}
-              value={l.qty}
-              suffix={l.unit}
-              min={0}
-              disabled={!editable}
-              onChange={(qty) => patch({ lines: o.lines.map((x) => (x.id === l.id ? { ...x, qty: qty ?? 0 } : x)) })}
-            />
-            {editable && (
-              <IonButton fill="clear" color="danger" onClick={() => patch({ lines: o.lines.filter((x) => x.id !== l.id) })} aria-label={t('Remove')}>
-                <IonIcon icon={trashOutline} slot="icon-only" />
-              </IonButton>
-            )}
+          <div key={l.id} className="po-line">
+            <p className="po-line-name">{l.name}</p>
+            <div className="search-row">
+              <NumberField
+                label={t('Quantity')}
+                value={l.qty}
+                suffix={l.unit}
+                min={0}
+                disabled={!editable}
+                onChange={(qty) => patch({ lines: o.lines.map((x) => (x.id === l.id ? { ...x, qty: qty ?? 0 } : x)) })}
+              />
+              {editable && (
+                <IonButton fill="clear" color="danger" onClick={() => patch({ lines: o.lines.filter((x) => x.id !== l.id) })} aria-label={t('Remove')}>
+                  <IonIcon icon={trashOutline} slot="icon-only" />
+                </IonButton>
+              )}
+            </div>
           </div>
         ))}
         {editable && (

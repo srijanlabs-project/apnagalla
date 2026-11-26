@@ -260,7 +260,9 @@
 .totals-box p { margin: 2px 0; }
 .strike { text-decoration: line-through; opacity: 0.6; }
 .bill-photo { max-width: 100%; border-radius: 8px; margin: 8px 0; }
-.po-line-name { flex: 1; min-width: 0; }
+.po-line { margin-bottom: 12px; }
+.po-line-name { margin: 0 0 6px; font-weight: 600; overflow-wrap: anywhere; }
+.po-line .search-row > :first-child { flex: 1; min-width: 0; }
 .photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .photo-cell { position: relative; aspect-ratio: 1; }
 .photo-cell img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
