@@ -421,7 +421,7 @@ email / Drive / OneDrive / Dropbox, Tally export, and phone alerts.
 |---|---|
 | **R6 Money and books** | Bank accounts with opening balance and a **bank book**; every UPI / card / bank / cheque entry goes to an account; **cash ↔ bank** deposits, withdrawals and transfers; **other income**; expenses with **own categories, paid-to, photo and repeating (rent, salary…)**; **loans** taken and given (EMI, interest); **payment receipts** (customer) and **payment vouchers** (supplier) as PDF / WhatsApp; reports: **bank statement, cash flow, profit & loss statement, other income**; financial-year filters; Home shows bank balance and this month's expenses and profit |
 | R7 Accounts and GST returns | Ledgers for every party and account, **journal entries**, chart of accounts (Tally-style groups), **trial balance, balance sheet**, capital and drawings; **GSTR-2B match** (upload the portal file, see missing / mismatched bills), proper **GSTR-3B** and **GSTR-9** sheets, input / output tax registers, taxable / exempt / nil sales; owner **activity log** in the app; reports **purchases by item**, **expenses by paid-to**, **sales by customer**; **customer, item and category filters** on reports; Home cards for **total purchases**, **stock value** and **other income** |
-| R8 Orders and stock depth | **Sales orders** (status, part delivered, pending order report, order → bill), **proforma invoice**, **batch and expiry** (pharmacy, FMCG: pick batch on sale, expiry report), **godowns** inside a store with transfers, **item stock history**, purchase **expenses spread into cost** (freight, loading), purchase **due dates and supplier reminders**, **recycle bin** (restore deleted items, customers, bills), **weighing-scale barcodes** (price / weight inside the barcode), **consignment** (goods sent on sale-or-return: what is out with whom, sold, returned) |
+| R8 Orders and stock depth (built) | **Sales orders** (status, part delivered, pending order report, order → bill), **proforma invoice**, **batch and expiry** (pharmacy, FMCG: pick batch on sale, expiry report), **godowns** inside a store with transfers, **item stock history**, purchase **expenses spread into cost** (freight, loading), purchase **due dates and supplier reminders**, **recycle bin** (restore deleted items, customers, bills), **weighing-scale barcodes** (price / weight inside the barcode), **consignment** (goods sent on sale-or-return: what is out with whom, sold, returned) |
 | R9 Customers and online store | **Party groups**, **customer-specific prices**, **loyalty points**, **automatic payment reminders** (WhatsApp / SMS on a schedule), **online store** (catalogue link with prices, customer orders → bill), share catalogue, import phone contacts, email bills |
 | R10 Government links and data | **E-invoice (IRN, QR)** and **e-way bill** through a GSP, **Tally import**, full **backup and restore** (Google Drive / file, one tap), field sales staff (visits with location, orders taken in the field), import from Vyapar backups |
 
@@ -505,6 +505,40 @@ Q decisions (auto mode, 27 Nov 2026):
   people, items, money) and the owner brings any back.
 - Q8: Invoice design → "Message at the bottom of every page" (up to 200 letters), printed in the
   design colour on every page of bills, estimates and credit notes.
+
+#### Release 8 — orders and stock (built 27 Nov 2026, auto mode; order R8 → R9 → R7 → R10 → R11)
+
+| Step | Scope | Status |
+|---|---|---|
+| R8.1 Orders | Sales orders (SO series): billed in one or more parts, delivered / pending per line, "Make bill" / "Bill the rest"; proforma invoices (PI series); Pending orders and Items on order reports | Done |
+| R8.2 Batch and expiry | Item switch; batch and expiry month on purchase lines; a sale takes the batch expiring first (or the one picked); printed on bills and receipts; Expiring stock report | Done |
+| R8.3 Godowns | Godowns inside a store; purchases arrive at, bills leave from a place; moves between places; stock per place on the item; Stock by godown report | Done |
+| R8.4 Purchases | Freight / loading charges on purchase bills, spread into item cost by value; supplier credit days set the pay-by date; Bills to pay report; morning phone alert for supplier bills due | Done |
+| R8.5 Scale barcodes | Weighing-scale labels (prefix + PLU + weight or price + check digit), layout in Invoice settings, PLU on the item | Done |
+| R8.6 Sale or return | Consignment challans: bill what sold, take back the rest, Goods on sale or return report | Done |
+| Stock history | Already there before R8 (Items → an item → Stock: every change with the stock after it) | Done |
+| Recycle bin | Built as Q7 | Done |
+
+R8 decisions (defaults):
+- Orders, proformas and sale-or-return are estimates with a flag, so PDFs, advances (held for that
+  document, Q2), sharing and the list are shared. New number series SO and PI (prefixes in Invoice
+  settings); sale-or-return uses the challan series DC. Older phones can't number SO / PI until
+  updated (the server accepts the new series after deploy).
+- Order delivery is counted from saved bills made from the order (each bill line remembers its order
+  line); a cancelled bill gives the quantity back. Orders don't move stock; bills do.
+- Batch: expiry is a month ("YYYY-MM") as printed on packs; a batch is expired after its month ends.
+  When a bill is saved without a batch on a batch item, the batch expiring first that hasn't expired
+  is used. Stock without a batch (before the switch) shows as "no batch". Selling an expired batch
+  only warns.
+- Godowns are a list in the store's settings (owner adds / renames / removes); the shop is the
+  default place; moving goods is two stock entries that add to zero, so totals and reports stay as
+  they were. Stock transfers between stores are unchanged.
+- Freight is shared by each line's value before tax; tax on the charges is not added to cost.
+  Supplier payments settle the opening balance, then the oldest bills, for "Bills to pay".
+- Scale labels: default layout 2 + 6-digit PLU + 5-digit weight in grams + check digit; items sold in
+  kg get kg, items in g get grams; a price label gives price ÷ rate. Each scan is its own line.
+- Sale or return: goods leave stock on the challan; the bill for what sold doesn't take them out
+  again; goods back are a stock entry tagged with the challan line, never more than is still out.
 
 #### Release 11 — features for particular kinds of shop (planned 26 Nov 2026)
 Found by asking what retailers need that neither ApnaGalla nor the Vyapar list has. Design-first.
