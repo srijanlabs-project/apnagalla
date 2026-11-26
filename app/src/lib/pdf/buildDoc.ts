@@ -117,7 +117,7 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
   ];
 
   const metaRows: [string, string][] = [
-    [kind === 'credit' ? 'Credit Note No.' : kind === 'estimate' ? 'Estimate No.' : 'Invoice No.', doc.number || '—'],
+    [kind === 'credit' ? 'Credit Note No.' : kind === 'estimate' ? `${title === 'DELIVERY CHALLAN' ? 'Challan' : title === 'SALES ORDER' ? 'Order' : title === 'PROFORMA INVOICE' ? 'Proforma' : 'Estimate'} No.` : 'Invoice No.', doc.number || '—'],
     ['Date', formatDateIN(doc.date)],
     ...(kind === 'credit' && doc.invoiceNumber ? ([['Against invoice', doc.invoiceNumber]] as [string, string][]) : []),
     ...(kind === 'credit' && doc.invoiceDate ? ([['Invoice date', formatDateIN(doc.invoiceDate)]] as [string, string][]) : []),

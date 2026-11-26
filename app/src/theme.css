@@ -295,3 +295,6 @@
 .day-end-gate > ion-icon { font-size: 48px; color: var(--ion-color-warning); }
 .day-end-gate h2 { margin: 0; }
 .day-end-gate ion-button { width: 100%; max-width: 360px; }
+.order-progress table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 4px 0; }
+.order-progress th, .order-progress td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--ion-color-light-shade); }
+.order-progress th:not(:first-child), .order-progress td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }

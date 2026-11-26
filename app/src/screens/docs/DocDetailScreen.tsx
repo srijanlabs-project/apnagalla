@@ -58,6 +58,7 @@ import { markDelivered } from '../../lib/deliveries';
 import { usePrint } from '../../lib/usePrint';
 import { modeLabel, moneyOf } from '../../lib/ledger';
 import { DOC_BASE } from './DocEditorScreen';
+import { orderProgress, orderStateLabel } from '../../lib/orders';
 
 export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const { id } = useParams<{ id: string }>();
@@ -90,6 +91,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   // A credit note's settlement: refunded, or kept as credit (and what's left).
   const settlement = useLiveQuery(async () => (kind === 'credit' && doc && doc.status === 'saved' ? settlementOf(doc as CreditNote) : undefined), [kind, doc, ledger]);
   // An estimate's advance (taken, less used or returned).
+  const progress = useLiveQuery(async () => (kind === 'estimate' && doc && (doc as Estimate).order && doc.status !== 'draft' ? orderProgress(doc as Estimate) : null), [kind, doc, ledger]);
   const estAdvance = useLiveQuery(async () => (kind === 'estimate' && id ? jobAdvance(actor.businessId, id) : 0), [kind, id, actor.businessId, ledger]);
   // Money the customer left on account, to use on this bill.
   const customerId = kind === 'invoice' ? (doc as Invoice | undefined)?.billTo?.customerId : undefined;
@@ -305,6 +307,39 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
               {settlement.state === 'refunded' ? t('Refunded to the customer') : t('Kept as credit · {amount} left to use', { amount: rupees(settlement.left) })}
             </p>
           )}
+          {progress && (
+            <div className="order-progress">
+              <p>
+                <strong>{orderStateLabel(progress.state)}</strong>
+                {progress.pendingValue > 0 ? ` · ${t('{amount} still to deliver', { amount: rupees(progress.pendingValue) })}` : ''}
+              </p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>{t('Item')}</th>
+                    <th>{t('Ordered')}</th>
+                    <th>{t('Delivered')}</th>
+                    <th>{t('Pending')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {progress.lines.map((l) => (
+                    <tr key={l.lineId}>
+                      <td>{l.name}</td>
+                      <td>{l.ordered}</td>
+                      <td>{l.delivered}</td>
+                      <td className={l.pending > 0 ? 'text-danger' : 'text-success'}>{l.pending}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {progress.bills.map((b) => (
+                <IonButton key={b.id} size="small" fill="clear" routerLink={`/tabs/invoices/${b.id}`}>
+                  {b.number || t('Draft')} · {dateIN(b.date)}
+                </IonButton>
+              ))}
+            </div>
+          )}
           {est && (estAdvance ?? 0) > 0 && <p className="text-success">{t("Advance received: {amount}, kept for this estimate's bill only", { amount: rupees(estAdvance ?? 0) })}</p>}
           {refundDue > 0 && (
             <p className="text-danger">
@@ -437,7 +472,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 <IonIcon icon={logoWhatsapp} slot="start" /> {t('Remind')}
               </IonButton>
             )}
-            {est && est.status !== 'draft' && est.status !== 'converted' && CAN_CREATE_INVOICES && (
+            {est && est.status !== 'draft' && est.status !== 'converted' && CAN_CREATE_INVOICES && (!est.order || (progress && progress.state !== 'done' && progress.state !== 'closed')) && (
               <IonButton
                 color="success"
                 onClick={() =>
@@ -446,7 +481,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                     .catch(fail)
                 }
               >
-                {t('Convert to invoice')}
+                {est.order ? (progress?.state === 'part' ? t('Bill the rest') : t('Make bill')) : t('Convert to invoice')}
               </IonButton>
             )}
             {est?.convertedInvoiceId && (

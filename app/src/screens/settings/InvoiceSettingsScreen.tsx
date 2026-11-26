@@ -68,13 +68,15 @@ export default function InvoiceSettingsScreen() {
   const labels = [0, 1, 2].map((i) => s.customFieldLabels[i] ?? '');
   const prefixOk = (x: string) => /^[A-Za-z0-9-]{1,10}$/.test(x);
   const regular = effectiveGstType(profile) === 'regular';
-  const series: { key: NumberSeries; field: 'invoicePrefix' | 'billPrefix' | 'estimatePrefix' | 'creditNotePrefix'; label: string }[] = [
+  const series: { key: NumberSeries; field: 'invoicePrefix' | 'billPrefix' | 'estimatePrefix' | 'creditNotePrefix' | 'orderPrefix' | 'proformaPrefix'; label: string }[] = [
     { key: 'invoice', field: 'invoicePrefix', label: regular ? t('Tax invoice prefix') : t('Invoice prefix') },
     ...(regular ? [{ key: 'bill' as const, field: 'billPrefix' as const, label: t('Bill without GST prefix') }] : []),
     { key: 'credit', field: 'creditNotePrefix', label: t('Credit note prefix') },
     { key: 'estimate', field: 'estimatePrefix', label: t('Estimate prefix') },
+    { key: 'order', field: 'orderPrefix', label: t('Sales order prefix') },
+    { key: 'proforma', field: 'proformaPrefix', label: t('Proforma prefix') },
   ];
-  const prefixes = series.map((x) => s[x.field]);
+  const prefixes = series.map((x) => s[x.field] ?? (x.key === 'order' ? 'SO' : 'PI'));
   const prefixError = prefixes.every(prefixOk) ? (new Set(prefixes).size < prefixes.length ? t('Each series needs a different prefix') : null) : null;
   const perPerson = s.numberingMode !== 'shared';
   const patternError = checkNumberPattern(s.numberPattern, prefixes.filter(prefixOk), s.numberDigits, s.resetEachFinancialYear, s.numberingMode);
@@ -116,11 +118,11 @@ export default function InvoiceSettingsScreen() {
             <TextField
               key={x.key}
               label={x.label}
-              value={s[x.field]}
+              value={prefixes[series.indexOf(x)]}
               onChange={(v) => patch({ [x.field]: v.toUpperCase() })}
               disabled={ro}
               maxlength={10}
-              error={prefixOk(s[x.field]) ? null : t('Letters, digits or -')}
+              error={prefixOk(prefixes[series.indexOf(x)]!) ? null : t('Letters, digits or -')}
             />
           ))}
         </div>
@@ -129,11 +131,11 @@ export default function InvoiceSettingsScreen() {
             <TextField
               key={x.key}
               label={x.label}
-              value={s[x.field]}
+              value={prefixes[series.indexOf(x)]}
               onChange={(v) => patch({ [x.field]: v.toUpperCase() })}
               disabled={ro}
               maxlength={10}
-              error={prefixOk(s[x.field]) ? null : t('Letters, digits or -')}
+              error={prefixOk(prefixes[series.indexOf(x)]!) ? null : t('Letters, digits or -')}
             />
           ))}
         </div>

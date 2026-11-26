@@ -271,7 +271,7 @@ export const isPersonalSeries = (s: BusinessSettings, series: NumberSeries) => s
 export const codeFor = (s: BusinessSettings, series: NumberSeries, actor: Pick<Actor, 'seriesCode'>) => (isPersonalSeries(s, series) ? (actor.seriesCode ?? '') : '');
 
 export function prefixOf(s: BusinessSettings, series: NumberSeries): string {
-  return { invoice: s.invoicePrefix, bill: s.billPrefix, estimate: s.estimatePrefix, credit: s.creditNotePrefix, challan: s.challanPrefix || 'DC' }[series];
+  return { invoice: s.invoicePrefix, bill: s.billPrefix, estimate: s.estimatePrefix, credit: s.creditNotePrefix, challan: s.challanPrefix || 'DC', order: s.orderPrefix || 'SO', proforma: s.proformaPrefix || 'PI' }[series];
 }
 
 export function formatDocNumber(s: BusinessSettings, series: NumberSeries, date: string, seq: number, code = ''): string {
@@ -344,6 +344,8 @@ async function nextSeq(s: BusinessSettings, series: NumberSeries, actor: Pick<Ac
       estimate: () => t('No estimate numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
       credit: () => t('No credit note numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
       challan: () => t('No challan numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
+      order: () => t('No order numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
+      proforma: () => t('No proforma numbers left on this phone. Connect to the internet once to get more, or save it as a draft for now.'),
     };
     throw new NumberingError(messages[series]());
   }
@@ -357,7 +359,7 @@ async function nextSeq(s: BusinessSettings, series: NumberSeries, actor: Pick<Ac
  */
 async function highestOnPhone(businessId: string, series: NumberSeries, key: string): Promise<number> {
   const { code, period } = parseSeriesKey(key)!;
-  const docs = await tableOfKind(series === 'bill' ? 'invoice' : series === 'challan' ? 'estimate' : series).where('businessId').equals(businessId).toArray();
+  const docs = await tableOfKind(series === 'bill' ? 'invoice' : series === 'challan' || series === 'order' || series === 'proforma' ? 'estimate' : series).where('businessId').equals(businessId).toArray();
   let max = 0;
   for (const d of docs) {
     if (d.numberSeries === key && d.numberSeq) max = Math.max(max, d.numberSeq);
@@ -476,7 +478,8 @@ export async function saveEstimate(actor: Actor, est: Estimate, opts: { finalize
   next.totals = computeTotals(next);
   if (!existing) next.history.push(historyEntry(actor, 'created'));
   if (finalizing) {
-    Object.assign(next, next.challan && !next.number ? await takeNextNumber('estimate', 'challan', actor, next.date) : await numberFor('estimate', actor, next));
+    const own = next.challan ? 'challan' : next.order ? 'order' : next.proforma ? 'proforma' : null;
+    Object.assign(next, own && !next.number ? await takeNextNumber('estimate', own, actor, next.date) : await numberFor('estimate', actor, next));
     next.status = 'open';
     next.businessSnapshot = await snapshotBusiness(actor.businessId);
     next.history.push(historyEntry(actor, 'saved', next.number));
@@ -674,6 +677,8 @@ export async function newEstimateDraft(actor: Actor): Promise<Estimate> {
 export async function convertEstimate(actor: Actor, estimateId: string): Promise<Invoice> {
   const est = await db.estimates.get(estimateId);
   if (!est) throw new Error(t('Estimate not found'));
+  // An order is billed in parts and stays open until everything is delivered.
+  if (est.order) return (await import('./orders')).billFromOrder(actor, est.id);
   const draft = await newInvoiceDraft(actor);
   const inv: Invoice = {
     ...draft,

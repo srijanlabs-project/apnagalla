@@ -163,7 +163,7 @@ export function checkHsn(raw: string): boolean {
 /* ---------- document numbering ---------- */
 
 /** Number series of a store. Tax invoices and non-GST bills are numbered separately. */
-export const NUMBER_SERIES = ['invoice', 'bill', 'estimate', 'credit', 'challan'] as const;
+export const NUMBER_SERIES = ['invoice', 'bill', 'estimate', 'credit', 'challan', 'order', 'proforma'] as const;
 export type NumberSeries = (typeof NUMBER_SERIES)[number];
 
 /** Owner: INV/26-27/0001; staff member B: INV-B/26-27/0001. */

@@ -121,6 +121,8 @@ export interface BusinessSettings extends SyncedRecord {
   creditLimitBlocks?: boolean;
   /** Delivery challans: their own number series. */
   challanPrefix?: string;
+  orderPrefix?: string;
+  proformaPrefix?: string;
   /** Shared product lists this store uses for suggestions (undefined = not chosen yet). */
   catalogSections?: CatalogSection[];
   /** Suggest products from the list when adding items (default yes). */
@@ -229,6 +231,8 @@ export type LineDims = Dims;
 
 export interface DocLine {
   id: string;
+  /** R8: the order line this bill line delivers. */
+  fromLineId?: string;
   itemId?: string | null;
   name: string;
   description?: string;
@@ -399,6 +403,10 @@ export interface Estimate extends DocBase {
   job?: JobInfo | null;
   /** A delivery challan: goods sent before the bill; own number series; takes stock out. */
   challan?: boolean;
+  /** R8: a sales order (SO series): billed in one or more parts; pending worked out from the bills. */
+  order?: boolean;
+  /** R8: a proforma invoice (PI series): a quote in invoice form, often for an advance. */
+  proforma?: boolean;
 }
 
 export type WorkStage = 'measure' | 'quoted' | 'confirmed' | 'in_progress' | 'ready' | 'delivered' | 'cancelled';

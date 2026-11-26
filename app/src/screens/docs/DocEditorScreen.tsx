@@ -115,6 +115,8 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
       if (!d) {
         d = kind === 'invoice' ? await newInvoiceDraft(actor) : await newEstimateDraft(actor);
         if (kind === 'estimate' && new URLSearchParams(location.search).get('challan')) (d as Estimate).challan = true;
+        if (kind === 'estimate' && new URLSearchParams(location.search).get('order')) (d as Estimate).order = true;
+        if (kind === 'estimate' && new URLSearchParams(location.search).get('proforma')) (d as Estimate).proforma = true;
         if (kind === 'estimate' && new URLSearchParams(location.search).get('work')) (d as Estimate).job = blankJob('work', actor.userName);
         d.dueDate = addDaysISO(d.date, d.paymentTermsDays ?? 0);
         const customerId = new URLSearchParams(location.search).get('customer');
@@ -380,7 +382,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         )}
 
         {/* ---------- header ---------- */}
-        {kind === 'estimate' && !(doc as Estimate).challan && (
+        {kind === 'estimate' && !(doc as Estimate).challan && !(doc as Estimate).order && !(doc as Estimate).proforma && (
           <FormSection>
             <ToggleRow
               label={t('This is a work order')}

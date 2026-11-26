@@ -36,7 +36,10 @@ export function gstViewOf(kind: DocKind, doc: Pick<DocBase, 'taxMode' | 'placeOf
   const split = mode === 'gst' ? splitGst(totals, interState) : null;
 
   let title: string;
-  if (kind === 'estimate') title = (doc as { challan?: boolean }).challan ? 'Delivery Challan' : 'Estimate';
+  if (kind === 'estimate') {
+    const e = doc as { challan?: boolean; order?: boolean; proforma?: boolean };
+    title = e.challan ? 'Delivery Challan' : e.order ? 'Sales Order' : e.proforma ? 'Proforma Invoice' : 'Estimate';
+  }
   else if (kind === 'credit') title = 'Credit Note';
   else if (mode === 'gst') title = 'Tax Invoice';
   else if (mode === 'none' && gstType !== 'unregistered') title = 'Bill of Supply';
@@ -77,6 +80,12 @@ export function titleIn(text: string, lang: Lang): string {
       return translate(lang, 'Credit Note');
     case 'Estimate':
       return translate(lang, 'Estimate');
+    case 'Delivery Challan':
+      return translate(lang, 'Delivery Challan');
+    case 'Sales Order':
+      return translate(lang, 'Sales Order');
+    case 'Proforma Invoice':
+      return translate(lang, 'Proforma Invoice');
     case 'Invoice':
       return translate(lang, 'Invoice');
     case 'Composition taxable person, not eligible to collect tax on supplies':

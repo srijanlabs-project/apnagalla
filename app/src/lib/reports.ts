@@ -51,7 +51,9 @@ export type ReportId =
   | 'pnl'
   | 'cashFlow'
   | 'bankStatement'
-  | 'otherIncome';
+  | 'otherIncome'
+  | 'pendingOrders'
+  | 'orderItems';
 
 const inRange = (d: string, p: Period) => d >= p.from && d <= p.to;
 const periodText = (p: Period) => {
@@ -737,6 +739,8 @@ export const REPORTS: ReportInfo[] = [
   { id: 'items', title: () => t('Item-wise sales'), group: 'sales', period: true, run: items },
   { id: 'categories', title: () => t('Category-wise sales'), group: 'sales', period: true, run: categories },
   { id: 'deliveries', title: () => t('Delivery report'), group: 'sales', period: true, run: deliveries },
+  { id: 'pendingOrders', title: () => t('Pending orders'), group: 'sales', period: false, run: (ctx) => import('./orders').then((m) => m.pendingOrdersTable(ctx.businessId)) },
+  { id: 'orderItems', title: () => t('Items on order'), group: 'sales', period: false, run: (ctx) => import('./orders').then((m) => m.orderItemsTable(ctx.businessId)) },
   { id: 'stock', title: () => t('Stock report'), group: 'stock', period: false, cost: true, run: (c) => stock(c) },
   { id: 'lowStock', title: () => t('Low stock'), group: 'stock', period: false, run: (c) => stock(c, true) },
   { id: 'slow', title: () => t('Slow movers'), group: 'stock', period: true, cost: true, run: slow },
