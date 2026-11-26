@@ -2,6 +2,7 @@ import RecycleBinScreen from './RecycleBinScreen';
 import RemindersScreen from '../customers/RemindersScreen';
 import ContactImportScreen from '../customers/ContactImportScreen';
 import LoyaltyScreen from '../settings/LoyaltyScreen';
+import Gstr2bScreen from '../reports/Gstr2bScreen';
 import BooksScreen, { JournalScreen, LedgerScreen } from '../money/BooksScreens';
 import OnlineStoreScreen from '../settings/OnlineStoreScreen';
 import DayEndGate from '../../components/DayEndGate';
@@ -128,6 +129,7 @@ export default function MainTabs() {
           <Route path="jobs/:id" element={<JobScreen />} />
           <Route path="reports" element={<ReportsScreen />} />
           <Route path="reports/gstr1" element={<Gstr1Screen />} />
+          <Route path="reports/gstr2b" element={<Gstr2bScreen />} />
           <Route path="reports/tally" element={<TallyScreen />} />
           <Route path="reports/custom/:id" element={<CustomReportScreen />} />
           <Route path="reports/:id" element={<ReportScreen />} />

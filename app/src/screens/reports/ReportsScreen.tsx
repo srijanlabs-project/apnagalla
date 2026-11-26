@@ -67,6 +67,11 @@ export function ReportsScreen() {
               </IonItem>
             )}
             {g.id === 'gst' && (isOwner || perms.access === 'readonly') && (
+              <IonItem routerLink="/tabs/reports/gstr2b" detail>
+                <IonLabel>{t('GSTR-2B match (purchase bills vs the portal)')}</IonLabel>
+              </IonItem>
+            )}
+            {g.id === 'gst' && (isOwner || perms.access === 'readonly') && (
               <IonItem routerLink="/tabs/reports/tally" detail>
                 <IonLabel>{t('Export for Tally')}</IonLabel>
               </IonItem>

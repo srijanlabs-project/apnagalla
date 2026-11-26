@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { gstr3b } from './gstReturns';
+import { match2b, parsePortalJson } from './gstr2b';
 import { balanceSheet, ledgerOf, ownerMoney, saveJournal, trialBalance } from './books';
 import { cashDay, closeDay } from './cashbook';
 import { db } from './db';
@@ -83,5 +84,45 @@ describe('R7.2 GSTR-3B', () => {
     expect(r.outNonGst).toBe(30000);
     expect(r.itc).toEqual({ taxable: 50000, igst: 0, cgst: 4500, sgst: 4500 });
     expect(r.payable).toEqual({ taxable: 0, igst: 0, cgst: 4500, sgst: 4500 });
+  });
+});
+
+describe('R7.3 GSTR-2B match', () => {
+  it('matched, tax differs, not entered, not in 2B', async () => {
+    await putRecord('suppliers', owner, { id: 's2', name: 'Havells', address: {}, openingBalance: 0, taxId: '07AAACH1234F1Z5' } as never);
+    const bill = async (no: string, rate: number) => {
+      const pd = await newPurchaseDraft(owner);
+      return savePurchase(owner, { ...pd, date: '2026-04-05', taxMode: 'gst', supplierBillNo: no, supplier: { supplierId: 's2', name: 'Havells', taxId: '07AAACH1234F1Z5' }, interState: true, lines: [line('p', 'Fan', 1, rate, { taxPct: 18 })] } as never, { finalize: true });
+    };
+    await bill('HV/0012', 100000); // matches INV 12
+    await bill('HV-13', 100000); // tax differs
+    await bill('HV-99', 100000); // not in 2B
+    const json = JSON.stringify({
+      data: {
+        rtnprd: '042026',
+        docdata: {
+          b2b: [
+            {
+              ctin: '07AAACH1234F1Z5',
+              trdnm: 'HAVELLS',
+              inv: [
+                { inum: 'HV12', dt: '05-04-2026', val: 1180, items: [{ txval: 1000, igst: 180, cgst: 0, sgst: 0 }] },
+                { inum: 'HV-13', dt: '05-04-2026', val: 1200, items: [{ txval: 1000, igst: 200, cgst: 0, sgst: 0 }] },
+                { inum: 'HV-14', dt: '06-04-2026', val: 590, items: [{ txval: 500, igst: 90 }] },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const { invoices, period } = parsePortalJson(json);
+    expect(invoices).toHaveLength(3);
+    const rows = await match2b('b1', invoices, period);
+    expect(rows.map((r) => [r.state, r.number])).toEqual([
+      ['differs', 'HV-13'],
+      ['notEntered', 'HV-14'],
+      ['notIn2b', 'HV-99'],
+      ['matched', 'HV12'],
+    ]);
   });
 });
