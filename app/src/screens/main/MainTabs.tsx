@@ -1,3 +1,4 @@
+import RecycleBinScreen from './RecycleBinScreen';
 import { IonIcon, IonLabel, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/react';
 import { cubeOutline, documentTextOutline, ellipsisHorizontal, homeOutline, peopleOutline } from 'ionicons/icons';
 import { Navigate, Route } from 'react-router-dom';
@@ -126,6 +127,7 @@ export default function MainTabs() {
           <Route path="more/stores" element={<StoresScreen />} />
           <Route path="more/dashboard" element={<AllStoresScreen />} />
           <Route path="more/staff" element={<EmployeesScreen />} />
+          <Route path="more/deleted" element={<RecycleBinScreen />} />
           <Route path="more/staff/:id" element={<EmployeeScreen />} />
           <Route path="more/devices" element={<DevicesScreen />} />
           <Route path="more/printer" element={<PrinterScreen />} />
