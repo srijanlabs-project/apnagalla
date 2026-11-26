@@ -451,6 +451,7 @@ export async function saveInvoice(actor: Actor, inv: Invoice, opts: { finalize: 
   let next: Invoice = { ...inv, history: [...(existing?.history ?? inv.history ?? [])] };
   const finalizing = opts.finalize && next.status === 'draft';
   if (finalizing) next = await settleGst(actor.businessId, next);
+  if (finalizing) next.lines = await (await import('./batches')).fillBatches(actor.businessId, next.lines);
   const totals = computeTotals(next);
   next.totals = totals;
   if (!existing) next.history.push(historyEntry(actor, 'created'));

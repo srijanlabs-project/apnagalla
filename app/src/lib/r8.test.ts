@@ -2,7 +2,9 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db, type Customer } from './db';
 import { billFromOrder, openOrders, orderProgress, pendingOrdersTable } from './orders';
-import { convertEstimate, ensureBusinessRecords, newEstimateDraft, putRecord, saveEstimate, saveInvoice, type Actor } from './repo';
+import { batchStock, expiryTable, isExpired } from './batches';
+import { convertEstimate, ensureBusinessRecords, newEstimateDraft, newInvoiceDraft, putRecord, saveEstimate, saveInvoice, type Actor } from './repo';
+import { newPurchaseDraft, savePurchase } from './purchases';
 
 export const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 export const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Staff', role: 'staff', seriesCode: 'A' };
@@ -49,5 +51,21 @@ describe('R8.1 sales orders and proforma', () => {
     const inv = await convertEstimate(owner, pi.id);
     expect(inv.fromEstimateId).toBe(pi.id);
     expect((await db.estimates.get(pi.id))!.status).toBe('converted');
+  });
+});
+
+describe('R8.2 batch and expiry', () => {
+  it('purchases add batches; a sale takes the one expiring first; the expiry report lists them', async () => {
+    await putRecord('items', owner, { id: 'm1', name: 'Crocin 500', unit: 'strip', rate: 3000, purchasePrice: 2000, taxPct: 12, rateIncludesTax: true, trackBatch: true } as never);
+    const d = await newPurchaseDraft(owner);
+    await savePurchase(owner, { ...d, lines: [line('p1', 'Crocin 500', 10, 2000, { itemId: 'm1', batch: 'B2', expiry: '2099-12' }), line('p2', 'Crocin 500', 5, 2000, { itemId: 'm1', batch: 'B1', expiry: '2099-03' })] } as never, { finalize: true });
+    expect((await batchStock('b1', 'm1')).map((b) => [b.batch, b.qty])).toEqual([['B1', 5], ['B2', 10]]);
+    const inv = await newInvoiceDraft(owner);
+    const sale = await saveInvoice(owner, { ...inv, lines: [line('s1', 'Crocin 500', 2, 3000, { itemId: 'm1' })] }, { finalize: true });
+    expect(sale.lines[0]).toMatchObject({ batch: 'B1', expiry: '2099-03' });
+    expect((await batchStock('b1', 'm1')).map((b) => [b.batch, b.qty])).toEqual([['B1', 3], ['B2', 10]]);
+    expect(isExpired('2020-01')).toBe(true);
+    expect((await expiryTable('b1', 3)).rows).toHaveLength(0);
+    expect((await expiryTable('b1', 2000)).rows).toHaveLength(2);
   });
 });

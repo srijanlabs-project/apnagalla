@@ -148,6 +148,22 @@ export function SerialSection({ it, patch, disabled }: { it: Item; patch: (p: Pa
   );
 }
 
+/** Medicines, packaged food, paint: batch number and expiry month on purchases and sales. */
+export function BatchSection({ it, patch, disabled }: { it: Item; patch: (p: Partial<Item>) => void; disabled?: boolean }) {
+  if ((it.pricing && it.pricing !== 'unit') || it.hasVariants || it.trackSerial) return null;
+  return (
+    <FormSection>
+      <ToggleRow
+        label={t('Keep batch and expiry')}
+        note={t('Purchase bills note the batch and expiry month; sales take the batch expiring first. See Reports → Expiring stock.')}
+        checked={!!it.trackBatch}
+        onChange={(trackBatch) => patch({ trackBatch })}
+        disabled={disabled}
+      />
+    </FormSection>
+  );
+}
+
 /** Items sold as non-returnable (electricals, cut-to-size goods, innerwear…). */
 export function ReturnSection({ it, patch, disabled }: { it: Item; patch: (p: Partial<Item>) => void; disabled?: boolean }) {
   return (

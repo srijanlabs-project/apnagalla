@@ -26,6 +26,9 @@ export interface StockEvent {
   href?: string;
   /** Manual change: can be voided by the owner. */
   move?: StockMove;
+  /** R8: batch and expiry, for items that keep batches. */
+  batch?: string;
+  expiry?: string;
 }
 
 /** Everything that changed stock in a store, per item. `upTo` = include only up to that date. */
@@ -47,17 +50,17 @@ export async function stockEvents(businessId: string, upTo?: string): Promise<Ma
   };
   for (const m of moves) {
     if (m.deleted || m.voidedAt) continue;
-    add(m.itemId, { date: m.date, qty: m.qty, kind: m.kind, label: m.kind === 'opening' ? t('Opening stock') : m.kind === 'transfer' ? (m.note ?? reasonLabel(m.reason)) : reasonLabel(m.reason), move: m });
+    add(m.itemId, { date: m.date, qty: m.qty, kind: m.kind, label: m.kind === 'opening' ? t('Opening stock') : m.kind === 'transfer' ? (m.note ?? reasonLabel(m.reason)) : reasonLabel(m.reason), move: m, batch: m.batch, expiry: m.expiry });
   }
   for (const c of challans) {
-    for (const l of c.lines) add(l.itemId, { date: c.date, qty: -l.qty * (l.unitFactor ?? 1), kind: 'sale', label: t('Challan {number}', { number: c.number }), href: `/tabs/estimates/${c.id}` });
+    for (const l of c.lines) add(l.itemId, { date: c.date, qty: -l.qty * (l.unitFactor ?? 1), kind: 'sale', label: t('Challan {number}', { number: c.number }), href: `/tabs/estimates/${c.id}`, batch: l.batch, expiry: l.expiry });
   }
   for (const inv of invoices) {
     if (inv.fromEstimateId && fromChallan.has(inv.fromEstimateId)) continue;
-    for (const l of inv.lines) add(l.itemId, { date: inv.date, qty: -l.qty * (l.unitFactor ?? 1), kind: 'sale', label: t('Sale {number}', { number: inv.number }), href: `/tabs/invoices/${inv.id}` });
+    for (const l of inv.lines) add(l.itemId, { date: inv.date, qty: -l.qty * (l.unitFactor ?? 1), kind: 'sale', label: t('Sale {number}', { number: inv.number }), href: `/tabs/invoices/${inv.id}`, batch: l.batch, expiry: l.expiry });
   }
   for (const n of notes) {
-    for (const l of n.lines) add(l.itemId, { date: n.date, qty: l.qty * (l.unitFactor ?? 1), kind: 'return', label: t('Return {number}', { number: n.number }), href: `/tabs/credit-notes/${n.id}` });
+    for (const l of n.lines) add(l.itemId, { date: n.date, qty: l.qty * (l.unitFactor ?? 1), kind: 'return', label: t('Return {number}', { number: n.number }), href: `/tabs/credit-notes/${n.id}`, batch: l.batch, expiry: l.expiry });
   }
   for (const p of purchases) {
     const ret = p.kind === 'return';
@@ -68,6 +71,8 @@ export async function stockEvents(businessId: string, upTo?: string): Promise<Ma
         kind: ret ? 'purchase_return' : 'purchase',
         label: p.supplier?.name ? (ret ? t('Returned to {name}', { name: p.supplier.name }) : t('Bought from {name}', { name: p.supplier.name })) : ret ? t('Purchase return') : t('Purchase'),
         href: `/tabs/purchases/${p.id}`,
+        batch: l.batch,
+        expiry: l.expiry,
       });
     }
   }

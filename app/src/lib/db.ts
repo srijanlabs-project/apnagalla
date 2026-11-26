@@ -200,6 +200,8 @@ export interface Item extends SyncedRecord {
   supplierId?: string | null;
   /** Electronics: each piece has a serial / IMEI number, recorded in and out. */
   trackSerial?: boolean;
+  /** R8: keeps batch number and expiry (medicines, packaged food…). */
+  trackBatch?: boolean;
   /** Warranty from the date of sale, in months. */
   warrantyMonths?: number | null;
   /** Garments etc.: this item only groups its variants (no stock of its own). */
@@ -233,6 +235,9 @@ export interface DocLine {
   id: string;
   /** R8: the order line this bill line delivers. */
   fromLineId?: string;
+  /** R8: batch number and expiry month ("YYYY-MM") of a batch item. */
+  batch?: string;
+  expiry?: string;
   itemId?: string | null;
   name: string;
   description?: string;
@@ -443,6 +448,9 @@ export interface StockMove extends SyncedRecord {
   qty: number;
   kind: 'opening' | 'adjust' | 'count' | 'transfer';
   reason: StockReason;
+  /** R8: the batch this change is for (expired stock written off, opening stock of a batch). */
+  batch?: string;
+  expiry?: string;
   note?: string;
   date: string;
   byName?: string;

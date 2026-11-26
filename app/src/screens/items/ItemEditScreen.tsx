@@ -18,7 +18,7 @@ import { flattenCategories, useCategories } from '../../lib/categories';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
 import { isLow, qtyText, setOpeningStock, stockLevels, tracksStock } from '../../lib/stock';
-import { PriceLevelsSection, ReturnSection, SerialSection, UnitsSection, VariantsSection } from './ItemExtras';
+import { BatchSection, PriceLevelsSection, ReturnSection, SerialSection, UnitsSection, VariantsSection } from './ItemExtras';
 import { withPriceHistory } from '../../lib/pricing';
 
 export function blankItem(actor: Actor, settings: BusinessSettings, name = '', barcode?: string): Item {
@@ -263,6 +263,7 @@ export default function ItemEditScreen() {
       {!it.hasVariants && <PriceLevelsSection it={it} patch={patch} disabled={priceLocked} />}
       {!it.hasVariants && <UnitsSection it={it} patch={patch} disabled={priceLocked} />}
       <SerialSection it={it} patch={patch} disabled={priceLocked} />
+      <BatchSection it={it} patch={patch} disabled={priceLocked} />
       {!it.hasVariants && <ReturnSection it={it} patch={patch} disabled={priceLocked} />}
       <VariantsSection it={it} saved={!isNew} />
       {isNew && tracksStock(it) && (

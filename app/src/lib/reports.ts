@@ -53,7 +53,8 @@ export type ReportId =
   | 'bankStatement'
   | 'otherIncome'
   | 'pendingOrders'
-  | 'orderItems';
+  | 'orderItems'
+  | 'expiry';
 
 const inRange = (d: string, p: Period) => d >= p.from && d <= p.to;
 const periodText = (p: Period) => {
@@ -743,6 +744,7 @@ export const REPORTS: ReportInfo[] = [
   { id: 'orderItems', title: () => t('Items on order'), group: 'sales', period: false, run: (ctx) => import('./orders').then((m) => m.orderItemsTable(ctx.businessId)) },
   { id: 'stock', title: () => t('Stock report'), group: 'stock', period: false, cost: true, run: (c) => stock(c) },
   { id: 'lowStock', title: () => t('Low stock'), group: 'stock', period: false, run: (c) => stock(c, true) },
+  { id: 'expiry', title: () => t('Expiring stock'), group: 'stock', period: false, run: (c) => import('./batches').then((m) => m.expiryTable(c.businessId, 3, true)) },
   { id: 'slow', title: () => t('Slow movers'), group: 'stock', period: true, cost: true, run: slow },
   { id: 'salesRegister', title: () => t('Sales register'), group: 'gst', period: true, ownerOnly: true, run: salesRegister },
   { id: 'purchaseRegister', title: () => t('Purchase register'), group: 'gst', period: true, ownerOnly: true, run: purchaseRegister },

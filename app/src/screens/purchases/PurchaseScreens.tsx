@@ -343,6 +343,12 @@ export function PurchaseEditScreen() {
                   />
                 );
               })()}
+              {l.itemId && lineItems?.get(l.itemId)?.trackBatch && (
+                <div className="field-row">
+                  <TextField label={t('Batch no.')} value={l.batch} onChange={(batch) => patchLine(l.id, { batch: batch.trim().toUpperCase() || undefined })} autocapitalize="characters" disabled={locked} />
+                  <TextField label={t('Expiry (month)')} type="month" value={l.expiry ?? ''} onChange={(expiry) => patchLine(l.id, { expiry: expiry || undefined })} disabled={locked} />
+                </div>
+              )}
               {l.itemId && lineItems?.get(l.itemId)?.trackSerial && (
                 <TextArea
                   label={t('Serial / IMEI numbers (one per line)')}

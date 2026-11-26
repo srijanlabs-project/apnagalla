@@ -24,6 +24,7 @@ import { useBusiness } from '../../lib/business';
 import { db, type DocLine, type Item, type PriceLevel } from '../../lib/db';
 import { priceFor, sellable, unitOptions } from '../../lib/pricing';
 import { serialsInStock } from '../../lib/serials';
+import { batchStock, isExpired, pickBatch } from '../../lib/batches';
 import { OFF } from '../../lib/offers';
 import { t } from '../../lib/i18n';
 import { isAreaLine, lineSize, rupees } from '../../lib/format';
@@ -96,6 +97,7 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
   );
   // The catalogue item of this line, for its other units (box, dozen…).
   const lineItem = useLiveQuery(async () => (l?.itemId ? db.items.get(l.itemId) : undefined), [l?.itemId]);
+  const batches = useLiveQuery(async () => (lineItem?.trackBatch ? batchStock(actor.businessId, lineItem.id) : []), [lineItem?.id, lineItem?.trackBatch, actor.businessId]);
   const inStockSerials = useLiveQuery(async () => (lineItem?.trackSerial ? serialsInStock(actor.businessId, lineItem.id) : []), [lineItem?.id, lineItem?.trackSerial, actor.businessId]);
   const [typedSerial, setTypedSerial] = useState('');
   const matches = useMemo(() => {
@@ -217,6 +219,26 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
           </IonList>
         ) : (
           <>
+            {lineItem?.trackBatch && (
+              <FormSection title={t('Batch')} note={t('The batch expiring first is picked when the bill is saved, unless you choose one.')}>
+                <div className="filter-chips wrap">
+                  {(batches ?? []).filter((b) => b.batch).map((b) => {
+                    const on = l.batch === b.batch;
+                    const old = isExpired(b.expiry);
+                    const first = pickBatch(batches ?? [])?.batch === b.batch;
+                    return (
+                      <IonButton key={b.batch} size="small" color={old ? 'danger' : undefined} fill={on ? 'solid' : 'outline'} onClick={() => set(on ? { batch: undefined, expiry: undefined } : { batch: b.batch, expiry: b.expiry })}>
+                        {b.batch}
+                        {b.expiry ? ` · ${b.expiry.slice(5, 7)}/${b.expiry.slice(2, 4)}` : ''} · {b.qty}
+                        {first && !on ? ' ★' : ''}
+                      </IonButton>
+                    );
+                  })}
+                </div>
+                {l.batch && isExpired(l.expiry) && <p className="text-danger">{t('This batch has expired.')}</p>}
+                {(batches ?? []).filter((b) => b.batch).length === 0 && <p className="section-note">{t('No batches in stock. Add them on a purchase bill.')}</p>}
+              </FormSection>
+            )}
             {lineItem?.trackSerial && (
               <FormSection title={t('Serial / IMEI numbers')} note={t('Tap the pieces being sold; the quantity follows.')}>
                 <div className="filter-chips">
