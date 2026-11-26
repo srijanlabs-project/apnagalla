@@ -178,6 +178,10 @@ export async function postings({ businessId, upTo }: Ctx): Promise<Posting[]> {
     const party = cust(p.invoiceId ? invoiceOf.get(p.invoiceId)?.billTo?.customerId : p.customerId);
     const label = p.kind === 'refund' ? t('Refund') : p.mode === 'points' ? t('Loyalty points used') : t('Received');
     const href = p.invoiceId ? `/tabs/invoices/${p.invoiceId}` : undefined;
+    if (p.mode === 'buyback') {
+      p.kind === 'refund' ? pair(p.date, party, 'purchases', p.amount, t('Old item taken back'), href) : pair(p.date, 'purchases', party, p.amount, t('Old item taken back'), href);
+      continue;
+    }
     if (p.mode === 'points') {
       p.kind === 'refund' ? pair(p.date, party, 'exp:loyalty', p.amount, label, href) : pair(p.date, 'exp:loyalty', party, p.amount, label, href);
       continue;

@@ -91,7 +91,7 @@ export const APPEND_ONLY_TABLES: readonly SyncTable[] = ['payments', 'supplierPa
 export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'categories', 'offers', 'savedReports', 'employees', 'attendance', ...R6_TABLES, ...R7_TABLES];
 
 /** Payment modes for a payment or refund entry. `advance` = paid from money the customer left on account. */
-export const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque', 'other', 'advance', 'finance', 'creditnote', 'points'] as const;
+export const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque', 'other', 'advance', 'finance', 'creditnote', 'points', 'buyback'] as const;
 export type PaymentMode = (typeof PAYMENT_MODES)[number];
 
 /** Fields of an added-only entry the owner may change afterwards (to void it); nothing else ever changes. */

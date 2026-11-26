@@ -552,6 +552,34 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
               </IonButton>
             )}
             {inv && inv.status === 'saved' && pending > 0 && CAN_CREATE_INVOICES && (
+              <IonButton
+                fill="clear"
+                onClick={() =>
+                  void alert({
+                    header: t('Old item taken back'),
+                    message: t('The customer gives an old item (sofa, phone, fridge…) as part payment.'),
+                    inputs: [
+                      { name: 'what', placeholder: t('What was taken (e.g. old 3-seater sofa)') },
+                      { name: 'value', type: 'number', placeholder: t('Value ₹'), min: 0 },
+                    ],
+                    buttons: [
+                      { text: t('Cancel'), role: 'cancel' },
+                      {
+                        text: t('Save'),
+                        handler: (v: { what: string; value: string }) => {
+                          const amount = Math.round((Number(v.value) || 0) * 100);
+                          if (!(amount > 0) || !v.what.trim()) return false;
+                          void recordPayments(actor, inv.id, [{ mode: 'buyback', amount: Math.min(amount, pending), note: v.what.trim() }]).catch(fail);
+                        },
+                      },
+                    ],
+                  })
+                }
+              >
+                {t('Old item taken back')}
+              </IonButton>
+            )}
+            {inv && inv.status === 'saved' && pending > 0 && CAN_CREATE_INVOICES && (
               <IonButton fill="outline" onClick={() => setCreditPay(true)}>
                 {t('Pay with credit note')}
               </IonButton>

@@ -653,6 +653,15 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
                 />
               )}
             </div>
+            {doc.deliveryDate && (
+              <div className="field-row">
+                <TextField label={t('Time / slot')} value={doc.deliverySlot} onChange={(deliverySlot) => patch({ deliverySlot: deliverySlot || undefined })} placeholder={t('Morning, 2–4 pm…')} disabled={locked} />
+                <TextField label={t('Floor / lift')} value={doc.deliveryFloor} onChange={(deliveryFloor) => patch({ deliveryFloor: deliveryFloor || undefined })} placeholder={t('3rd floor, no lift')} disabled={locked} />
+              </div>
+            )}
+            {kind === 'invoice' && (
+              <TextField label={t('Site / project (contractors)')} value={(doc as Invoice).site} onChange={(site) => patch({ site: site || undefined } as Partial<Invoice>)} placeholder={t('e.g. Sharma house, Sector 12')} disabled={locked} />
+            )}
           </FormSection>
         )}
 

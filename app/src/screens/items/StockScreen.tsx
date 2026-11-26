@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { FormSection, NumberField, SelectField, TextField } from '../../components/Fields';
 import PageShell from '../../components/PageShell';
+import { bookedQty } from '../../lib/orders';
 import { godownsOf, placeName, SHOP, stockByPlace } from '../../lib/godowns';
 import { useBusiness } from '../../lib/business';
 import { db, type StockReason } from '../../lib/db';
@@ -17,6 +18,7 @@ type Mode = 'remove' | 'add' | 'count';
 export default function StockScreen() {
   const { id } = useParams<{ id: string }>();
   const { actor, isOwner, settings } = useBusiness();
+  const booked = useLiveQuery(async () => (await bookedQty(actor.businessId)).get(id!) ?? 0, [actor.businessId, id]);
   const places = useLiveQuery(async () => (godownsOf(settings).length ? ((await stockByPlace(actor.businessId)).get(id!) ?? new Map<string, number>()) : null), [actor.businessId, id, settings]);
   const [toast] = useIonToast();
   const [alert] = useIonAlert();
@@ -59,6 +61,14 @@ export default function StockScreen() {
             {qtyText(now)} {item.unit}
           </strong>
         </div>
+        {!!booked && (
+          <div className="mini-stat">
+            <span>{t('Booked for orders')}</span>
+            <strong>
+              {qtyText(booked)} · {t('free {qty}', { qty: qtyText(now - booked) })}
+            </strong>
+          </div>
+        )}
         {item.lowStock != null && (
           <div className="mini-stat">
             <span>{t('Low stock at')}</span>

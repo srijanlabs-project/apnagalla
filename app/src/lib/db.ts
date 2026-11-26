@@ -323,6 +323,9 @@ export interface DocBase extends SyncedRecord {
   pointsEarned?: number;
   /** R8: godown the goods leave from (none = the shop). */
   godownId?: string;
+  /** R11: delivery slot (Morning, 2–4 pm…) and floor, for delivery and fitting. */
+  deliverySlot?: string;
+  deliveryFloor?: string;
   /** Series ("bill:26-27") and running number the number came from; the server uses them to never repeat a number. */
   numberSeries?: string;
   numberSeq?: number;
@@ -595,7 +598,7 @@ export interface SupplierPayment extends SyncedRecord {
   purchaseId?: string | null;
   kind: 'payment' | 'refund';
   amount: number;
-  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points' | 'buyback'>;
   /** R6: bank account paid from (not cash); none = the default account. */
   accountId?: string | null;
   date: string;
@@ -615,7 +618,7 @@ export interface Expense extends SyncedRecord {
   /** One of EXPENSE_CATEGORIES or the store's own category name (R6). */
   category: ExpenseCategory | (string & {});
   amount: number;
-  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points' | 'buyback'>;
   /** R6: bank account paid from (not cash); none = the default account. */
   accountId?: string | null;
   date: string;
@@ -703,7 +706,7 @@ export type IncomeCategory = (typeof INCOME_CATEGORIES)[number];
 export interface Income extends SyncedRecord {
   category: IncomeCategory | (string & {});
   amount: number;
-  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points' | 'buyback'>;
   accountId?: string | null;
   date: string;
   from?: string;
@@ -739,7 +742,7 @@ export interface LoanEntry extends SyncedRecord {
   loanId: string;
   kind: 'received' | 'repaid' | 'given' | 'interest' | 'charge';
   amount: number;
-  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points' | 'buyback'>;
   accountId?: string | null;
   date: string;
   reference?: string;
@@ -751,7 +754,7 @@ export interface LoanEntry extends SyncedRecord {
 export interface RecurringExpense extends SyncedRecord {
   category: Expense['category'];
   amount: number;
-  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points'>;
+  mode: Exclude<PaymentMode, 'advance' | 'creditnote' | 'points' | 'buyback'>;
   accountId?: string | null;
   paidTo?: string;
   note?: string;

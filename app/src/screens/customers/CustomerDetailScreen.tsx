@@ -1,8 +1,8 @@
-import { IonButton, IonCard, IonCardContent, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonModal, IonNote, IonSegment, IonSegmentButton, IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, useIonToast, IonRouterLink, useIonRouter } from '@ionic/react';
+import { IonButton, IonCard, IonCardContent, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonModal, IonNote, IonSegment, IonSegmentButton, IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, useIonToast, IonRouterLink, useIonRouter, IonChip } from '@ionic/react';
 import { addDaysISO, formatIndianMobile, todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { loyaltyOf, pointsOf, tierFor, yearSpend } from '../../lib/loyalty';
-import { billChallans, crateBalances, unbilledChallans } from '../../lib/shopKinds';
+import { billChallans, crateBalances, siteTable, sitesOf, unbilledChallans } from '../../lib/shopKinds';
 import { callOutline, cashOutline, createOutline, documentTextOutline, logoWhatsapp, notificationsOutline } from 'ionicons/icons';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -34,6 +34,7 @@ export default function CustomerDetailScreen() {
   const [to, setTo] = useState(todayISO());
   const c = useLiveQuery(() => db.customers.get(id!), [id]);
   const khata = useLiveQuery(async () => (c ? khataOf(actor.businessId, c) : undefined), [c, actor.businessId]);
+  const sites = useLiveQuery(() => (id ? sitesOf(actor.businessId, id) : []), [actor.businessId, id]);
   const challans = useLiveQuery(() => (id ? unbilledChallans(actor.businessId, id) : []), [actor.businessId, id]);
   const crates = useLiveQuery(async () => (await crateBalances(actor.businessId)).filter((b) => b.partyId === id && b.out > 0), [actor.businessId, id]);
   const { settings } = useBusiness();
@@ -150,6 +151,15 @@ export default function CustomerDetailScreen() {
           >
             {t('Make one bill')}
           </IonButton>
+        </div>
+      )}
+      {(sites ?? []).length > 0 && (
+        <div className="filter-chips wrap">
+          {sites!.map((st) => (
+            <IonChip key={st.site} outline onClick={() => void siteTable(actor.businessId, c.name, st).then((tbl) => shareTable(actor.businessId, tbl, 'pdf'))}>
+              {st.site} · {rupees(st.pending)}
+            </IonChip>
+          ))}
         </div>
       )}
       {(crates ?? []).length > 0 && (

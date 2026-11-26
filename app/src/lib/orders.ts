@@ -12,6 +12,7 @@ import { newId, newInvoiceDraft, saveInvoice, type Actor } from './repo';
 
 export interface OrderLine {
   lineId: string;
+  itemId?: string | null;
   name: string;
   unit: string;
   rate: number;
@@ -36,7 +37,7 @@ export async function orderProgress(order: Estimate): Promise<OrderProgress> {
   const saved = bills.filter((b) => b.status === 'saved');
   const lines = order.lines.map((l) => {
     const delivered = round3(saved.reduce((a, b) => a + b.lines.filter((x) => x.fromLineId === l.id).reduce((s, x) => s + x.qty, 0), 0));
-    return { lineId: l.id, name: l.name, unit: l.unit, rate: l.rate, ordered: l.qty, delivered, pending: Math.max(0, round3(l.qty - delivered)) };
+    return { lineId: l.id, itemId: l.itemId, name: l.name, unit: l.unit, rate: l.rate, ordered: l.qty, delivered, pending: Math.max(0, round3(l.qty - delivered)) };
   });
   const anyDelivered = lines.some((l) => l.delivered > 0);
   const allDone = lines.every((l) => l.pending <= 0);
@@ -141,4 +142,16 @@ export async function orderItemsTable(businessId: string): Promise<ExportTable> 
     foot: [[t('Total'), '', '', '', '', '', rows.reduce((a, r) => a + (r[6] as number), 0)]],
     fileBase: 'Items-on-order',
   };
+}
+
+/** R11 booked stock: what open sales orders still have to deliver, per item (base units). */
+export async function bookedQty(businessId: string): Promise<Map<string, number>> {
+  const m = new Map<string, number>();
+  for (const p of await openOrders(businessId))
+    for (const l of p.lines) {
+      if (!l.itemId || l.pending <= 0) continue;
+      const factor = p.order.lines.find((x) => x.id === l.lineId)?.unitFactor ?? 1;
+      m.set(l.itemId, round3((m.get(l.itemId) ?? 0) + l.pending * factor));
+    }
+  return m;
 }

@@ -5,6 +5,10 @@ import { qtyForAmount, rateCardText, saveRates, saveWastage, wastageTable } from
 import { ensureBusinessRecords, newEstimateDraft, newInvoiceDraft, putRecord, saveEstimate, saveInvoice, type Actor } from './repo';
 import { addMonthsISO, billChallans, crateBalances, instalmentSchedule, saveCrates, unbilledChallans } from './shopKinds';
 import { stockLevels } from './stock';
+import { bookedQty } from './orders';
+import { trialBalance } from './books';
+import { billMoney, recordPayments } from './repo';
+import { sitesOf } from './shopKinds';
 
 export const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 export const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Staff', role: 'staff', seriesCode: 'A' };
@@ -62,5 +66,22 @@ describe('R11.2 instalments', () => {
       ['2027-02-05', 800000, 0, 'due'],
     ]);
     expect(addMonthsISO('2027-01-31', 1)).toBe('2027-02-28');
+  });
+});
+
+describe('R11.2 furniture and contractors', () => {
+  it('open orders book stock; an old item taken back pays part of the bill; bills by site', async () => {
+    await putRecord('items', owner, { id: 'sofa', name: 'Sofa', unit: 'pcs', rate: 3000000, purchasePrice: 2000000, taxPct: 0, rateIncludesTax: true } as never);
+    const e = await newEstimateDraft(owner);
+    await saveEstimate(owner, { ...e, order: true, billTo: { customerId: 'c1', name: 'Hotel Raj', address: {} }, lines: [line('o', 'Sofa', 2, 3000000, { itemId: 'sofa', unit: 'pcs' })] }, { finalize: true });
+    expect((await bookedQty('b1')).get('sofa')).toBe(2);
+    const d = await newInvoiceDraft(owner);
+    const inv = await saveInvoice(owner, { ...d, date: D, site: 'Sharma house', billTo: { customerId: 'c1', name: 'Hotel Raj', address: {} }, lines: [line('a', 'Sofa', 1, 3000000, { itemId: 'sofa', unit: 'pcs' })] }, { finalize: true });
+    await recordPayments(owner, inv.id, [{ mode: 'buyback', amount: 500000, note: 'Old sofa' }], { date: D });
+    expect((await billMoney(inv.id)).pending).toBe(2500000);
+    const tb = await trialBalance('b1', D);
+    expect(tb.find((b) => b.info.key === 'purchases')!.balance).toBe(500000);
+    expect(tb.reduce((a, b) => a + b.balance, 0)).toBe(0);
+    expect((await sitesOf('b1', 'c1')).map((x) => [x.site, x.pending])).toEqual([['Sharma house', 2500000]]);
   });
 });

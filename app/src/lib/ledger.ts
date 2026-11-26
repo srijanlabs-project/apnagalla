@@ -54,7 +54,7 @@ export function isOverdue(inv: Invoice, money: BillMoney, today = todayISO()): b
 }
 
 /** English payment-mode names; for display use modeLabel(), which translates them. */
-export const MODE_LABEL: Record<PaymentEntry['mode'], string> = { cash: 'Cash', upi: 'UPI', card: 'Card', bank: 'Bank transfer', cheque: 'Cheque', other: 'Other', advance: 'From advance', finance: 'Finance / EMI', creditnote: 'Credit note', points: 'Loyalty points' };
+export const MODE_LABEL: Record<PaymentEntry['mode'], string> = { cash: 'Cash', upi: 'UPI', card: 'Card', bank: 'Bank transfer', cheque: 'Cheque', other: 'Other', advance: 'From advance', finance: 'Finance / EMI', creditnote: 'Credit note', points: 'Loyalty points', buyback: 'Old item taken back' };
 
 const MODE_TEXT: Record<PaymentEntry['mode'], () => string> = {
   cash: () => t('Cash'),
@@ -65,6 +65,7 @@ const MODE_TEXT: Record<PaymentEntry['mode'], () => string> = {
   other: () => t('Other'),
   advance: () => t('From advance'),
   points: () => t('Loyalty points'),
+  buyback: () => t('Old item taken back'),
   finance: () => t('Finance / EMI'),
   creditnote: () => t('Credit note'),
 };

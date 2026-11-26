@@ -116,3 +116,46 @@ export async function lateInstalments(businessId: string, paidOf: (inv: Invoice)
     .filter((x) => x.late.length)
     .map((x) => ({ ...x, amount: x.late.reduce((a, i) => a + i.amount - i.paid, 0) }));
 }
+
+/* ---------- contractor sites ---------- */
+
+/** A contractor's bills by site, with what is still to pay on each. */
+export async function sitesOf(businessId: string, customerId: string) {
+  const { buildLedger, moneyOf } = await import('./ledger');
+  const [bills, pays, notes] = await Promise.all([
+    db.invoices.where('billTo.customerId').equals(customerId).filter((i) => i.businessId === businessId && i.status === 'saved' && !i.deleted && !!i.site?.trim()).toArray(),
+    db.payments.where('businessId').equals(businessId).toArray(),
+    db.creditNotes.where('businessId').equals(businessId).toArray(),
+  ]);
+  const ledger = buildLedger(pays, notes);
+  const m = new Map<string, { site: string; bills: Invoice[]; total: number; pending: number }>();
+  for (const b of bills) {
+    const k = b.site!.trim();
+    const s = m.get(k.toLowerCase()) ?? (m.set(k.toLowerCase(), { site: k, bills: [], total: 0, pending: 0 }), m.get(k.toLowerCase())!);
+    s.bills.push(b);
+    s.total += b.totals.grandTotal;
+    s.pending += moneyOf(b, ledger).pending;
+  }
+  return [...m.values()].sort((a, b) => b.pending - a.pending);
+}
+
+/** Statement of one site for the contractor to pass on to their client. */
+export async function siteTable(businessId: string, customerName: string, site: Awaited<ReturnType<typeof sitesOf>>[number]) {
+  const { buildLedger, moneyOf } = await import('./ledger');
+  const [pays, notes] = await Promise.all([db.payments.where('businessId').equals(businessId).toArray(), db.creditNotes.where('businessId').equals(businessId).toArray()]);
+  const ledger = buildLedger(pays, notes);
+  const rows = site.bills
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((b) => {
+      const mo = moneyOf(b, ledger);
+      return [b.date, b.number, b.totals.grandTotal, mo.paid, mo.pending];
+    });
+  return {
+    title: t('Statement for site'),
+    subtitle: [customerName, site.site],
+    columns: [{ label: t('Date'), kind: 'date' as const }, { label: t('Bill') }, { label: t('Amount'), kind: 'money' as const }, { label: t('Paid'), kind: 'money' as const }, { label: t('Pending'), kind: 'money' as const }],
+    rows,
+    foot: [[t('Total'), '', site.total, site.total - site.pending, site.pending]],
+    fileBase: `Site-${site.site}`.replace(/[^\w-]+/g, '-'),
+  };
+}

@@ -26,6 +26,8 @@ import { customerPrice, sellable, unitOptions, type CustomPrices } from '../../l
 import { serialsInStock } from '../../lib/serials';
 import { batchStock, isExpired, pickBatch } from '../../lib/batches';
 import { qtyForAmount } from '../../lib/fresh';
+import { bookedQty } from '../../lib/orders';
+import { stockLevels } from '../../lib/stock';
 import { OFF } from '../../lib/offers';
 import { t } from '../../lib/i18n';
 import { isAreaLine, lineSize, rupees } from '../../lib/format';
@@ -100,6 +102,12 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
   );
   // The catalogue item of this line, for its other units (box, dozen…).
   const lineItem = useLiveQuery(async () => (l?.itemId ? db.items.get(l.itemId) : undefined), [l?.itemId]);
+  const free = useLiveQuery(async () => {
+    if (!lineItem) return null;
+    const [levels, booked] = await Promise.all([stockLevels(actor.businessId), bookedQty(actor.businessId)]);
+    const b = booked.get(lineItem.id) ?? 0;
+    return b ? { free: (levels.get(lineItem.id) ?? 0) - b, booked: b } : null;
+  }, [lineItem?.id, actor.businessId]);
   const batches = useLiveQuery(async () => (lineItem?.trackBatch ? batchStock(actor.businessId, lineItem.id) : []), [lineItem?.id, lineItem?.trackBatch, actor.businessId]);
   const inStockSerials = useLiveQuery(async () => (lineItem?.trackSerial ? serialsInStock(actor.businessId, lineItem.id) : []), [lineItem?.id, lineItem?.trackSerial, actor.businessId]);
   const [typedSerial, setTypedSerial] = useState('');
@@ -222,6 +230,9 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
           </IonList>
         ) : (
           <>
+            {free && l.qty * (l.unitFactor ?? 1) > free.free && (
+              <p className="section-note text-danger">{t('Only {free} free: {booked} are booked for sales orders.', { free: Math.max(0, free.free), booked: free.booked })}</p>
+            )}
             {lineItem?.trackBatch && (
               <FormSection title={t('Batch')} note={t('The batch expiring first is picked when the bill is saved, unless you choose one.')}>
                 <div className="filter-chips wrap">

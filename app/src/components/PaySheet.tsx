@@ -40,7 +40,7 @@ interface Row extends NewPayment {
 
 const QUICK: PaymentMode[] = ['cash', 'upi', 'card'];
 /** Built when shown, so the labels are in the app's language. */
-const allModes = () => (Object.keys(MODE_LABEL) as PaymentMode[]).filter((m) => m !== 'advance' && m !== 'creditnote' && m !== 'points').map((value) => ({ value, label: modeLabel(value) }));
+const allModes = () => (Object.keys(MODE_LABEL) as PaymentMode[]).filter((m) => m !== 'advance' && m !== 'creditnote' && m !== 'points' && m !== 'buyback').map((value) => ({ value, label: modeLabel(value) }));
 
 /**
  * Take a payment (or give a refund): one mode or split across several. Cash shows the change to
