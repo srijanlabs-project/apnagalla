@@ -793,6 +793,48 @@ export interface SavedReport extends SyncedRecord {
 
 /* ---------- sync bookkeeping ---------- */
 
+/* ---------- R7: books ---------- */
+
+/** Account groups, Tally-style, for own ledgers and the balance sheet. */
+export type LedgerGroup =
+  | 'capital'
+  | 'drawings'
+  | 'fixed_assets'
+  | 'current_assets'
+  | 'deposits'
+  | 'investments'
+  | 'current_liabilities'
+  | 'loans_liability'
+  | 'direct_expenses'
+  | 'indirect_expenses'
+  | 'direct_incomes'
+  | 'indirect_incomes';
+
+/** An account the owner adds (Capital, Furniture, Rent deposit, Electricity board…). */
+export interface Ledger extends SyncedRecord {
+  name: string;
+  group: LedgerGroup;
+  /** Balance on the books' start (paise; + debit, − credit). */
+  opening?: number;
+  note?: string;
+}
+
+export interface JournalLine {
+  /** Account key (see lib/books.ts): 'cash', 'bank:<id>', 'cust:<id>', 'led:<id>', 'exp:<cat>'… */
+  account: string;
+  debit: number;
+  credit: number;
+}
+
+/** A journal entry: debits = credits. Owner only. */
+export interface Journal extends SyncedRecord {
+  date: string;
+  lines: JournalLine[];
+  note?: string;
+  /** Quick entries: owner's money in / out. */
+  kind?: 'journal' | 'capital' | 'drawings';
+}
+
 export type SyncedTable = SyncTable;
 
 export interface OutboxEntry {
@@ -837,6 +879,8 @@ export const db = new Dexie('apnagalla') as Dexie & {
   loans: EntityTable<Loan, 'id'>;
   loanEntries: EntityTable<LoanEntry, 'id'>;
   recurringExpenses: EntityTable<RecurringExpense, 'id'>;
+  ledgers: EntityTable<Ledger, 'id'>;
+  journals: EntityTable<Journal, 'id'>;
   catalogItems: EntityTable<CatalogItemDto, 'id'>;
   catalogAliases: EntityTable<CatalogAliasDto, 'word'>;
   outbox: EntityTable<OutboxEntry, 'seq'>;
@@ -903,6 +947,10 @@ db.version(9).stores({
   loanEntries: 'id, businessId, loanId, [businessId+date]',
   recurringExpenses: 'id, businessId',
 });
+db.version(10).stores({
+  ledgers: 'id, businessId',
+  journals: 'id, businessId, [businessId+date]',
+});
 
 export const ALL_TABLES = [
   db.profiles,
@@ -932,6 +980,8 @@ export const ALL_TABLES = [
   db.loans,
   db.loanEntries,
   db.recurringExpenses,
+  db.ledgers,
+  db.journals,
   db.outbox,
   db.meta,
 ];

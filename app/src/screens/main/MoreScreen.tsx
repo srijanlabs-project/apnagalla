@@ -37,6 +37,7 @@ import {
   trashOutline,
   giftOutline,
   globeOutline,
+  bookOutline,
 } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
@@ -151,6 +152,10 @@ export default function MoreScreen() {
             <IonItem routerLink="/tabs/income" detail lines="full">
               <IonIcon icon={trendingUpOutline} slot="start" />
               <IonLabel>{t('Other income')}</IonLabel>
+            </IonItem>
+            <IonItem routerLink="/tabs/books" detail lines="full">
+              <IonIcon icon={bookOutline} slot="start" />
+              <IonLabel>{t('Books (ledgers, balance sheet)')}</IonLabel>
             </IonItem>
             <IonItem routerLink="/tabs/loans" detail lines="none">
               <IonIcon icon={receiptOutline} slot="start" />

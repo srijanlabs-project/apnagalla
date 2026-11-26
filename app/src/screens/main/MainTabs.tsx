@@ -2,6 +2,7 @@ import RecycleBinScreen from './RecycleBinScreen';
 import RemindersScreen from '../customers/RemindersScreen';
 import ContactImportScreen from '../customers/ContactImportScreen';
 import LoyaltyScreen from '../settings/LoyaltyScreen';
+import BooksScreen, { JournalScreen, LedgerScreen } from '../money/BooksScreens';
 import OnlineStoreScreen from '../settings/OnlineStoreScreen';
 import DayEndGate from '../../components/DayEndGate';
 import { IonIcon, IonLabel, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/react';
@@ -150,6 +151,9 @@ export default function MainTabs() {
           <Route path="more/invoice-settings" element={<InvoiceSettingsScreen />} />
           <Route path="more/design" element={<DesignScreen />} />
           <Route path="more/loyalty" element={<LoyaltyScreen />} />
+          <Route path="books" element={<BooksScreen />} />
+          <Route path="books/ledger/:account" element={<LedgerScreen />} />
+          <Route path="books/journal/:id" element={<JournalScreen />} />
           <Route path="more/online-store" element={<OnlineStoreScreen />} />
 
           <Route index element={<Navigate to="home" replace />} />

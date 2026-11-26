@@ -57,7 +57,9 @@ export type ReportId =
   | 'expiry'
   | 'godownStock'
   | 'supplierDues'
-  | 'consignment';
+  | 'consignment'
+  | 'trialBalance'
+  | 'balanceSheet';
 
 const inRange = (d: string, p: Period) => d >= p.from && d <= p.to;
 const periodText = (p: Period) => {
@@ -240,7 +242,7 @@ async function stock(ctx: ReportContext, onlyLow = false): Promise<ExportTable> 
 
 /* ---------- GST ---------- */
 
-function invoiceGst(doc: Invoice | CreditNote, profile: Parameters<typeof gstViewOf>[2]) {
+export function invoiceGst(doc: Invoice | CreditNote, profile: Parameters<typeof gstViewOf>[2]) {
   const v = gstViewOf(doc.number && 'invoiceId' in doc ? 'credit' : 'invoice', doc, doc.businessSnapshot ?? profile, doc.totals);
   const s = v.split;
   return { pos: v.posLabel, cgst: s?.cgst ?? 0, sgst: s?.sgst ?? 0, igst: s?.igst ?? 0, gst: v.mode === 'gst' };
@@ -280,7 +282,7 @@ async function purchaseData(ctx: ReportContext): Promise<Purchase[]> {
   return db.purchases.where('businessId').equals(ctx.businessId).filter((p) => p.status === 'saved' && !p.deleted && inRange(p.date, ctx)).toArray();
 }
 
-function purchaseGst(p: Purchase) {
+export function purchaseGst(p: Purchase) {
   const rows = p.totals.taxBreakdown;
   const tax = rows.reduce((a, r) => a + r.tax, 0);
   if (p.taxMode !== 'gst') return { cgst: 0, sgst: 0, igst: 0 };
@@ -778,6 +780,8 @@ export const REPORTS: ReportInfo[] = [
   { id: 'dayBook', title: () => t('Day book'), group: 'money', period: true, ownerOnly: true, run: dayBook },
   { id: 'receivables', title: () => t('To collect from customers'), group: 'money', period: false, run: receivablesReport },
   { id: 'payables', title: () => t('To pay suppliers'), group: 'money', period: false, cost: true, run: payablesReport },
+  { id: 'balanceSheet', title: () => t('Balance sheet'), group: 'money', period: true, ownerOnly: true, run: (c) => import('./books').then((m) => m.balanceSheetTable(c.businessId, c.to)) },
+  { id: 'trialBalance', title: () => t('Trial balance'), group: 'money', period: true, ownerOnly: true, run: (c) => import('./books').then((m) => m.trialBalanceTable(c.businessId, c.to)) },
   { id: 'supplierDues', title: () => t('Bills to pay (by due date)'), group: 'money', period: false, cost: true, run: supplierDuesReport },
   { id: 'staff', title: () => t('Staff-wise sales'), group: 'people', period: true, ownerOnly: true, run: staff },
   { id: 'stores', title: () => t('Store-wise sales'), group: 'people', period: true, ownerOnly: true, run: stores },
