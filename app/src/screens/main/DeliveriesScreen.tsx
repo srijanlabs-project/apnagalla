@@ -28,7 +28,13 @@ export default function DeliveriesScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const camera = useRef<HTMLInputElement>(null);
   const target = useRef<WarehouseRow | null>(null);
-  const rows = useLiveQuery(() => warehouseList(actor.businessId, { delivered: tab === 'done', recentDays: recent ? 7 : 0 }), [actor.businessId, tab, recent]);
+  // The last answer stays while a new tab loads: use it only when it is for this tab (a "To deliver"
+  // row has no delivery time, which the Delivered tab shows).
+  const result = useLiveQuery(
+    async () => ({ tab, rows: await warehouseList(actor.businessId, { delivered: tab === 'done', recentDays: recent ? 7 : 0 }) }),
+    [actor.businessId, tab, recent],
+  );
+  const rows = result?.tab === tab ? result.rows : undefined;
   const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : String(e), duration: 3000, color: 'danger' });
 
   return (
@@ -59,7 +65,7 @@ export default function DeliveriesScreen() {
               </p>
               <p>
                 {tab === 'done'
-                  ? t('Delivered {date}', { date: dateIN(r.doc.deliveredAt!.slice(0, 10)) }) + (r.doc.deliveredByName ? ` · ${r.doc.deliveredByName}` : '')
+                  ? (r.doc.deliveredAt ? t('Delivered {date}', { date: dateIN(r.doc.deliveredAt.slice(0, 10)) }) : t('Delivered')) + (r.doc.deliveredByName ? ` · ${r.doc.deliveredByName}` : '')
                   : r.doc.deliveryDate
                     ? t('Delivery {date}', { date: dateIN(r.doc.deliveryDate) })
                     : dateIN(r.doc.date)}
