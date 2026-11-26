@@ -1,8 +1,12 @@
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import compress from '@fastify/compress';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
 import { sql } from 'drizzle-orm';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { ZodError, type ZodType } from 'zod';
@@ -131,7 +135,8 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
       return auth?.startsWith('Bearer ') ? `t:${createHash('sha256').update(auth).digest('base64url').slice(0, 22)}` : `ip:${req.ip}`;
     },
     timeWindow: '1 minute',
-    allowList: (req) => req.url === '/health',
+    // Only the API counts; the web app's files (scripts, images) do not.
+    allowList: (req) => req.url === '/health' || !req.url.startsWith('/v1/'),
     errorResponseBuilder: (_req, ctx) => ({ statusCode: 429, error: 'rate_limited', message: `Too many requests. Try again in ${Math.ceil(ctx.ttl / 1000)} seconds.` }),
   });
   // gzip / brotli for replies over 1 KB: sync pages and the product list are ~5× smaller on
@@ -529,6 +534,23 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     await accounts.declineInvite(uid(req), req.params.inviteId);
     return accounts.getMe(uid(req));
   });
+
+  // The web app (app/dist, built on Railway): same address as the API. Any other page
+  // (/admin, /items…) gets index.html; the app picks the screen.
+  const webDir = env.WEB_DIR ? resolve(env.WEB_DIR) : join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app', 'dist');
+  if (existsSync(join(webDir, 'index.html'))) {
+    await app.register(fastifyStatic, {
+      root: webDir,
+      wildcard: false,
+      setHeaders: (res, path) => res.header('Cache-Control', /[\\/]assets[\\/]/.test(path) ? 'public, max-age=31536000, immutable' : 'no-cache'),
+    });
+    app.setNotFoundHandler((req, reply) => {
+      if (req.method === 'GET' && !req.url.startsWith('/v1/') && (req.headers.accept ?? '').includes('text/html')) {
+        return reply.header('Cache-Control', 'no-cache').sendFile('index.html');
+      }
+      return reply.status(404).send({ error: 'not_found', message: `Route ${req.method}:${req.url} not found` });
+    });
+  }
 
   return app;
 }

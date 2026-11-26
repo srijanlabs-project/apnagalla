@@ -169,3 +169,28 @@ describe('compression', () => {
     expect(small.headers['content-encoding']).toBeUndefined();
   });
 });
+
+describe('web app', () => {
+  it('the server hands out the built web app; /admin and other pages get index.html, the API stays JSON', async () => {
+    const fs = await import('node:fs');
+    const os = await import('node:os');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'web-'));
+    fs.mkdirSync(path.join(dir, 'assets'));
+    fs.writeFileSync(path.join(dir, 'index.html'), '<!doctype html><title>ApnaGalla</title>');
+    fs.writeFileSync(path.join(dir, 'assets', 'app-abc.js'), 'console.log(1)');
+    const web = await buildApp({ env: { ...env, WEB_DIR: dir }, database, otpSender: sender, billScanner: null, logger: false });
+    try {
+      const page = await web.inject({ method: 'GET', url: '/admin', headers: { accept: 'text/html' } });
+      expect(page.statusCode).toBe(200);
+      expect(page.body).toContain('ApnaGalla');
+      expect((await web.inject({ method: 'GET', url: '/' })).body).toContain('ApnaGalla');
+      const js = await web.inject({ method: 'GET', url: '/assets/app-abc.js' });
+      expect(js.headers['cache-control']).toContain('immutable');
+      const api = await web.inject({ method: 'GET', url: '/v1/nope', headers: { accept: 'text/html' } });
+      expect(api.statusCode).toBe(404);
+      expect(api.json().error).toBe('not_found');
+    } finally {
+      await web.close();
+    }
+  });
+});

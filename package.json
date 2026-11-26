@@ -13,6 +13,8 @@
     "dev:app": "npm run dev -w app",
     "build": "npm run build -w server && npm run build -w app",
     "build:server": "npm run build -w server",
+    "build:web": "npm run build -w @invoice/app",
+    "build:railway": "npm run build:server && npm run build:web",
     "start:server": "npm run start -w server",
     "test": "npm run test -w shared && npm run test -w server && npm run test -w @invoice/app",
     "typecheck": "npm run typecheck -w shared && npm run typecheck -w server && npm run typecheck -w app"

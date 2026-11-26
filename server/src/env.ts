@@ -16,6 +16,8 @@ const schema = z.object({
   MIGRATIONS_DIR: z.string().default('drizzle'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   CORS_ORIGINS: z.string().default(''),
+  /** Built web app to serve (default: app/dist next to the server). */
+  WEB_DIR: z.string().optional().transform((v) => (v ? v : undefined)),
   OTP_PROVIDER: z.enum(['console', 'msg91']).default('console'),
   OTP_FIXED_CODE: z
     .string()
