@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db, type Customer } from './db';
 import { applyAdvance, khataOf } from './khata';
 import { jobAdvance, releaseAdvance, settleJobAdvance, takeAdvance } from './jobs';
-import { billMoney, convertEstimate, ensureBusinessRecords, newEstimateDraft, newInvoiceDraft, PermissionError, putRecord, saveEstimate, saveInvoice, type Actor } from './repo';
+import { buildDocDefinition } from './pdf/buildDoc';
+import { pdfInputFor } from './pdf';
+import { billMoney, convertEstimate, ensureBusinessRecords, newEstimateDraft, newInvoiceDraft, PermissionError, putRecord, saveEstimate, saveInvoice, settingsOf, type Actor } from './repo';
 
 const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Staff', role: 'staff', seriesCode: 'A' };
@@ -50,5 +52,19 @@ describe('Q2 an estimate advance is for that estimate only', () => {
     expect(await jobAdvance('b1', est.id)).toBe(0);
     const k = await khataOf('b1', await mehta());
     expect(k).toMatchObject({ held: 0, openingLeft: 0, advance: 15000, balance: -15000 });
+  });
+});
+
+describe('Q8 seller banner', () => {
+  it('prints on every page when set, and the page leaves room for it', async () => {
+    const d = await newInvoiceDraft(owner);
+    const inv = await saveInvoice(owner, { ...d, lines: [line(10000)] }, { finalize: true });
+    const st = await settingsOf('b1');
+    const plain = buildDocDefinition(await pdfInputFor('invoice', inv, st), inv.totals);
+    const withBanner = buildDocDefinition(await pdfInputFor('invoice', inv, { ...st, design: { ...st.design, banner: 'Diwali sale: 10% off till 31 Oct' } }), inv.totals);
+    const footer = withBanner.footer as (c: number, n: number) => unknown;
+    expect(JSON.stringify(footer(2, 3))).toContain('Diwali sale');
+    expect(JSON.stringify((plain.footer as (c: number, n: number) => unknown)(1, 1))).not.toContain('Diwali');
+    expect((withBanner.pageMargins as number[])[3]).toBeGreaterThan((plain.pageMargins as number[])[3]!);
   });
 });

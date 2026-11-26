@@ -1,7 +1,7 @@
 import { IonButton, IonLabel, IonSegment, IonSegmentButton } from '@ionic/react';
 import { todayISO, addDaysISO } from '@invoice/shared';
 import { useEffect, useMemo, useState } from 'react';
-import { FormSection, ToggleRow } from '../../components/Fields';
+import { FormSection, TextArea, ToggleRow } from '../../components/Fields';
 import FormPage from '../../components/FormPage';
 import PdfPreview from '../../components/PdfPreview';
 import { useBusiness } from '../../lib/business';
@@ -173,6 +173,10 @@ export default function DesignScreen() {
         {TOGGLES.map((tg) => (
           <ToggleRow key={tg.key} label={t(tg.label)} checked={d.show[tg.key] ?? true} disabled={!isOwner} onChange={(v) => set({ show: { ...d.show, [tg.key]: v } })} />
         ))}
+      </FormSection>
+
+      <FormSection title={t('Message at the bottom of every page')} note={t('Printed in a band on each page of bills, estimates and credit notes: an offer, shop timings, a thank-you. Up to 200 letters.')}>
+        <TextArea label={t('Message')} value={d.banner ?? ''} onChange={(banner) => set({ banner: banner.slice(0, 200) })} disabled={!isOwner} />
       </FormSection>
 
       {dirty && isOwner && (

@@ -87,6 +87,8 @@ export interface DesignSettings {
     /** Photos attached to a bill, printed on a page after it. Missing = yes. */
     photos?: boolean;
   };
+  /** The seller's message in a band at the bottom of every page (offers, timings, thanks). */
+  banner?: string;
 }
 
 export interface BusinessSettings extends SyncedRecord {

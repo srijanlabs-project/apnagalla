@@ -91,6 +91,7 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
   const show = design.show;
   const theme = themeFor(design);
   const base = FONT_SIZES[design.fontSize];
+  const banner = design.banner?.trim().slice(0, 200) || '';
   const a5 = design.paper === 'A5';
   const view = gstViewOf(kind, doc, b, totals);
   const title = view.title.toUpperCase();
@@ -315,7 +316,7 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
 
   return {
     pageSize: design.paper,
-    pageMargins: a5 ? [24, 24, 24, 36] : [40, 36, 40, 44],
+    pageMargins: a5 ? [24, 24, 24, banner ? 58 : 36] : [40, 36, 40, banner ? 70 : 44],
     info: { title: `${title} ${doc.number}`.trim(), author: b.name },
     defaultStyle: { fontSize: base, lineHeight: 1.2, color: '#111111' },
     styles: {
@@ -324,8 +325,21 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
       label: { fontSize: base - 1.5, bold: true, characterSpacing: 0.6, margin: [0, 0, 0, 2] },
     },
     watermark: doc.status === 'cancelled' ? { text: 'CANCELLED', color: '#d9480f', opacity: 0.12, bold: true } : undefined,
-    footer: (current: number, count: number) =>
-      count > 1 ? { text: `Page ${current} of ${count}`, alignment: 'center', fontSize: 7, color: '#888888', margin: [0, 10, 0, 0] } : { text: '' },
+    footer: (current: number, count: number) => {
+      const pageNo: Content = count > 1 ? { text: `Page ${current} of ${count}`, alignment: 'center', fontSize: 7, color: '#888888', margin: [0, banner ? 3 : 10, 0, 0] } : { text: '' };
+      if (!banner) return pageNo;
+      const side = a5 ? 24 : 40;
+      return {
+        stack: [
+          {
+            table: { widths: ['*'], body: [[{ text: banner, alignment: 'center', color: '#ffffff', bold: true, fontSize: base - 0.5, margin: [6, 4, 6, 4] }]] },
+            layout: { fillColor: theme.accent, hLineWidth: () => 0, vLineWidth: () => 0 },
+          },
+          pageNo,
+        ],
+        margin: [side, 8, side, 0],
+      } as Content;
+    },
     content: [
       header,
       { columns: shipTo ? [billTo, shipTo] : [billTo], columnGap: 20 },
