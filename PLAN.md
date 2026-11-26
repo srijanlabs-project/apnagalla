@@ -467,6 +467,34 @@ R6 decisions (defaults):
   that day, days after the 28th count as the 28th).
 - Not yet (R7): journal entries, ledgers for every account, balance sheet, trial balance.
 
+#### Owner's requests, 26 Nov 2026 (next, before R7)
+Asked for after R6 went live. Built in this order unless the owner changes it.
+
+| # | Request | What is there today | Status |
+|---|---|---|---|
+| Q1 | Bill photos: upload a picture from the gallery as well as taking one with the camera | Camera only | To do |
+| Q2 | An advance is tied to its estimate and customer, and is used only on that estimate's bill | An estimate's advance joins the customer's general advance, so "Use advance" on any other bill can use it | To do |
+| Q3 | Estimates in a list of their own | Estimates share one screen with invoices and credit notes (a tab) | To do |
+| Q4 | Invoice list: filters by date, customer and payment status; pages instead of one long list | Status chips and search only; every bill loads at once | To do |
+| Q5 | Day-end closing is compulsory: after the store's closing time the day must be closed, and the next day can't start until it is | Day-end cash count exists but is optional | To do |
+| Q6 | Barcode scanner can't read small barcodes | Low camera resolution, no zoom or focus help | To do |
+| Q7 | Everything deleted (bills, estimates, purchase orders…) is kept, not erased | Already kept: delete only marks a record deleted (phone and server); saved bills can only be cancelled. Missing: a screen to see and restore them | To do (recycle bin, moved up from R8) |
+| Q8 | A banner at the bottom of every PDF page with the seller's message | No such option | To do |
+| Q9 | Membership and loyalty points | Not built (R9) | Design first, then build (moved up from R9 if the owner agrees) |
+
+#### Release 11 — features for particular kinds of shop (planned 26 Nov 2026)
+Found by asking what retailers need that neither ApnaGalla nor the Vyapar list has. Design-first.
+
+| Shop | Features |
+|---|---|
+| Fruit and vegetable | **Today's rates** (all prices in one screen each morning, rate card to WhatsApp); **mandi purchase bills** (commission %, market fee, labour, transport into cost per kg); **wastage** (daily entry, wastage report, margin after wastage); **crates and containers** (given and taken, deposit, how many are out); **sell by amount** (₹20 of dhaniya → quantity); **daily delivery, weekly / monthly bill** for hotels and canteens |
+| Furniture | **Instalments run by the shop** (plan, due dates, reminders, missed payments); **booked stock** (sold, waiting for delivery, can't be sold twice; showroom piece vs warehouse); **delivery and fitting** (slot, crew, charge by distance and floor); **made-to-order details** (wood, fabric, polish, size, drawing for the carpenter); **buying back old furniture** as part payment |
+| Most shops | **Contractor accounts by site** (khata and statement per site); **supplier schemes** (free goods, rate difference, target bonus: what is due from the distributor); **orders from WhatsApp messages and voice notes** read into a draft bill; **rentals** (deposit, return date, late and damage charges); **gift vouchers**; **festival reorder** (what sold last Diwali); **tiles and paint quantities** (area → boxes, wall area → litres) |
+| Own module each | **Jewellery** (gold rate of the day, purity, making charges, wastage %, old gold exchange); **bakery and sweets** (recipes using raw material, same-day expiry); **pharmacy** (on top of R8 batch / expiry: Schedule H register, prescription details) |
+
+Suggested order inside R11: today's rates and wastage; WhatsApp / voice orders; instalments and booked
+stock; contractor sites and supplier schemes; the rest.
+
 ## 11. Your action items (can run in parallel with the build)
 - [ ] Start **TRAI DLT registration** with an SMS provider (business entity, sender ID, OTP template). Takes days to weeks; until it's done, OTP runs in test mode.
 - [ ] Create a **Google Play developer account**.
