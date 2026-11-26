@@ -1,6 +1,6 @@
 import { IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonSearchbar, IonSegment, IonSegmentButton, useIonRouter } from '@ionic/react';
 import { useIonActionSheet, useIonToast } from '@ionic/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NetworkError, api } from '../../lib/api';
 import { fileToResizedDataUrl } from '../../lib/format';
 import { draftFromPaperBill } from '../../lib/paperBill';
@@ -18,6 +18,7 @@ import { CAN_CREATE_INVOICES } from '../../lib/platform';
 import { moneyOf } from '../../lib/ledger';
 import type { DocKind } from '../../lib/repo';
 import { DOC_BASE } from './DocEditorScreen';
+import { usePhotoSource } from '../../components/PhotoSource';
 
 const INVOICE_FILTERS = ['All', 'Unpaid', 'Overdue', 'Paid', 'Draft'] as const;
 
@@ -26,7 +27,7 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
   const router = useIonRouter();
   const [toast] = useIonToast();
   const [sheet] = useIonActionSheet();
-  const paperInput = useRef<HTMLInputElement>(null);
+  const paperInput = usePhotoSource((f) => void scanPaper(f));
   const [scanOn, setScanOn] = useState(false);
   const [reading, setReading] = useState(false);
   useEffect(() => {
@@ -144,19 +145,8 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
 
       {kind === 'invoice' && scanOn && (
         <div className="ion-padding-horizontal">
-          <input
-            ref={paperInput}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = '';
-              if (f) void scanPaper(f);
-            }}
-          />
-          <IonChip onClick={() => !reading && paperInput.current?.click()}>
+          {paperInput.inputs}
+          <IonChip onClick={() => !reading && paperInput.open()}>
             <IonLabel>{reading ? t('Reading the bill…') : t('Scan a paper bill')}</IonLabel>
           </IonChip>
         </div>

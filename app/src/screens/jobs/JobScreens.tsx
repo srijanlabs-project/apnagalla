@@ -18,7 +18,7 @@ import {
 import { todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { add, cameraOutline, closeCircle, constructOutline, documentTextOutline, personCircleOutline, receiptOutline, shareSocialOutline, walletOutline } from 'ionicons/icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState';
 import { FormSection, TextArea, TextField } from '../../components/Fields';
@@ -34,6 +34,7 @@ import { CLOSED, jobAdvance, jobCardTable, newJob, nextStage, saveJob, setStage,
 import { CAN_CREATE_INVOICES } from '../../lib/platform';
 import { convertEstimate } from '../../lib/repo';
 import CustomerPicker from '../docs/CustomerPicker';
+import { usePhotoSource } from '../../components/PhotoSource';
 
 const MAX_PHOTOS = 6;
 
@@ -127,7 +128,7 @@ export function JobScreen() {
   const [picker, setPicker] = useState(false);
   const [paying, setPaying] = useState(false);
   const [saving, setSaving] = useState(false);
-  const photoInput = useRef<HTMLInputElement>(null);
+  const photoInput = usePhotoSource((f) => void addPhoto(f));
   const advance = useLiveQuery(() => (isNew ? 0 : jobAdvance(actor.businessId, id!)), [actor.businessId, id, isNew]);
 
   useEffect(() => {
@@ -291,23 +292,12 @@ export function JobScreen() {
             </div>
           ))}
           {job.photos.length < MAX_PHOTOS && (
-            <button type="button" className="photo-add" onClick={() => photoInput.current?.click()}>
+            <button type="button" className="photo-add" onClick={() => photoInput.open()}>
               <IonIcon icon={cameraOutline} />
             </button>
           )}
         </div>
-        <input
-          ref={photoInput}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          hidden
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = '';
-            if (f) void addPhoto(f);
-          }}
-        />
+        {photoInput.inputs}
       </FormSection>
 
       {!isNew && (

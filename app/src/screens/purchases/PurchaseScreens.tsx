@@ -22,7 +22,7 @@ import { addOrMerge } from '../../lib/mergeLines';
 import { todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { add, addOutline, cartOutline, cashOutline, clipboardOutline, closeCircleOutline, createOutline, returnDownBackOutline, scanOutline, shareSocialOutline, trashOutline } from 'ionicons/icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState';
 import { FormSection, MoneyField, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
@@ -56,6 +56,7 @@ import {
 import { deleteRecord, newId, putRecord } from '../../lib/repo';
 import { qtyText } from '../../lib/stock';
 import { NoAccess, useCanBuy } from '../suppliers/SupplierScreens';
+import { usePhotoSource } from '../../components/PhotoSource';
 
 /* ---------- lists ---------- */
 
@@ -197,7 +198,7 @@ export function PurchaseEditScreen() {
   }, [id, isNew, actor]);
 
   const totals = useMemo(() => (p ? purchaseTotals(p) : null), [p]);
-  const scanInput = useRef<HTMLInputElement>(null);
+  const scanInput = usePhotoSource((f) => void scan(f));
   const [scanning, setScanning] = useState(false);
   const [scanOn, setScanOn] = useState(false);
   useEffect(() => {
@@ -266,19 +267,8 @@ export function PurchaseEditScreen() {
       {locked && <p className="section-note">{t('Only the owner can change a saved purchase')}</p>}
       {p.status === 'draft' && !isReturn && scanOn && (
         <>
-          <input
-            ref={scanInput}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = '';
-              if (file) void scan(file);
-            }}
-          />
-          <IonButton expand="block" fill="outline" disabled={scanning} onClick={() => scanInput.current?.click()}>
+          {scanInput.inputs}
+          <IonButton expand="block" fill="outline" disabled={scanning} onClick={() => scanInput.open()}>
             {scanning ? <IonSpinner name="dots" /> : <IonIcon icon={scanOutline} slot="start" />} {scanning ? t('Reading the bill…') : t('Scan supplier bill')}
           </IonButton>
         </>

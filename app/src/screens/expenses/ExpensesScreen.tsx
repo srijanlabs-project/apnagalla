@@ -2,7 +2,7 @@ import { IonButton, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, I
 import { todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { add, cameraOutline, walletOutline } from 'ionicons/icons';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import EmptyState from '../../components/EmptyState';
 import { SelectField, TextField, ToggleRow } from '../../components/Fields';
 import MoneyEntrySheet from '../../components/MoneyEntrySheet';
@@ -15,6 +15,7 @@ import { modeLabel } from '../../lib/ledger';
 import { expenseLabel, saveExpense } from '../../lib/purchases';
 import { dueExpenses, payRecurring, saveRecurring, type DueExpense } from '../../lib/recurring';
 import { deleteRecord, newId, putRecord } from '../../lib/repo';
+import { usePhotoSource } from '../../components/PhotoSource';
 
 const monthName = (ym: string) => new Date(`${ym}-01T00:00:00`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 const NEW = '__new';
@@ -42,7 +43,7 @@ export default function ExpensesScreen() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [repeat, setRepeat] = useState(false);
   const [paying, setPaying] = useState<{ d: DueExpense; date: string } | null>(null);
-  const camera = useRef<HTMLInputElement>(null);
+  const camera = usePhotoSource((f) => void fileToResizedDataUrl(f, 1000, true).then(setPhoto));
   const list = useLiveQuery(
     () => db.expenses.where('[businessId+date]').between([actor.businessId, ''], [actor.businessId, '￿']).reverse().filter((e) => !e.deleted).toArray(),
     [actor.businessId],
@@ -239,24 +240,13 @@ export default function ExpensesScreen() {
         />
         <TextField label={t('Paid to (optional)')} value={paidTo} onChange={setPaidTo} autocapitalize="words" />
         <div className="detail-actions">
-          <IonButton fill="outline" size="small" onClick={() => camera.current?.click()}>
+          <IonButton fill="outline" size="small" onClick={() => camera.open()}>
             <IonIcon icon={cameraOutline} slot="start" /> {photo ? t('Change bill photo') : t('Bill photo')}
           </IonButton>
           {photo && <img src={photo} alt="" className="thumb" />}
         </div>
         {isOwner && <ToggleRow label={t('Repeats every month (rent, salary…)')} checked={repeat} onChange={setRepeat} note={repeat ? t('It will show under Due now each month, on this day.') : undefined} />}
-        <input
-          ref={camera}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          hidden
-          onChange={async (e) => {
-            const f = e.target.files?.[0];
-            e.target.value = '';
-            if (f) setPhoto(await fileToResizedDataUrl(f, 1000, true));
-          }}
-        />
+        {camera.inputs}
       </MoneyEntrySheet>
       <MoneyEntrySheet
         isOpen={!!paying}
