@@ -422,7 +422,7 @@ email / Drive / OneDrive / Dropbox, Tally export, and phone alerts.
 | **R6 Money and books** | Bank accounts with opening balance and a **bank book**; every UPI / card / bank / cheque entry goes to an account; **cash ↔ bank** deposits, withdrawals and transfers; **other income**; expenses with **own categories, paid-to, photo and repeating (rent, salary…)**; **loans** taken and given (EMI, interest); **payment receipts** (customer) and **payment vouchers** (supplier) as PDF / WhatsApp; reports: **bank statement, cash flow, profit & loss statement, other income**; financial-year filters; Home shows bank balance and this month's expenses and profit |
 | R7 Accounts and GST returns | Ledgers for every party and account, **journal entries**, chart of accounts (Tally-style groups), **trial balance, balance sheet**, capital and drawings; **GSTR-2B match** (upload the portal file, see missing / mismatched bills), proper **GSTR-3B** and **GSTR-9** sheets, input / output tax registers, taxable / exempt / nil sales; owner **activity log** in the app; reports **purchases by item**, **expenses by paid-to**, **sales by customer**; **customer, item and category filters** on reports; Home cards for **total purchases**, **stock value** and **other income** |
 | R8 Orders and stock depth (built) | **Sales orders** (status, part delivered, pending order report, order → bill), **proforma invoice**, **batch and expiry** (pharmacy, FMCG: pick batch on sale, expiry report), **godowns** inside a store with transfers, **item stock history**, purchase **expenses spread into cost** (freight, loading), purchase **due dates and supplier reminders**, **recycle bin** (restore deleted items, customers, bills), **weighing-scale barcodes** (price / weight inside the barcode), **consignment** (goods sent on sale-or-return: what is out with whom, sold, returned) |
-| R9 Customers and online store | **Party groups**, **customer-specific prices**, **loyalty points**, **automatic payment reminders** (WhatsApp / SMS on a schedule), **online store** (catalogue link with prices, customer orders → bill), share catalogue, import phone contacts, email bills |
+| R9 Customers and online store (built) | **Party groups**, **customer-specific prices**, **loyalty points**, **automatic payment reminders** (WhatsApp / SMS on a schedule), **online store** (catalogue link with prices, customer orders → bill), share catalogue, import phone contacts, email bills |
 | R10 Government links and data | **E-invoice (IRN, QR)** and **e-way bill** through a GSP, **Tally import**, full **backup and restore** (Google Drive / file, one tap), field sales staff (visits with location, orders taken in the field), import from Vyapar backups |
 
 A line-by-line check of the Vyapar list (26 Nov 2026) found 8 lines no release had; they were
@@ -539,6 +539,32 @@ R8 decisions (defaults):
   kg get kg, items in g get grams; a price label gives price ÷ rate. Each scan is its own line.
 - Sale or return: goods leave stock on the challan; the bill for what sold doesn't take them out
   again; goods back are a stock entry tagged with the challan line, never more than is still out.
+
+#### Release 9 — customers and online store (built 27 Nov 2026, auto mode)
+
+| Step | Scope | Status |
+|---|---|---|
+| R9.1 Groups and prices | Customer and supplier groups (chips on the customer list); a customer's own price for chosen items, used before their type's price (owner only, enforced on the server) | Done |
+| R9.2 Loyalty (Q9) | Points on saved bills (named customers), membership levels by the last 12 months' spend with a points multiplier, returns take points back, points pay a bill (bill screen and counter); More → Loyalty points | Done |
+| R9.3 Reminders | Payment reminders on a schedule (first after due, then every N days, at most N times, above an amount): today's list with one-tap WhatsApp, morning phone alert | Done |
+| R9.4 Online store | Public page /s/<name> with the items marked "show online"; customers send orders (name, phone, address) that arrive as draft sales orders marked online; Home and Estimates show new online orders; share the link | Done |
+| R9.5 Price list, contacts | Share a price list (retail / wholesale / special, PDF or Excel); import customers from phone contacts (picker where the browser has one, else a .vcf file) | Done |
+| R9.6 Email | Email a bill's PDF from the app through the server (Resend, the key already used for the nightly backup) | Done (needs RESEND_API_KEY on Railway) |
+
+R9 decisions (defaults):
+- Loyalty: off until the owner turns it on. Default 1 point per ₹100, a point is worth ₹1, at least 50
+  points at a time; levels Silver (from ₹0), Gold (₹25,000 a year, 1.5×), Platinum (₹1,00,000, 2×).
+  Points are written on the bill when it is saved (rules changed later don't touch old bills); a
+  return takes back points at the base rate. Using points is a payment of mode "Loyalty points" (it
+  doesn't change the bill's GST); it never goes into the cash book or a bank. No expiry yet.
+- Reminders: WhatsApp can't send by itself from an app, so each reminder is one tap; SMS that sends by
+  itself waits for the store's DLT templates. A reminder needs the customer's mobile; a new overdue
+  spell starts the count again.
+- Online store: no online payment (the shop confirms by phone); prices are retail; only unit-priced
+  items; at most 60 lines and 10 orders per 10 minutes from one address; the page is plain HTML (fast
+  on any phone). The store name in the link is unique across ApnaGalla.
+- Email: the PDF is made on the phone and sent by the server from EXPORT_EMAIL_FROM; 30 emails an hour
+  per person. The button shows only when the server has email set up.
 
 #### Release 11 — features for particular kinds of shop (planned 26 Nov 2026)
 Found by asking what retailers need that neither ApnaGalla nor the Vyapar list has. Design-first.

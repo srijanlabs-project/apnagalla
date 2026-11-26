@@ -6,6 +6,7 @@ import { customerPrice, repriceLines } from './pricing';
 import { billMoney, ensureBusinessRecords, newCreditNoteDraft, newInvoiceDraft, putRecord, saveCreditNote, saveInvoice, settingsOf, type Actor } from './repo';
 import { DEFAULT_LOYALTY, pointsOf, redeemPoints } from './loyalty';
 import { markReminded, remindersDue } from './reminders';
+import { parseVcf, priceListTable } from './catalogShare';
 
 export const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 export const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Staff', role: 'staff', seriesCode: 'A' };
@@ -75,5 +76,30 @@ describe('R9.3 payment reminders', () => {
     due = await remindersDue('b1', st, '2026-01-18');
     expect(due[0]!.times).toBe(1);
     expect(await remindersDue('b1', { ...st, reminders: { enabled: false } }, '2026-01-18')).toHaveLength(0);
+  });
+});
+
+describe('R9.5 price list and contacts', () => {
+  it('reads Indian mobiles from a .vcf; a price list at the wholesale level', async () => {
+    const vcf = `BEGIN:VCARD
+VERSION:3.0
+FN:Ramesh Kumar
+TEL;TYPE=CELL:+91 98765-43210
+END:VCARD
+BEGIN:VCARD
+FN:Office
+TEL:022 2345 6789
+END:VCARD
+BEGIN:VCARD
+N:Shah;Neha;;;
+TEL:09812345678
+EMAIL:neha@example.com
+END:VCARD`;
+    expect(parseVcf(vcf)).toEqual([
+      { name: 'Ramesh Kumar', phone: '+919876543210' },
+      { name: 'Neha Shah', phone: '+919812345678', email: 'neha@example.com' },
+    ]);
+    const tbl = await priceListTable('b1', { level: 'wholesale', storeName: 'Test Co' });
+    expect(tbl.rows.map((r) => [r[1], r[3]])).toEqual([['Sugar 1kg', 4600], ['Tea 1kg', 42000]]);
   });
 });

@@ -22,9 +22,9 @@ import { jobAdvance, refundAdvance, releaseAdvance, stageLabel, takeAdvance } fr
 import DocPhotos from '../../components/DocPhotos';
 import { formatDateIN } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { cameraOutline, createOutline, documentOutline, ellipsisVertical, eyeOutline, logoWhatsapp, shareSocialOutline, walletOutline, printOutline, swapHorizontalOutline } from 'ionicons/icons';
+import { cameraOutline, createOutline, documentOutline, ellipsisVertical, eyeOutline, logoWhatsapp, mailOutline, printOutline, shareSocialOutline, swapHorizontalOutline, walletOutline } from 'ionicons/icons';
 import { printPdfFile, sendOnWhatsApp } from '../../lib/shopTools';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import PageShell from '../../components/PageShell';
 import PdfPreview from '../../components/PdfPreview';
@@ -58,6 +58,7 @@ import { markDelivered } from '../../lib/deliveries';
 import { usePrint } from '../../lib/usePrint';
 import { modeLabel, moneyOf } from '../../lib/ledger';
 import { DOC_BASE } from './DocEditorScreen';
+import { api } from '../../lib/api';
 import { orderProgress, orderStateLabel } from '../../lib/orders';
 import { consignmentProgress, takeBackConsignment } from '../../lib/consignment';
 import { loyaltyOf, pointsOf, redeemPoints } from '../../lib/loyalty';
@@ -124,6 +125,8 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   // The invoice link is placed wherever the language puts it in the sentence.
   const [againstBefore, againstAfter = ''] = note ? t('Against invoice {number} of {date}', { date: dateIN(note.invoiceDate) }).split('{number}') : ['', ''];
 
+  const [emailOn, setEmailOn] = useState(false);
+  useEffect(() => void api.features().then((f) => setEmailOn(!!f.email)).catch(() => setEmailOn(false)), []);
   const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : t('Something went wrong'), duration: 2500, color: 'danger' });
 
   async function makePdf() {
@@ -145,6 +148,42 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
     } finally {
       setBusy(null);
     }
+  }
+
+  /** Email the PDF from the store (the server sends it; needs the internet). */
+  function onEmail() {
+    void alert({
+      header: t('Email the PDF'),
+      inputs: [{ name: 'to', type: 'email', value: doc!.billTo?.email ?? '', placeholder: 'name@example.com' }],
+      buttons: [
+        { text: t('Cancel'), role: 'cancel' },
+        {
+          text: t('Send'),
+          handler: (v: { to: string }) => {
+            const to = v.to.trim();
+            if (!/^\S+@\S+\.\S+$/.test(to)) return false;
+            setBusy('mail');
+            void (async () => {
+              try {
+                const pdf = await makePdf();
+                await api.emailDoc(actor.businessId, {
+                  to,
+                  subject: `${profile.name}: ${view.title} ${doc!.number}`.slice(0, 160),
+                  body: t('Please find {title} {number} attached.\n\n{store}', { title: view.title, number: doc!.number, store: profile.name }),
+                  fileName: pdfFileName(kind, doc!).replace(/[^\w .()-]/g, '-'),
+                  pdfBase64: pdf.base64,
+                });
+                void toast({ message: t('Email sent to {to}', { to }), duration: 2000, position: 'top', color: 'success' });
+              } catch (e) {
+                fail(e);
+              } finally {
+                setBusy(null);
+              }
+            })();
+          },
+        },
+      ],
+    });
   }
 
   async function onPreview() {
@@ -423,6 +462,11 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
             <IonButton fill={doc.billTo?.phone ? 'outline' : 'solid'} onClick={() => void onShare()} disabled={!!busy}>
               {busy === 'share' ? <IonSpinner name="dots" /> : <IonIcon icon={shareSocialOutline} slot="start" />} {t('Share PDF')}
             </IonButton>
+            {emailOn && doc.status !== 'draft' && (
+              <IonButton fill="outline" onClick={onEmail} disabled={!!busy}>
+                {busy === 'mail' ? <IonSpinner name="dots" /> : <IonIcon icon={mailOutline} slot="start" />} {t('Email')}
+              </IonButton>
+            )}
             <IonButton fill="outline" onClick={() => void makePdf().then((pdf) => printPdfFile(pdfFileName(kind, doc), pdf.blob, `${view.title} ${doc.number}`)).catch(fail)} disabled={!!busy}>
               <IonIcon icon={documentOutline} slot="start" /> {t('Print A4')}
             </IonButton>

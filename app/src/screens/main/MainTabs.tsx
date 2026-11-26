@@ -1,5 +1,6 @@
 import RecycleBinScreen from './RecycleBinScreen';
 import RemindersScreen from '../customers/RemindersScreen';
+import ContactImportScreen from '../customers/ContactImportScreen';
 import LoyaltyScreen from '../settings/LoyaltyScreen';
 import OnlineStoreScreen from '../settings/OnlineStoreScreen';
 import DayEndGate from '../../components/DayEndGate';
@@ -82,6 +83,7 @@ export default function MainTabs() {
           <Route path="customers" element={<CustomersScreen />} />
           <Route path="customers/new" element={<CustomerEditScreen />} />
           <Route path="customers/reminders" element={<RemindersScreen />} />
+          <Route path="customers/import-contacts" element={<ContactImportScreen />} />
           <Route path="customers/:id" element={<CustomerDetailScreen />} />
           <Route path="customers/:id/edit" element={<CustomerEditScreen />} />
 

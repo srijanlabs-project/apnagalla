@@ -11,7 +11,7 @@ import { OnlineStoreService, onlineOrderBody } from './services/store';
 import { renderStorePage, storeNotFound } from './services/storePage';
 import { sql } from 'drizzle-orm';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
-import { ZodError, type ZodType } from 'zod';
+import { z, ZodError, type ZodType } from 'zod';
 import {
   CATALOG_SECTIONS,
   catalogAliasImportBody,
@@ -50,7 +50,7 @@ import type { Env } from './env';
 import { HttpError, badRequest, forbidden, tooMany, unauthorized } from './errors';
 import { ExportService } from './exports/exportService';
 import { BillingService } from './billing/billing';
-import { CLOUD_PROVIDERS, type CloudProvider } from './exports/delivery';
+import { CLOUD_PROVIDERS, emailReady, sendEmail, type CloudProvider } from './exports/delivery';
 import { ScanError, billScannerFromEnv, type BillScanner, type ScannedBill } from './scan/billScanner';
 import { AccountService } from './services/accounts';
 import { SyncService } from './services/sync';
@@ -424,7 +424,23 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
 
   /* ---------- bill scanning ---------- */
   const scanner = billScanner === undefined ? billScannerFromEnv(env) : billScanner;
-  app.get('/v1/features', authed, async () => ({ scanBill: !!scanner }));
+  app.get('/v1/features', authed, async () => ({ scanBill: !!scanner, email: emailReady(env) }));
+
+  /* ---------- R9 email a bill ---------- */
+  const emailDocBody = z.object({
+    to: z.string().trim().email().max(120),
+    subject: z.string().trim().min(1).max(160),
+    body: z.string().max(2000).default(''),
+    fileName: z.string().regex(/^[\w .()-]{1,100}\.pdf$/),
+    pdfBase64: z.string().min(10).max(7_000_000),
+  });
+  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/email-doc', { ...authed, bodyLimit: 8_000_000, config: { rateLimit: { max: 30, timeWindow: '1 hour' } } }, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId);
+    const b = parse(emailDocBody, req.body);
+    if (!emailReady(env)) throw badRequest('email_off', 'Email is not set up on the server yet');
+    await sendEmail(env, b.to, b.subject, b.body, { fileName: b.fileName, buffer: Buffer.from(b.pdfBase64, 'base64') });
+    return { sent: true };
+  });
 
   app.post<{ Params: BizParams; Body: { image?: string; mediaType?: string; kind?: string } }>(
     '/v1/businesses/:businessId/scan-bill',

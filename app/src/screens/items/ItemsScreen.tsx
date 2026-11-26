@@ -1,10 +1,13 @@
-import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar, IonThumbnail } from '@ionic/react';
+import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar, IonThumbnail, useIonActionSheet } from '@ionic/react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { add, alertCircleOutline, chevronBackOutline, cloudUploadOutline, cubeOutline, folderOpenOutline } from 'ionicons/icons';
+import { add, alertCircleOutline, chevronBackOutline, cloudUploadOutline, cubeOutline, folderOpenOutline, shareSocialOutline } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
+import { priceListTable } from '../../lib/catalogShare';
+import { shareTable } from '../../lib/exportTable';
+import { levelLabel } from '../../lib/pricing';
 import { db } from '../../lib/db';
 import { rupees } from '../../lib/format';
 import { t } from '../../lib/i18n';
@@ -12,7 +15,21 @@ import { flattenCategories, useCategories, withDescendants } from '../../lib/cat
 import { isLow, qtyText, stockLevels, tracksStock } from '../../lib/stock';
 
 export default function ItemsScreen() {
-  const { actor, isOwner } = useBusiness();
+  const { actor, isOwner, profile } = useBusiness();
+  const [sheet] = useIonActionSheet();
+  const sharePriceList = () =>
+    void sheet({
+      header: t('Share price list'),
+      buttons: [
+        ...(['retail', 'wholesale', 'special'] as const).flatMap((level) =>
+          (['pdf', 'excel'] as const).map((as) => ({
+            text: `${levelLabel(level)} · ${as === 'pdf' ? 'PDF' : 'Excel'}`,
+            handler: () => void priceListTable(actor.businessId, { level, storeName: profile.name }).then((tbl) => shareTable(actor.businessId, tbl, as)),
+          })),
+        ),
+        { text: t('Cancel'), role: 'cancel' },
+      ],
+    });
   const [q, setQ] = useState('');
   const [catId, setCatId] = useState<string | null>(null);
   const cats = useCategories(actor.businessId);
@@ -79,6 +96,9 @@ export default function ItemsScreen() {
               </IonButton>
               <IonButton size="small" fill="clear" routerLink="/tabs/items/import">
                 <IonIcon icon={cloudUploadOutline} slot="start" /> {t('Import')}
+              </IonButton>
+              <IonButton size="small" fill="clear" onClick={sharePriceList}>
+                <IonIcon icon={shareSocialOutline} slot="start" /> {t('Price list')}
               </IonButton>
               <IonButton size="small" fill="clear" routerLink="/tabs/items/offers">
                 {t('Offers')}

@@ -61,6 +61,9 @@ export default function CustomersScreen() {
       </div>
       {isOwner && (
         <div className="filter-chips">
+          <IonButton size="small" fill="clear" routerLink="/tabs/customers/import-contacts">
+            <IonIcon icon={peopleOutline} slot="start" /> {t('From phone contacts')}
+          </IonButton>
           <IonButton size="small" fill="clear" routerLink="/tabs/items/import?kind=customers">
             <IonIcon icon={cloudUploadOutline} slot="start" /> {t('Import from Excel')}
           </IonButton>
