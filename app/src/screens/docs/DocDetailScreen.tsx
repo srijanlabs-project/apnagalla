@@ -58,6 +58,7 @@ import { markDelivered } from '../../lib/deliveries';
 import { usePrint } from '../../lib/usePrint';
 import { modeLabel, moneyOf } from '../../lib/ledger';
 import { DOC_BASE } from './DocEditorScreen';
+import EInvoicePanel from '../../components/EInvoicePanel';
 import { api } from '../../lib/api';
 import { orderProgress, orderStateLabel } from '../../lib/orders';
 import { consignmentProgress, takeBackConsignment } from '../../lib/consignment';
@@ -620,6 +621,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
         </IonCardContent>
       </IonCard>
 
+      {inv && isOwner && CAN_CREATE_INVOICES && <EInvoicePanel inv={inv} />}
       {preview && <PdfPreview blob={preview} />}
       {receipt && (
         <div className="receipt-preview" onClick={() => setReceipt(null)}>

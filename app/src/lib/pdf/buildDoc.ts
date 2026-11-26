@@ -138,6 +138,16 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
         stack: [
           { text: title, style: 'title', color: theme.titleColor, alignment: 'right' },
           ...(view.declaration ? [{ text: view.declaration, fontSize: base - 2, color: theme.headerText, alignment: 'right' as const, margin: [0, 1, 0, 0] as [number, number, number, number] }] : []),
+          ...(kind === 'invoice' && (doc as { einvoice?: { irn: string; ackNo: string; ackDate: string; qr: string; cancelledAt?: string } | null }).einvoice && !(doc as { einvoice?: { cancelledAt?: string } }).einvoice!.cancelledAt
+            ? (() => {
+                const e = (doc as unknown as { einvoice: { irn: string; ackNo: string; ackDate: string; qr: string } }).einvoice;
+                return [
+                  ...(e.qr ? [{ qr: e.qr, fit: a5 ? 80 : 100, eccLevel: 'L' as const, alignment: 'right' as const, margin: [0, 2, 0, 2] as [number, number, number, number] }] : []),
+                  { text: `IRN: ${e.irn}`, fontSize: base - 3, color: theme.headerText, alignment: 'right' as const },
+                  { text: `Ack No: ${e.ackNo}  ·  Ack Date: ${e.ackDate}`, fontSize: base - 3, color: theme.headerText, alignment: 'right' as const },
+                ];
+              })()
+            : []),
           ...(statusStamp ? [{ text: statusStamp, color: '#d9480f', bold: true, alignment: 'right' as const, margin: [0, 2, 0, 4] as [number, number, number, number] }] : []),
           {
             table: { body: metaRows.map(([k, v]) => [{ text: k, color: theme.headerText, opacity: 0.8 }, { text: v, bold: true, color: theme.headerText, alignment: 'right' }]) },

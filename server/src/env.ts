@@ -48,6 +48,12 @@ const schema = z.object({
   SCAN_PER_DAY: z.coerce.number().int().positive().default(100),
   /** Nightly Excel. Email through Resend; cloud folders through each provider's OAuth app. */
   RESEND_API_KEY: z.string().optional().transform((v) => (v ? v : undefined)),
+  // R10 e-invoice through the store's GST provider (GSP); off until EINVOICE_API_URL is set.
+  EINVOICE_API_URL: z.string().optional().transform((v) => (v ? v : undefined)),
+  EINVOICE_CLIENT_ID: z.string().optional().transform((v) => (v ? v : undefined)),
+  EINVOICE_CLIENT_SECRET: z.string().optional().transform((v) => (v ? v : undefined)),
+  EINVOICE_USERNAME: z.string().optional().transform((v) => (v ? v : undefined)),
+  EINVOICE_PASSWORD: z.string().optional().transform((v) => (v ? v : undefined)),
   EXPORT_EMAIL_FROM: z.string().default('ApnaGalla <reports@apnagalla.in>'),
   GOOGLE_CLIENT_ID: z.string().optional().transform((v) => (v ? v : undefined)),
   GOOGLE_CLIENT_SECRET: z.string().optional().transform((v) => (v ? v : undefined)),

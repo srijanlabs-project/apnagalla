@@ -374,6 +374,8 @@ export interface Invoice extends DocBase {
   fromEstimateId?: string | null;
   /** A counter bill put on hold (draft) while the next customer is served. */
   held?: boolean;
+  /** R10: e-invoice from the IRP (printed with its signed QR). */
+  einvoice?: { irn: string; ackNo: string; ackDate: string; qr: string; cancelledAt?: string } | null;
   /** Legacy (R1.3): credit notes are now added up from the creditNotes table. */
   credited?: number;
 }

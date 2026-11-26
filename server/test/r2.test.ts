@@ -11,6 +11,7 @@ import { buildDailyExcel } from '../src/exports/dailyExcel';
 import { seal, unseal } from '../src/exports/delivery';
 import { ExportService, indiaNow } from '../src/exports/exportService';
 import type { BillScanner, ScannedBill } from '../src/scan/billScanner';
+import { GenericGspProvider } from '../src/gst/einvoice';
 import type { OtpSender } from '../src/sms';
 
 class FakeSender implements OtpSender {
@@ -186,3 +187,28 @@ describe('staff permissions', () => {
   });
 });
 
+
+describe('R10 e-invoice', () => {
+  it('is off without GSP details; the GSP adapter reads the IRN from its answer', async () => {
+    const owner = await login('9870310930');
+    const oH = bearer(owner.accessToken);
+    const biz = (await app.inject({ method: 'POST', url: '/v1/businesses', headers: oH, payload: { name: 'E Store' } })).json<{ id: string }>();
+    expect((await app.inject({ method: 'GET', url: '/v1/features', headers: oH })).json()).toMatchObject({ eInvoice: false });
+    const off = await app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/einvoice`, headers: oH, payload: { gstin: '27AAPFU0939F1ZV', payload: { Version: '1.1' } } });
+    expect(off.statusCode).toBe(400);
+    expect(off.json()).toMatchObject({ error: 'einvoice_off' });
+
+    const calls: { url: string; headers: Record<string, string> }[] = [];
+    vi.stubGlobal('fetch', async (url: string, init: { headers: Record<string, string> }) => {
+      calls.push({ url, headers: init.headers });
+      return new Response(JSON.stringify({ status: 1, data: { AckNo: 112010000123, AckDt: '2026-11-20 12:00:00', Irn: 'a'.repeat(64), SignedQRCode: 'eyJ...' } }), { status: 200 });
+    });
+    const gsp = new GenericGspProvider({ EINVOICE_API_URL: 'https://gsp.example/api/', EINVOICE_CLIENT_ID: 'cid', EINVOICE_USERNAME: 'u', EINVOICE_PASSWORD: 'p' });
+    const r = await gsp.generate('27AAPFU0939F1ZV', { Version: '1.1' });
+    expect(r).toEqual({ irn: 'a'.repeat(64), ackNo: '112010000123', ackDate: '2026-11-20 12:00:00', signedQr: 'eyJ...' });
+    expect(calls[0]!.url).toBe('https://gsp.example/api/einvoice/generate');
+    expect(calls[0]!.headers).toMatchObject({ gstin: '27AAPFU0939F1ZV', client_id: 'cid' });
+    vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ status: 0, ErrorDetails: [], message: 'Duplicate IRN' }), { status: 200 }));
+    await expect(gsp.generate('27AAPFU0939F1ZV', {})).rejects.toThrow('Duplicate IRN');
+  });
+});

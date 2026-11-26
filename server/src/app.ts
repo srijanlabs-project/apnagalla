@@ -8,6 +8,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import { OnlineStoreService, onlineOrderBody } from './services/store';
+import { eInvoiceProviderFromEnv, type EInvoiceProvider } from './gst/einvoice';
 import { renderStorePage, storeNotFound } from './services/storePage';
 import { and, desc, eq, lt, sql } from 'drizzle-orm';
 import { auditLog, users } from './db/schema';
@@ -86,6 +87,8 @@ export interface BuildAppOptions {
   gstProvider?: GstProvider | null;
   /** Tests inject a fake bill scanner. */
   billScanner?: BillScanner | null;
+  /** R10: e-invoice provider (tests pass a fake; null = off; undefined = from env). */
+  eInvoiceProvider?: EInvoiceProvider | null;
   logger?: boolean;
 }
 
@@ -95,7 +98,7 @@ function appVersionOf(req: { headers: Record<string, string | string[] | undefin
   return typeof v === 'string' && /^[\w.-]{1,40}$/.test(v) ? v : null;
 }
 
-export async function buildApp({ env, database, otpSender, gstProvider, billScanner, logger = true }: BuildAppOptions): Promise<FastifyInstance> {
+export async function buildApp({ env, database, otpSender, gstProvider, billScanner, eInvoiceProvider, logger = true }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger ? { redact: ['req.headers.authorization'] } : false,
     trustProxy: true, // Railway sits behind a proxy; needed for the real client IP
@@ -439,7 +442,33 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
 
   /* ---------- bill scanning ---------- */
   const scanner = billScanner === undefined ? billScannerFromEnv(env) : billScanner;
-  app.get('/v1/features', authed, async () => ({ scanBill: !!scanner, email: emailReady(env) }));
+  const eInvoice = eInvoiceProvider === undefined ? eInvoiceProviderFromEnv(env) : eInvoiceProvider;
+  app.get('/v1/features', authed, async () => ({ scanBill: !!scanner, email: emailReady(env), eInvoice: !!eInvoice }));
+
+  /* ---------- R10 e-invoice (owner) ---------- */
+  const eInvoiceBody = z.object({ gstin: z.string().regex(/^\d{2}[A-Z0-9]{13}$/), payload: z.record(z.string(), z.unknown()) });
+  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/einvoice', { ...authed, config: { rateLimit: { max: 60, timeWindow: '1 hour' } } }, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
+    if (!eInvoice) throw badRequest('einvoice_off', 'E-invoicing is not set up yet (the store’s GST provider details are needed)');
+    const b = parse(eInvoiceBody, req.body);
+    try {
+      return await eInvoice.generate(b.gstin, b.payload);
+    } catch (e) {
+      throw badRequest('einvoice_failed', (e as Error).message);
+    }
+  });
+  const eInvoiceCancelBody = z.object({ gstin: z.string().regex(/^\d{2}[A-Z0-9]{13}$/), irn: z.string().min(10).max(80), reason: z.enum(['1', '2', '3', '4']), remark: z.string().max(100).default('') });
+  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/einvoice/cancel', authed, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
+    if (!eInvoice) throw badRequest('einvoice_off', 'E-invoicing is not set up yet');
+    const b = parse(eInvoiceCancelBody, req.body);
+    try {
+      await eInvoice.cancel(b.gstin, b.irn, b.reason, b.remark);
+      return { cancelled: true };
+    } catch (e) {
+      throw badRequest('einvoice_failed', (e as Error).message);
+    }
+  });
 
   /* ---------- R9 email a bill ---------- */
   const emailDocBody = z.object({
