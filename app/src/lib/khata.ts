@@ -27,8 +27,10 @@ export interface Khata {
   rows: KhataRow[];
   /** What the customer owes now (negative = we hold their money). */
   balance: number;
-  /** Money on account not yet used on a bill. */
+  /** Money on account not yet used on a bill (not counting advances held for estimates). */
   advance: number;
+  /** Advances taken on this customer's estimates, kept for those estimates' bills only. */
+  held: number;
   /** Saved bills with something still to pay, oldest first. */
   pendingBills: { invoice: Invoice; pending: number }[];
   openingLeft: number;
@@ -49,12 +51,17 @@ async function customerData(businessId: string, customerId: string) {
 
 /** On-account money: paid in less given back (voided entries left out). */
 const onAccountNet = (pays: PaymentEntry[]) => pays.filter((p) => !p.invoiceId && !p.voidedAt).reduce((a, p) => a + (p.kind === 'refund' ? -p.amount : p.amount), 0);
+/** Of that, what is held for estimates (entries tagged with an estimate). */
+const heldNet = (pays: PaymentEntry[]) => onAccountNet(pays.filter((p) => !!p.jobId));
 
 export async function khataOf(businessId: string, customer: Customer): Promise<Khata> {
   const { invoices, notes, pays } = await customerData(businessId, customer.id);
   const ledger = buildLedger(pays, notes);
   const opening = customer.openingBalance ?? 0;
-  const acct = onAccountNet(pays);
+  const held = Math.max(0, heldNet(pays));
+  // An estimate's advance is only for that estimate's bill: it doesn't settle the opening balance
+  // and "Use advance" on another bill can't take it.
+  const acct = onAccountNet(pays) - held;
   const rows: Omit<KhataRow, 'balance'>[] = [];
   for (const inv of invoices) rows.push({ date: inv.date, label: t('Bill {number}', { number: inv.number }), amount: inv.totals.grandTotal, href: `/tabs/invoices/${inv.id}` });
   for (const n of notes) rows.push({ date: n.date, label: t('Return {number}', { number: n.number }), amount: -n.totals.grandTotal, href: `/tabs/credit-notes/${n.id}` });
@@ -75,7 +82,7 @@ export async function khataOf(businessId: string, customer: Customer): Promise<K
     .map((invoice) => ({ invoice, pending: moneyOf(invoice, ledger).pending }))
     .filter((b) => b.pending > 0)
     .sort((a, b) => byDate(a.invoice, b.invoice));
-  return { rows: out, balance, advance: Math.max(0, acct - opening), pendingBills, openingLeft: Math.max(0, opening - acct) };
+  return { rows: out, balance, advance: Math.max(0, acct - opening), held, pendingBills, openingLeft: Math.max(0, opening - acct) };
 }
 
 /**
@@ -114,11 +121,17 @@ export async function receiveKhataPayment(actor: Actor, customer: Customer, inpu
   return out;
 }
 
-/** Pays a bill from the customer's advance (two entries: out of the account, onto the bill). */
+/**
+ * Pays a bill from the customer's advance (two entries: out of the account, onto the bill). With
+ * `jobId`, from that estimate's advance, and only onto the bill made from that estimate.
+ */
 export async function applyAdvance(actor: Actor, customer: Customer, invoice: Invoice, amount: number, jobId?: string): Promise<void> {
   const k = await khataOf(actor.businessId, customer);
   const pending = k.pendingBills.find((b) => b.invoice.id === invoice.id)?.pending ?? 0;
-  const amt = Math.min(amount, k.advance, pending);
+  if (jobId && invoice.fromEstimateId !== jobId) throw new Error(t("An estimate's advance can only pay the bill made from that estimate"));
+  const pays = jobId ? await db.payments.where('businessId').equals(actor.businessId).filter((p) => p.jobId === jobId && !p.voidedAt && !p.deleted).toArray() : [];
+  const available = jobId ? pays.reduce((a, p) => a + (p.kind === 'refund' ? -p.amount : p.amount), 0) : k.advance;
+  const amt = Math.min(amount, available, pending);
   if (amt <= 0) return;
   const receiptId = newId();
   const base = { mode: 'advance' as const, date: todayISO(), receivedBy: actor.userId, receivedByName: actor.userName, customerId: customer.id, receiptId };

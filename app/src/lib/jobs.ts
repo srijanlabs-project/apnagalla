@@ -3,9 +3,9 @@ import type { CashMode } from '../components/MoneyEntrySheet';
 import { db, type Customer, type Estimate, type Invoice, type JobInfo, type JobStage, type PaymentEntry, type RepairStage, type WorkStage } from './db';
 import type { ExportTable } from './exportTable';
 import { t } from './i18n';
-import { applyAdvance, khataOf } from './khata';
+import { applyAdvance } from './khata';
 import { moneyOf, buildLedger } from './ledger';
-import { newEstimateDraft, newId, putRecord, saveEstimate, type Actor } from './repo';
+import { newEstimateDraft, newId, PermissionError, putRecord, saveEstimate, type Actor } from './repo';
 
 /**
  * Jobs: work orders (painting, carpentry, flex, acrylic) and repairs (phones, electronics). A job is
@@ -109,7 +109,7 @@ export async function settleJobAdvance(actor: Actor, invoice: Invoice): Promise<
   const pending = moneyOf(invoice, buildLedger(before, notes)).pending;
   const customer = invoice.billTo?.customerId ? await db.customers.get(invoice.billTo.customerId) : undefined;
   if (customer) {
-    const amount = Math.min(left, pending, (await khataOf(actor.businessId, customer)).advance);
+    const amount = Math.min(left, pending);
     if (amount <= 0) return 0;
     await applyAdvance(actor, customer, invoice, amount, invoice.fromEstimateId);
     return amount;
@@ -121,6 +121,22 @@ export async function settleJobAdvance(actor: Actor, invoice: Invoice): Promise<
   await putRecord('payments', actor, { id: newId(), ...base, kind: 'refund', invoiceId: '', note: t('Used on bill {number}', { number: invoice.number }) } as PaymentEntry);
   // Only the money leaving the estimate is tagged with it; the bill's payment isn't.
   await putRecord('payments', actor, { id: newId(), ...base, jobId: null, kind: 'payment', invoiceId: invoice.id } as PaymentEntry);
+  return amount;
+}
+
+/**
+ * The estimate won't become a bill but the customer leaves the money with the store: the owner
+ * moves the estimate's advance to the customer's general advance (usable on any of their bills).
+ */
+export async function releaseAdvance(actor: Actor, est: Estimate): Promise<number> {
+  if (actor.role !== 'owner') throw new PermissionError(t('Only the owner can do this'));
+  const customerId = est.billTo?.customerId;
+  if (!customerId) throw new Error(t('This estimate has no customer'));
+  const amount = await jobAdvance(actor.businessId, est.id);
+  if (amount <= 0) return 0;
+  const base = { mode: 'advance' as const, date: todayISO(), receivedBy: actor.userId, receivedByName: actor.userName, customerId, receiptId: newId(), amount, invoiceId: '' };
+  await putRecord('payments', actor, { id: newId(), ...base, jobId: est.id, kind: 'refund', note: t("Moved to the customer's advance") } as PaymentEntry);
+  await putRecord('payments', actor, { id: newId(), ...base, jobId: null, kind: 'payment', note: t('Advance from {number}', { number: est.number }) } as PaymentEntry);
   return amount;
 }
 

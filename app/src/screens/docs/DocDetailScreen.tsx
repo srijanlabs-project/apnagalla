@@ -18,7 +18,7 @@ import {
 import CreditPaySheet from '../../components/CreditPaySheet';
 import MoneyEntrySheet from '../../components/MoneyEntrySheet';
 import { keepAsCredit, payWithCredit, settlementOf } from '../../lib/credit';
-import { jobAdvance, refundAdvance, stageLabel, takeAdvance } from '../../lib/jobs';
+import { jobAdvance, refundAdvance, releaseAdvance, stageLabel, takeAdvance } from '../../lib/jobs';
 import DocPhotos from '../../components/DocPhotos';
 import { formatDateIN } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -305,7 +305,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
               {settlement.state === 'refunded' ? t('Refunded to the customer') : t('Kept as credit · {amount} left to use', { amount: rupees(settlement.left) })}
             </p>
           )}
-          {est && (estAdvance ?? 0) > 0 && <p className="text-success">{t('Advance received: {amount} (used on the bill)', { amount: rupees(estAdvance ?? 0) })}</p>}
+          {est && (estAdvance ?? 0) > 0 && <p className="text-success">{t("Advance received: {amount}, kept for this estimate's bill only", { amount: rupees(estAdvance ?? 0) })}</p>}
           {refundDue > 0 && (
             <p className="text-danger">
               {note
@@ -418,6 +418,18 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
             {est && (estAdvance ?? 0) > 0 && est.status !== 'converted' && (
               <IonButton fill="clear" color="danger" onClick={() => setAdvanceOpen('refund')}>
                 {t('Return advance')}
+              </IonButton>
+            )}
+            {est && (estAdvance ?? 0) > 0 && est.status !== 'converted' && isOwner && est.billTo?.customerId && (
+              <IonButton
+                fill="clear"
+                onClick={() =>
+                  void releaseAdvance(actor, est)
+                    .then((a) => void (a > 0 && toast({ message: t("Moved to the customer's advance"), duration: 1800, position: 'top', color: 'success' })))
+                    .catch(fail)
+                }
+              >
+                {t("Move to customer's advance")}
               </IonButton>
             )}
             {inv && pending > 0 && (

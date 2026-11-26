@@ -88,6 +88,12 @@ export default function CustomerDetailScreen() {
             <strong className="text-success">{rupees(khata.advance)}</strong>
           </div>
         )}
+        {khata.held > 0 && (
+          <div className="mini-stat">
+            <span>{t('Held for estimates')}</span>
+            <strong className="text-success">{rupees(khata.held)}</strong>
+          </div>
+        )}
         {c.creditLimit ? (
           <div className="mini-stat">
             <span>{t('Credit limit')}</span>
