@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { supplierDues } from './purchases';
 import { todayISO } from '@invoice/shared';
 import { db } from './db';
 import { rupees } from './format';
@@ -29,7 +30,7 @@ export const DEFAULT_ALERTS: AlertSettings = { lowStock: true, overdue: true, su
 
 /** Shop alerts use ids below this; delivery alerts are above it. */
 export const SHOP_ALERT_MAX_ID = 0x10000;
-const ID = { lowStock: 101, overdue: 102, summary: 103 };
+const ID = { lowStock: 101, overdue: 102, summary: 103, supplierDue: 104 };
 
 export async function loadAlertSettings(): Promise<AlertSettings> {
   return { ...DEFAULT_ALERTS, ...((await kv.get<Partial<AlertSettings>>(KEYS.alerts)) ?? {}) };
@@ -55,7 +56,7 @@ export interface ShopAlert {
 }
 
 /** What to tell this person (the owner, or staff who see reports). */
-export async function shopAlerts(actor: Actor, s: AlertSettings, opts: { canSeeMoney: boolean; storeName: string; now?: Date }): Promise<ShopAlert[]> {
+export async function shopAlerts(actor: Actor, s: AlertSettings, opts: { canSeeMoney: boolean; canSeePurchases?: boolean; storeName: string; now?: Date }): Promise<ShopAlert[]> {
   const now = opts.now ?? new Date();
   const out: ShopAlert[] = [];
   const prefix = opts.storeName ? `${opts.storeName}: ` : '';
@@ -83,6 +84,22 @@ export async function shopAlerts(actor: Actor, s: AlertSettings, opts: { canSeeM
       });
     }
   }
+  if (s.overdue && opts.canSeeMoney && opts.canSeePurchases !== false) {
+    const at = nextAt(s.morning, now);
+    // Bills to pay by the day the alert rings (or earlier and still unpaid).
+    const due = (await supplierDues(actor.businessId, todayISO(at))).filter((d) => d.daysLate >= 0);
+    if (due.length) {
+      out.push({
+        id: ID.supplierDue,
+        title: prefix + t('Pay suppliers: {amount} due on {count} bills', { amount: rupees(due.reduce((a, d) => a + d.unpaid, 0)), count: due.length }),
+        body: due
+          .slice(0, 3)
+          .map((d) => `${d.supplierName} ${rupees(d.unpaid)}`)
+          .join(', '),
+        at,
+      });
+    }
+  }
   if (s.summary && opts.canSeeMoney) {
     const at = nextAt(s.closing, now);
     const forToday = todayISO(at) === todayISO(now);
@@ -104,7 +121,7 @@ export async function shopAlerts(actor: Actor, s: AlertSettings, opts: { canSeeM
 let asked = false;
 
 /** (Re)schedules the shop alerts. Android app only; never throws. */
-export async function scheduleShopAlerts(actor: Actor, opts: { canSeeMoney: boolean; storeName: string }): Promise<void> {
+export async function scheduleShopAlerts(actor: Actor, opts: { canSeeMoney: boolean; canSeePurchases?: boolean; storeName: string }): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
   try {
     const { LocalNotifications } = await import('@capacitor/local-notifications');

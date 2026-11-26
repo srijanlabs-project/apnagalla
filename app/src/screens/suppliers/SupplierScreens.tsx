@@ -5,7 +5,7 @@ import { add, callOutline, cartOutline, cashOutline, clipboardOutline, createOut
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState';
-import { AddressFields, FormSection, MoneyField, TextArea, TextField } from '../../components/Fields';
+import { AddressFields, FormSection, MoneyField, NumberField, TextArea, TextField } from '../../components/Fields';
 import FormPage from '../../components/FormPage';
 import GstinCheck from '../../components/GstinCheck';
 import MoneyEntrySheet from '../../components/MoneyEntrySheet';
@@ -157,6 +157,7 @@ export function SupplierEditScreen() {
       </FormSection>
       <FormSection title={t('Opening balance')} note={t('What you already owed this supplier before using ApnaGalla.')}>
         <MoneyField label={t('Amount you owe')} value={s.openingBalance || null} onChange={(v) => patch({ openingBalance: v ?? 0 })} disabled={!isNew && !isOwner} />
+        <NumberField label={t('Credit days')} value={s.creditDays ?? null} onChange={(n) => patch({ creditDays: n && n > 0 ? Math.round(n) : undefined })} min={0} helper={t('Bills from this supplier are due this many days after the bill date.')} />
         <TextArea label={t('Notes')} value={s.notes} onChange={(notes) => patch({ notes })} />
       </FormSection>
       {!isNew && perms.deleteRecords && (

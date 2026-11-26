@@ -55,7 +55,8 @@ export type ReportId =
   | 'pendingOrders'
   | 'orderItems'
   | 'expiry'
-  | 'godownStock';
+  | 'godownStock'
+  | 'supplierDues';
 
 const inRange = (d: string, p: Period) => d >= p.from && d <= p.to;
 const periodText = (p: Period) => {
@@ -572,6 +573,20 @@ async function payablesReport(ctx: ReportContext): Promise<ExportTable> {
   };
 }
 
+async function supplierDuesReport(ctx: ReportContext): Promise<ExportTable> {
+  const { supplierDues } = await import('./purchases');
+  const dues = await supplierDues(ctx.businessId);
+  const rows = dues.map((d) => [d.dueDate, d.supplierName, d.purchase.supplierBillNo || '—', d.purchase.date, d.daysLate > 0 ? t('{n} days late', { n: d.daysLate }) : d.daysLate === 0 ? t('Today') : t('In {n} days', { n: -d.daysLate }), d.unpaid] as CellValue[]);
+  return {
+    title: t('Bills to pay'),
+    subtitle: [t('As on {date}', { date: periodText({ from: todayISO(), to: todayISO() }) })],
+    columns: [{ label: t('Pay by'), kind: 'date' }, { label: t('Supplier') }, { label: t('Bill no.') }, { label: t('Bill date'), kind: 'date' }, { label: t('When') }, { label: t('Unpaid'), kind: 'money' }],
+    rows,
+    foot: [[t('Total'), '', '', '', '', sum(rows, 5)]],
+    fileBase: 'Bills-to-pay',
+  };
+}
+
 /* ---------- R6: money reports ---------- */
 
 async function incomesIn(ctx: ReportContext) {
@@ -761,6 +776,7 @@ export const REPORTS: ReportInfo[] = [
   { id: 'dayBook', title: () => t('Day book'), group: 'money', period: true, ownerOnly: true, run: dayBook },
   { id: 'receivables', title: () => t('To collect from customers'), group: 'money', period: false, run: receivablesReport },
   { id: 'payables', title: () => t('To pay suppliers'), group: 'money', period: false, cost: true, run: payablesReport },
+  { id: 'supplierDues', title: () => t('Bills to pay (by due date)'), group: 'money', period: false, cost: true, run: supplierDuesReport },
   { id: 'staff', title: () => t('Staff-wise sales'), group: 'people', period: true, ownerOnly: true, run: staff },
   { id: 'stores', title: () => t('Store-wise sales'), group: 'people', period: true, ownerOnly: true, run: stores },
 ];

@@ -172,6 +172,57 @@ const entry = (actor: Actor, action: string, detail?: string): HistoryEntry => (
 const unitCost = (l: PurchaseLine) => Math.round((l.rateIncludesTax && l.taxPct ? l.rate / (1 + l.taxPct / 100) : l.rate) / (l.unitFactor ?? 1));
 
 /**
+ * Landed cost per base unit: the line's cost before tax plus its share of the bill's charges
+ * (freight, loading…), shared by value. With `spreadCharges` off, or no charges, the plain cost.
+ */
+export function landedCosts(p: Pick<Purchase, 'lines' | 'charges' | 'spreadCharges' | 'taxMode' | 'interState' | 'overallDiscount' | 'roundOff'>): number[] {
+  const charges = (p.charges ?? []).reduce((a, c) => a + (c.amount || 0), 0);
+  if (!charges || p.spreadCharges === false) return p.lines.map(unitCost);
+  const totals = purchaseTotals(p as Purchase);
+  const taxable = p.lines.map((l, i) => totals.lines[i]?.taxable ?? Math.round(unitCost(l) * l.qty * (l.unitFactor ?? 1)));
+  const all = taxable.reduce((a, v) => a + v, 0) || 1;
+  return p.lines.map((l, i) => {
+    const units = l.qty * (l.unitFactor ?? 1);
+    return units > 0 ? Math.round((taxable[i]! + (charges * taxable[i]!) / all) / units) : unitCost(l);
+  });
+}
+
+export interface SupplierDue {
+  purchase: Purchase;
+  supplierName: string;
+  /** What is still unpaid on this bill (supplier payments settle the opening balance, then the oldest bills). */
+  unpaid: number;
+  dueDate: string;
+  daysLate: number;
+}
+
+/** Purchase bills with a pay-by date and money still unpaid, the most urgent first. */
+export async function supplierDues(businessId: string, today = todayISO()): Promise<SupplierDue[]> {
+  const [suppliers, purchases, pays] = await Promise.all([
+    db.suppliers.where('businessId').equals(businessId).filter((s) => !s.deleted).toArray(),
+    db.purchases.where('businessId').equals(businessId).filter((p) => p.status === 'saved' && !p.deleted).toArray(),
+    db.supplierPayments.where('businessId').equals(businessId).filter((p) => !p.voidedAt && !p.deleted).toArray(),
+  ]);
+  const out: SupplierDue[] = [];
+  for (const s of suppliers) {
+    const mine = purchases.filter((p) => p.supplier?.supplierId === s.id);
+    let credit = pays.filter((p) => p.supplierId === s.id).reduce((a, p) => a + (p.kind === 'refund' ? -p.amount : p.amount), 0);
+    credit += mine.filter((p) => p.kind === 'return').reduce((a, p) => a + p.totals.grandTotal, 0);
+    credit -= Math.max(0, s.openingBalance ?? 0);
+    for (const p of mine.filter((x) => x.kind === 'bill').sort((a, b) => a.date.localeCompare(b.date))) {
+      const used = Math.max(0, Math.min(credit, p.totals.grandTotal));
+      credit -= used;
+      const unpaid = p.totals.grandTotal - used;
+      if (unpaid > 0 && p.dueDate) {
+        const late = Math.round((new Date(`${today}T00:00:00`).getTime() - new Date(`${p.dueDate}T00:00:00`).getTime()) / 86_400_000);
+        out.push({ purchase: p, supplierName: s.name, unpaid, dueDate: p.dueDate, daysLate: late });
+      }
+    }
+  }
+  return out.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
+/**
  * Saves a purchase. On first save of a bill: lines for things not in the catalogue become new items
  * (so their stock counts), items get this bill's cost / MRP / selling price when asked, and the
  * purchase order it came from is marked received.
@@ -183,6 +234,7 @@ export async function savePurchase(actor: Actor, p: Purchase, opts: { finalize: 
   const finalizing = opts.finalize && (!existing || existing.status === 'draft');
   let lines = p.lines.filter((l) => l.name.trim() && l.qty > 0);
 
+  const landed = landedCosts({ ...p, lines });
   if (finalizing && p.kind === 'bill') {
     const out: PurchaseLine[] = [];
     for (const l of lines) {
@@ -200,7 +252,7 @@ export async function savePurchase(actor: Actor, p: Purchase, opts: { finalize: 
         taxPct: l.taxPct,
         hsn: l.hsn,
         mrp: l.mrp,
-        purchasePrice: unitCost(l),
+        purchasePrice: landed[lines.indexOf(l)] ?? unitCost(l),
         supplierId: p.supplier?.supplierId ?? null,
       } as Item);
       out.push({ ...l, itemId: item.id });
@@ -223,7 +275,7 @@ export async function savePurchase(actor: Actor, p: Purchase, opts: { finalize: 
         const item = l.itemId ? await db.items.get(l.itemId) : undefined;
         if (!item || item.deleted) continue;
         const patch: Partial<Item> = {};
-        const cost = unitCost(l);
+        const cost = landed[lines.indexOf(l)] ?? unitCost(l);
         if (cost > 0 && cost !== item.purchasePrice) patch.purchasePrice = cost;
         // MRP and selling price are per the line's unit; the item keeps them per base unit.
         const per = (v: number) => Math.round(v / (l.unitFactor ?? 1));

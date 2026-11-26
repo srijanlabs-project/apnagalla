@@ -481,6 +481,8 @@ export interface Supplier extends SyncedRecord {
   /** What the store already owed this supplier before using the app (paise). */
   openingBalance: number;
   notes?: string;
+  /** R8: usual credit days; a new purchase bill's "pay by" date follows it. */
+  creditDays?: number;
 }
 
 export interface SupplierSnapshot {
@@ -524,6 +526,8 @@ export interface Purchase extends SyncedRecord {
   supplierBillNo: string;
   date: string;
   dueDate?: string | null;
+  /** R8: add freight, loading and other charges on this bill into the items' cost (default yes). */
+  spreadCharges?: boolean;
   /** gst = bill with GST (input tax credit); none = without GST. */
   taxMode: TaxMode;
   /** Supplier's state is another state → IGST. */

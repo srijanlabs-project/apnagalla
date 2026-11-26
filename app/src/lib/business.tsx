@@ -134,12 +134,13 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     [businessId],
   );
   const canSeeMoney = !!value && (value.isOwner || value.perms.viewReports) && value.perms.access !== 'warehouse';
+  const canSeePurchases = !!value && (value.isOwner || value.perms.seeCost);
   const storeName = value?.profile.name ?? '';
   useEffect(() => {
     if (!actor || shopKey === undefined) return;
-    const timer = setTimeout(() => void scheduleShopAlerts(actor, { canSeeMoney, storeName }), 4000);
+    const timer = setTimeout(() => void scheduleShopAlerts(actor, { canSeeMoney, canSeePurchases, storeName }), 4000);
     return () => clearTimeout(timer);
-  }, [actor, shopKey, canSeeMoney, storeName]);
+  }, [actor, shopKey, canSeeMoney, canSeePurchases, storeName]);
 
   // Shared product list: download the store's sections (then changes only, every few hours).
   const sectionsKey = value?.settings.catalogSections?.join(',') ?? '';

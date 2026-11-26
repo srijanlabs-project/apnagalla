@@ -19,7 +19,7 @@ import {
   useIonToast,
 } from '@ionic/react';
 import { addOrMerge } from '../../lib/mergeLines';
-import { todayISO } from '@invoice/shared';
+import { addDaysISO, todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { add, addOutline, cartOutline, cashOutline, clipboardOutline, closeCircleOutline, createOutline, returnDownBackOutline, scanOutline, shareSocialOutline, trashOutline } from 'ionicons/icons';
 import { useEffect, useMemo, useState } from 'react';
@@ -290,7 +290,7 @@ export function PurchaseEditScreen() {
           disabled={locked || isReturn}
           onChange={(s) =>
             void (async () => {
-              patch({ supplier: s ? supplierSnapshot(s) : null, interState: await isInterState(actor.businessId, s?.taxId), taxMode: s?.taxId ? 'gst' : p.taxMode });
+              patch({ supplier: s ? supplierSnapshot(s) : null, interState: await isInterState(actor.businessId, s?.taxId), taxMode: s?.taxId ? 'gst' : p.taxMode, ...(s?.creditDays && !p.dueDate ? { dueDate: addDaysISO(p.date, s.creditDays) } : {}) });
             })()
           }
         />
@@ -412,6 +412,28 @@ export function PurchaseEditScreen() {
           }
         />
       </FormSection>
+
+      {!isReturn && (
+        <FormSection title={t('Freight and other charges')} note={t('Transport, loading, packing on this bill. Spread into the items\' cost so profit is right.')}>
+          {(p.charges ?? []).map((c, i) => (
+            <div key={i} className="search-row">
+              <TextField label={t('Charge')} value={c.label} onChange={(label) => patch({ charges: p.charges.map((x, j) => (j === i ? { ...x, label } : x)) })} disabled={locked} />
+              <MoneyField label={t('Amount (before tax)')} value={c.amount || null} onChange={(amount) => patch({ charges: p.charges.map((x, j) => (j === i ? { ...x, amount: amount ?? 0 } : x)) })} disabled={locked} />
+              <IonButton fill="clear" color="medium" disabled={locked} onClick={() => patch({ charges: p.charges.filter((_, j) => j !== i) })} aria-label={t('Remove')}>
+                <IonIcon icon={trashOutline} slot="icon-only" />
+              </IonButton>
+            </div>
+          ))}
+          {!locked && (
+            <IonButton size="small" fill="outline" onClick={() => patch({ charges: [...(p.charges ?? []), { label: t('Freight'), amount: 0, taxPct: 0 }] })}>
+              <IonIcon icon={addOutline} slot="start" /> {t('Add charge')}
+            </IonButton>
+          )}
+          {(p.charges ?? []).some((c) => c.amount > 0) && (
+            <ToggleRow label={t('Add these into the items\' cost')} checked={p.spreadCharges !== false} onChange={(spreadCharges) => patch({ spreadCharges })} disabled={locked || p.status !== 'draft'} />
+          )}
+        </FormSection>
+      )}
 
       <FormSection title={t('Total')}>
         <p>

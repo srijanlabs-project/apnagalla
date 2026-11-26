@@ -4,7 +4,7 @@ import { db, type Customer } from './db';
 import { billFromOrder, openOrders, orderProgress, pendingOrdersTable } from './orders';
 import { batchStock, expiryTable, isExpired } from './batches';
 import { convertEstimate, ensureBusinessRecords, newEstimateDraft, newInvoiceDraft, putRecord, saveEstimate, saveInvoice, type Actor } from './repo';
-import { newPurchaseDraft, savePurchase } from './purchases';
+import { landedCosts, newPurchaseDraft, recordSupplierPayment, savePurchase, supplierDues } from './purchases';
 import { moveBetweenGodowns, stockByPlace } from './godowns';
 import { stockLevels } from './stock';
 import { transfersOf } from './transfers';
@@ -86,5 +86,28 @@ describe('R8.3 godowns', () => {
     expect((await stockLevels('b1')).get('i1')).toBe(90);
     expect(await transfersOf('b1')).toHaveLength(0); // not a transfer between stores
     await expect(moveBetweenGodowns(owner, 'g1', 'g1', [{ item: { id: 'i1', name: 'Cement bag' }, qty: 1 }])).rejects.toThrow();
+  });
+});
+
+describe('R8.4 freight into cost, bills to pay', () => {
+  it('charges are shared into item cost by value; dues settle oldest first', async () => {
+    await putRecord('items', owner, { id: 'a', name: 'Fan', unit: 'pcs', rate: 300000, purchasePrice: 0, taxPct: 0 } as never);
+    await putRecord('items', owner, { id: 'b', name: 'Bulb', unit: 'pcs', rate: 20000, purchasePrice: 0, taxPct: 0 } as never);
+    await putRecord('suppliers', owner, { id: 's1', name: 'Bajaj Dist', address: {}, openingBalance: 0, creditDays: 15 } as never);
+    const d = await newPurchaseDraft(owner);
+    const bill = { ...d, supplier: { supplierId: 's1', name: 'Bajaj Dist' }, date: '2026-01-01', dueDate: '2026-01-16', lines: [line('l1', 'Fan', 10, 200000, { itemId: 'a' }), line('l2', 'Bulb', 100, 10000, { itemId: 'b' })], charges: [{ label: 'Freight', amount: 30000, taxPct: 0 }] } as never;
+    // Fans 20,00,000 and bulbs 10,00,000 of 30,00,000: freight 300 splits 200 / 100.
+    expect(landedCosts(bill)).toEqual([202000, 10100]);
+    expect(landedCosts({ ...(bill as object), spreadCharges: false } as never)).toEqual([200000, 10000]);
+    await savePurchase(owner, bill, { finalize: true });
+    expect((await db.items.get('a'))!.purchasePrice).toBe(202000);
+    const d2 = await newPurchaseDraft(owner);
+    await savePurchase(owner, { ...d2, supplier: { supplierId: 's1', name: 'Bajaj Dist' }, date: '2026-01-10', dueDate: '2026-01-25', lines: [line('l3', 'Bulb', 10, 10000, { itemId: 'b' })] } as never, { finalize: true });
+    await recordSupplierPayment(owner, { supplierId: 's1', amount: 1000000, mode: 'bank', date: '2026-01-05' } as never);
+    const dues = await supplierDues('b1', '2026-01-20');
+    expect(dues.map((x) => [x.dueDate, x.unpaid, x.daysLate])).toEqual([
+      ['2026-01-16', 3030000 - 1000000, 4],
+      ['2026-01-25', 100000, -5],
+    ]);
   });
 });
