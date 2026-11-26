@@ -188,10 +188,8 @@ export default function PaymentDetailsScreen() {
                 ]}
                 onChange={(accountType) => setBank((b) => b && { ...b, accountType })}
               />
-              <div className="field-row">
-                <MoneyField label={t('Money in the account')} value={bank.openingBalance ?? null} onChange={(openingBalance) => setBank((b) => b && { ...b, openingBalance: openingBalance ?? undefined })} />
-                <TextField label={t('On date')} type="date" value={bank.openingDate ?? ''} onChange={(openingDate) => setBank((b) => b && { ...b, openingDate: openingDate || undefined })} />
-              </div>
+              <MoneyField label={t('Money in the account')} value={bank.openingBalance ?? null} onChange={(openingBalance) => setBank((b) => b && { ...b, openingBalance: openingBalance ?? undefined })} />
+              <TextField label={t('On date')} type="date" value={bank.openingDate ?? ''} onChange={(openingDate) => setBank((b) => b && { ...b, openingDate: openingDate || undefined })} />
               <p className="section-note">{t('The balance the bank showed on that date. The bank book starts from it; UPI, card and bank payments after it are added.')}</p>
               <ToggleRow label={t('Default (print on every invoice)')} checked={bank.isDefault} onChange={(isDefault) => setBank((b) => b && { ...b, isDefault })} />
               {bankAccounts.some((b) => b.id === bank.id) && (

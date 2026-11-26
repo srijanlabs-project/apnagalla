@@ -117,10 +117,8 @@ export function LoanEditScreen() {
           </IonSegmentButton>
         </IonSegment>
         <TextField label={l.kind === 'taken' ? t('Lender (bank, person)') : t('Given to')} required value={l.name} onChange={(name) => patch({ name })} autocapitalize="words" />
-        <div className="field-row">
-          <MoneyField label={l.kind === 'taken' ? t('Owed on that date') : t('To get back on that date')} value={l.openingBalance || null} onChange={(v) => patch({ openingBalance: v ?? 0 })} />
-          <TextField label={t('Date')} type="date" value={l.startDate} onChange={(startDate) => patch({ startDate: startDate || todayISO() })} />
-        </div>
+        <MoneyField label={l.kind === 'taken' ? t('Owed on that date') : t('To get back on that date')} value={l.openingBalance || null} onChange={(v) => patch({ openingBalance: v ?? 0 })} />
+        <TextField label={t('Date')} type="date" value={l.startDate} onChange={(startDate) => patch({ startDate: startDate || todayISO() })} />
         <p className="section-note">{t('The loan amount, or what was left when you start noting it here. Interest is not added; note it when paid.')}</p>
         <div className="field-row">
           <NumberField label={t('Interest % a year')} value={l.interestPct ?? null} onChange={(interestPct) => patch({ interestPct: interestPct ?? undefined })} min={0} max={100} />

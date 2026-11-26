@@ -430,15 +430,15 @@ e.g. through the GST API provider), the SMS DLT templates for automatic reminder
 domain for the online store (R9).
 
 #### Release 6 — money and books
-Started 26 Nov 2026 in auto mode.
+Started and built 26 Nov 2026 in auto mode (not deployed yet).
 
 | Step | Scope | Status |
 |---|---|---|
-| R6.1 Accounts | Bank accounts get an opening balance (date) and can be marked "not on bills"; UPI / card / bank / cheque payments, supplier payments and expenses carry an account (picked when the store has more than one, else the default); cash ↔ bank deposits, withdrawals, transfers and balance corrections; bank book per account; Home: bank balance | |
-| R6.2 Income and expenses | Other income (interest, rent received, commission, scrap sale, discount received, other + own categories); expenses with own categories, paid-to, bill photo; repeating expenses (every month / week) shown as "due" with a Pay button | |
-| R6.3 Loans | Loans taken (bank, person) and given: opening balance, interest %, EMI; entries for money received / repaid, interest and charges, from cash or a bank account; loan statement | |
-| R6.4 Receipts | Payment receipt for money received (bill or khata), payment voucher for money paid to a supplier: PDF, print and WhatsApp | |
-| R6.5 Reports | Bank statement, cash flow (cash and bank, in and out by kind), profit & loss statement (sales − returns − cost of goods = gross profit; − expenses + other income − loan interest = net profit), other income; This / last financial year in date filters; Home: this month's expenses and profit | |
+| R6.1 Accounts | Bank accounts get an opening balance (date) and can be marked "not on bills"; UPI / card / bank / cheque payments, supplier payments and expenses carry an account (picked when the store has more than one, else the default); cash ↔ bank deposits, withdrawals, transfers and balance corrections; bank book per account; Home: bank balance || Done |
+| R6.2 Income and expenses | Other income (interest, rent received, commission, scrap sale, discount received, other + own categories); expenses with own categories, paid-to, bill photo; repeating expenses (every month / week) shown as "due" with a Pay button || Done |
+| R6.3 Loans | Loans taken (bank, person) and given: opening balance, interest %, EMI; entries for money received / repaid, interest and charges, from cash or a bank account; loan statement || Done |
+| R6.4 Receipts | Payment receipt for money received (bill or khata), payment voucher for money paid to a supplier: PDF, print and WhatsApp || Done |
+| R6.5 Reports | Bank statement, cash flow (cash and bank, in and out by kind), profit & loss statement (sales − returns − cost of goods = gross profit; − expenses + other income − loan interest = net profit), other income; This / last financial year in date filters; Home: this month's expenses and profit || Done |
 
 R6 decisions (defaults):
 - Bank accounts already exist for printing on bills; they now also hold money. An entry without
@@ -452,6 +452,14 @@ R6 decisions (defaults):
   an expense. EMI = principal + interest typed per payment (the bank's split), not worked out.
 - Receipts are numbered from the entry (RC-date-short id); they are not a legal series.
 - Profit & loss values goods sold at the item's current cost price, like the profit report.
+- A cheque counts in the bank on the day it is marked cleared; a pending cheque is not money yet.
+  Money in "other" mode stays out of both the cash book and the bank book.
+- Bank accounts sync to every phone of the store (they print on bills), so a staff phone holds
+  the opening balance in its data, though no screen shows it. Moves, income and loans don't
+  reach staff phones at all (only the owner and the accountant login).
+- Only the owner adds a repeating expense (a toggle when adding an expense: repeats every month on
+  that day, days after the 28th count as the 28th).
+- Not yet (R7): journal entries, ledgers for every account, balance sheet, trial balance.
 
 ## 11. Your action items (can run in parallel with the build)
 - [ ] Start **TRAI DLT registration** with an SMS provider (business entity, sender ID, OTP template). Takes days to weeks; until it's done, OTP runs in test mode.
