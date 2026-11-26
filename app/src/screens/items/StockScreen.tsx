@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { FormSection, NumberField, SelectField, TextField } from '../../components/Fields';
 import PageShell from '../../components/PageShell';
+import { godownsOf, placeName, SHOP, stockByPlace } from '../../lib/godowns';
 import { useBusiness } from '../../lib/business';
 import { db, type StockReason } from '../../lib/db';
 import { dateIN } from '../../lib/format';
@@ -15,7 +16,8 @@ type Mode = 'remove' | 'add' | 'count';
 /** One item's stock: what it is now, how it got there, and manual changes (damage, count…). */
 export default function StockScreen() {
   const { id } = useParams<{ id: string }>();
-  const { actor, isOwner } = useBusiness();
+  const { actor, isOwner, settings } = useBusiness();
+  const places = useLiveQuery(async () => (godownsOf(settings).length ? ((await stockByPlace(actor.businessId)).get(id!) ?? new Map<string, number>()) : null), [actor.businessId, id, settings]);
   const [toast] = useIonToast();
   const [alert] = useIonAlert();
   const item = useLiveQuery(() => db.items.get(id!), [id]);
@@ -66,6 +68,16 @@ export default function StockScreen() {
           </div>
         )}
       </div>
+      {places && (
+        <div className="stat-grid">
+          {[SHOP, ...godownsOf(settings).map((g) => g.id)].map((p) => (
+            <div key={p} className="mini-stat">
+              <span>{placeName(settings, p)}</span>
+              <strong>{qtyText(places.get(p) ?? 0)}</strong>
+            </div>
+          ))}
+        </div>
+      )}
       {now < 0 && <p className="section-note text-danger">{t('More was sold than was entered. Add the opening stock or a purchase bill, or count the shelf.')}</p>}
 
       <FormSection title={t('Change stock')}>

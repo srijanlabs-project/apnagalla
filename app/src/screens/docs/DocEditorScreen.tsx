@@ -58,6 +58,7 @@ import { creditOverLimit } from '../../lib/khata';
 import { repriceLines } from '../../lib/pricing';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from './LineEditor';
+import { godownsOf } from '../../lib/godowns';
 import { addOrMerge } from '../../lib/mergeLines';
 import BarcodeScanner from '../../components/BarcodeScanner';
 import { useScanToBill } from '../../lib/useScanToBill';
@@ -382,6 +383,19 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         )}
 
         {/* ---------- header ---------- */}
+        {kind !== 'credit' && (
+          <FormSection>
+            {godownsOf(settings).length > 0 && (
+          <SelectField
+            label={t('Goods leave from')}
+            value={doc.godownId ?? ''}
+            options={[{ value: '', label: t('Shop') }, ...godownsOf(settings).map((g) => ({ value: g.id, label: g.name }))]}
+            onChange={(v) => patch({ godownId: v || undefined })}
+            disabled={locked}
+          />
+        )}
+          </FormSection>
+        )}
         {kind === 'estimate' && !(doc as Estimate).challan && !(doc as Estimate).order && !(doc as Estimate).proforma && (
           <FormSection>
             <ToggleRow

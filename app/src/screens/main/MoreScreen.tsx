@@ -45,7 +45,7 @@ import { appLanguage, setAppLanguage, t } from '../../lib/i18n';
 
 export default function MoreScreen() {
   const { me, membership, logout } = useSession();
-  const { profile, perms } = useBusiness();
+  const { profile, perms, settings } = useBusiness();
   const [alert] = useIonAlert();
   const isOwner = membership?.role === 'owner';
   const storeCount = me?.memberships.length ?? 0;
@@ -208,6 +208,12 @@ export default function MoreScreen() {
           <IonItem routerLink="/tabs/more/dashboard" detail lines="none">
             <IonIcon icon={gridOutline} slot="start" />
             <IonLabel>{t('All stores')}</IonLabel>
+          </IonItem>
+        )}
+        {(isOwner || (settings.godowns ?? []).some((g) => !g.deleted)) && perms.access !== 'warehouse' && (
+          <IonItem routerLink="/tabs/items/godowns" detail lines="none">
+            <IonIcon icon={businessOutline} slot="start" />
+            <IonLabel>{t('Godowns')}</IonLabel>
           </IonItem>
         )}
         {isOwner && ownedCount > 1 && (

@@ -54,7 +54,8 @@ export type ReportId =
   | 'otherIncome'
   | 'pendingOrders'
   | 'orderItems'
-  | 'expiry';
+  | 'expiry'
+  | 'godownStock';
 
 const inRange = (d: string, p: Period) => d >= p.from && d <= p.to;
 const periodText = (p: Period) => {
@@ -744,6 +745,7 @@ export const REPORTS: ReportInfo[] = [
   { id: 'orderItems', title: () => t('Items on order'), group: 'sales', period: false, run: (ctx) => import('./orders').then((m) => m.orderItemsTable(ctx.businessId)) },
   { id: 'stock', title: () => t('Stock report'), group: 'stock', period: false, cost: true, run: (c) => stock(c) },
   { id: 'lowStock', title: () => t('Low stock'), group: 'stock', period: false, run: (c) => stock(c, true) },
+  { id: 'godownStock', title: () => t('Stock by godown'), group: 'stock', period: false, run: async (c) => import('./godowns').then(async (m) => m.godownStockTable(c.businessId, (await db.settings.where('businessId').equals(c.businessId).first()) ?? {})) },
   { id: 'expiry', title: () => t('Expiring stock'), group: 'stock', period: false, run: (c) => import('./batches').then((m) => m.expiryTable(c.businessId, 3, true)) },
   { id: 'slow', title: () => t('Slow movers'), group: 'stock', period: true, cost: true, run: slow },
   { id: 'salesRegister', title: () => t('Sales register'), group: 'gst', period: true, ownerOnly: true, run: salesRegister },

@@ -28,6 +28,7 @@ import { OfferEditScreen, OffersScreen } from '../items/OfferScreens';
 import BulkPriceScreen from '../items/BulkPriceScreen';
 import LabelsScreen from '../items/LabelsScreen';
 import TransferScreen from '../items/TransferScreen';
+import GodownsScreen from '../items/GodownsScreen';
 import AllStoresScreen from '../stores/AllStoresScreen';
 import { EmployeeScreen, EmployeesScreen } from '../staff/StaffScreens';
 import StockScreen from '../items/StockScreen';
@@ -91,6 +92,7 @@ export default function MainTabs() {
           <Route path="items/bulk-price" element={<BulkPriceScreen />} />
           <Route path="items/labels" element={<LabelsScreen />} />
           <Route path="items/transfer" element={<TransferScreen />} />
+          <Route path="items/godowns" element={<GodownsScreen />} />
           <Route path="items/:id/stock" element={<StockScreen />} />
           <Route path="items/:id" element={<ItemEditScreen />} />
 

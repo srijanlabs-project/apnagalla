@@ -117,6 +117,8 @@ export interface BusinessSettings extends SyncedRecord {
   closingTime?: string;
   /** Days before this are never asked to be closed (set when the rule is turned on). */
   dayEndFrom?: string;
+  /** R8: godowns inside this store (the shop itself is not listed; it is place ""). */
+  godowns?: { id: string; name: string; deleted?: boolean }[];
   /** Staff can't bill on credit beyond a customer's credit limit (the owner still can). */
   creditLimitBlocks?: boolean;
   /** Delivery challans: their own number series. */
@@ -298,6 +300,8 @@ export interface PaymentInfo {
 export interface DocBase extends SyncedRecord {
   /** Final number; empty for drafts. */
   number: string;
+  /** R8: godown the goods leave from (none = the shop). */
+  godownId?: string;
   /** Series ("bill:26-27") and running number the number came from; the server uses them to never repeat a number. */
   numberSeries?: string;
   numberSeq?: number;
@@ -451,6 +455,10 @@ export interface StockMove extends SyncedRecord {
   /** R8: the batch this change is for (expired stock written off, opening stock of a batch). */
   batch?: string;
   expiry?: string;
+  /** R8: the godown this change is in (none = the shop); a godown transfer names the other place. */
+  godownId?: string;
+  fromGodownId?: string;
+  toGodownId?: string;
   note?: string;
   date: string;
   byName?: string;
@@ -507,6 +515,8 @@ export interface PurchaseOrder extends SyncedRecord {
  * note (goods sent back: stock goes down, we owe less).
  */
 export interface Purchase extends SyncedRecord {
+  /** R8: godown the goods arrived at (none = the shop). */
+  godownId?: string;
   kind: 'bill' | 'return';
   status: 'draft' | 'saved' | 'cancelled';
   supplier: SupplierSnapshot | null;

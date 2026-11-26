@@ -57,6 +57,7 @@ import { deleteRecord, newId, putRecord } from '../../lib/repo';
 import { qtyText } from '../../lib/stock';
 import { NoAccess, useCanBuy } from '../suppliers/SupplierScreens';
 import { usePhotoSource } from '../../components/PhotoSource';
+import { godownsOf } from '../../lib/godowns';
 
 /* ---------- lists ---------- */
 
@@ -166,7 +167,7 @@ function SupplierSelect({ businessId, value, onChange, disabled }: { businessId:
 
 export function PurchaseEditScreen() {
   const { id } = useParams<{ id: string }>();
-  const { actor, isOwner } = useBusiness();
+  const { actor, isOwner, settings } = useBusiness();
   const canBuy = useCanBuy();
   const router = useIonRouter();
   const [toast] = useIonToast();
@@ -274,6 +275,15 @@ export function PurchaseEditScreen() {
         </>
       )}
       <FormSection>
+        {godownsOf(settings).length > 0 && (
+          <SelectField
+            label={isReturn ? t('Goods go back from') : t('Goods arrive at')}
+            value={p.godownId ?? ''}
+            options={[{ value: '', label: t('Shop') }, ...godownsOf(settings).map((g) => ({ value: g.id, label: g.name }))]}
+            onChange={(v) => patch({ godownId: v || undefined })}
+            disabled={locked}
+          />
+        )}
         <SupplierSelect
           businessId={actor.businessId}
           value={p.supplier?.supplierId}

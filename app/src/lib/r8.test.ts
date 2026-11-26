@@ -5,6 +5,9 @@ import { billFromOrder, openOrders, orderProgress, pendingOrdersTable } from './
 import { batchStock, expiryTable, isExpired } from './batches';
 import { convertEstimate, ensureBusinessRecords, newEstimateDraft, newInvoiceDraft, putRecord, saveEstimate, saveInvoice, type Actor } from './repo';
 import { newPurchaseDraft, savePurchase } from './purchases';
+import { moveBetweenGodowns, stockByPlace } from './godowns';
+import { stockLevels } from './stock';
+import { transfersOf } from './transfers';
 
 export const owner: Actor = { businessId: 'b1', userId: 'u-owner', userName: 'Owner', role: 'owner' };
 export const staff: Actor = { businessId: 'b1', userId: 'u-staff', userName: 'Staff', role: 'staff', seriesCode: 'A' };
@@ -67,5 +70,21 @@ describe('R8.2 batch and expiry', () => {
     expect(isExpired('2020-01')).toBe(true);
     expect((await expiryTable('b1', 3)).rows).toHaveLength(0);
     expect((await expiryTable('b1', 2000)).rows).toHaveLength(2);
+  });
+});
+
+describe('R8.3 godowns', () => {
+  it('goods arrive at a godown, move to the shop, leave from the shop; the store total is unchanged by moves', async () => {
+    await putRecord('items', owner, { id: 'i1', name: 'Cement bag', unit: 'bag', rate: 40000, taxPct: 28, rateIncludesTax: true } as never);
+    const d = await newPurchaseDraft(owner);
+    await savePurchase(owner, { ...d, godownId: 'g1', lines: [line('p1', 'Cement bag', 100, 35000, { itemId: 'i1' })] } as never, { finalize: true });
+    await moveBetweenGodowns(staff, 'g1', '', [{ item: { id: 'i1', name: 'Cement bag' }, qty: 30 }]);
+    const inv = await newInvoiceDraft(owner);
+    await saveInvoice(owner, { ...inv, lines: [line('s1', 'Cement bag', 10, 40000, { itemId: 'i1' })] }, { finalize: true });
+    const at = (await stockByPlace('b1')).get('i1')!;
+    expect([at.get('g1'), at.get('')]).toEqual([70, 20]);
+    expect((await stockLevels('b1')).get('i1')).toBe(90);
+    expect(await transfersOf('b1')).toHaveLength(0); // not a transfer between stores
+    await expect(moveBetweenGodowns(owner, 'g1', 'g1', [{ item: { id: 'i1', name: 'Cement bag' }, qty: 1 }])).rejects.toThrow();
   });
 });

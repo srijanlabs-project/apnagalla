@@ -80,7 +80,7 @@ export interface TransferSummary {
 
 /** This store's transfers, newest first. */
 export async function transfersOf(businessId: string): Promise<TransferSummary[]> {
-  const moves = await db.stockMoves.where('businessId').equals(businessId).filter((m) => m.kind === 'transfer' && !!m.transferId && !m.voidedAt && !m.deleted).toArray();
+  const moves = await db.stockMoves.where('businessId').equals(businessId).filter((m) => m.kind === 'transfer' && !!m.transferId && !!m.otherBusinessId && !m.voidedAt && !m.deleted).toArray();
   const map = new Map<string, TransferSummary>();
   for (const m of moves) {
     let s = map.get(m.transferId!);
