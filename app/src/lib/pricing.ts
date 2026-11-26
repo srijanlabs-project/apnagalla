@@ -8,6 +8,12 @@ export function priceFor(item: Pick<Item, 'rate' | 'prices'>, level: PriceLevel 
   return item.prices?.[level] || item.rate;
 }
 
+/** R9: a customer's own prices (itemId → paise per base unit), if any. */
+export type CustomPrices = Record<string, number> | undefined;
+
+/** The price for this customer: their own price for the item, else their type's price. */
+export const customerPrice = (item: Pick<Item, 'id' | 'rate' | 'prices'>, level: PriceLevel = 'retail', custom?: CustomPrices) => (custom?.[item.id] ? custom[item.id]! : priceFor(item, level));
+
 export interface UnitOption {
   unit: string;
   factor: number;
@@ -15,13 +21,13 @@ export interface UnitOption {
 }
 
 /** The base unit and the item's other units, each with its price for this customer type. */
-export function unitOptions(item: Pick<Item, 'unit' | 'rate' | 'prices' | 'altUnits'>, level: PriceLevel = 'retail'): UnitOption[] {
-  const base = priceFor(item, level);
+export function unitOptions(item: Pick<Item, 'id' | 'unit' | 'rate' | 'prices' | 'altUnits'>, level: PriceLevel = 'retail', custom?: CustomPrices): UnitOption[] {
+  const base = customerPrice(item, level, custom);
   return [
     { unit: item.unit, factor: 1, rate: base },
     ...(item.altUnits ?? [])
       .filter((u) => u.unit && u.factor > 0)
-      .map((u) => ({ unit: u.unit, factor: u.factor, rate: level === 'retail' && u.rate ? u.rate : Math.round(base * u.factor) })),
+      .map((u) => ({ unit: u.unit, factor: u.factor, rate: level === 'retail' && u.rate && !custom?.[item.id] ? u.rate : Math.round(base * u.factor) })),
   ];
 }
 
@@ -31,12 +37,12 @@ export const baseQty = (l: Pick<DocLine, 'qty' | 'unitFactor'>) => l.qty * (l.un
 export const levelLabel = (l: PriceLevel): string => ({ retail: t('Retail'), wholesale: t('Wholesale'), special: t('Special') })[l];
 
 /** Re-prices lines from catalogue items for a customer type (e.g. a wholesale customer picked). */
-export async function repriceLines<L extends DocLine>(lines: L[], level: PriceLevel): Promise<L[]> {
+export async function repriceLines<L extends DocLine>(lines: L[], level: PriceLevel, custom?: CustomPrices): Promise<L[]> {
   const items = await db.items.bulkGet(lines.map((l) => l.itemId ?? ''));
   return lines.map((l, i) => {
     const it = items[i];
     if (!it || l.dims) return l;
-    const opt = unitOptions(it, level).find((u) => u.unit === l.unit && u.factor === (l.unitFactor ?? 1));
+    const opt = unitOptions(it, level, custom).find((u) => u.unit === l.unit && u.factor === (l.unitFactor ?? 1));
     return opt ? { ...l, rate: opt.rate } : l;
   });
 }

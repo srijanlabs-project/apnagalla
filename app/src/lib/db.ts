@@ -164,6 +164,10 @@ export interface Customer extends SyncedRecord {
   name: string;
   /** Wholesale / special customers get those item prices. */
   priceLevel?: PriceLevel;
+  /** R9: this customer's own price for some items (itemId → paise per base unit); beats the type's price. */
+  itemPrices?: Record<string, number>;
+  /** R9: a group (Hotels, Contractors, Family…) for lists, reminders and reports. */
+  group?: string;
   /** Warn when what the customer owes would go above this (paise). */
   creditLimit?: number | null;
   phone?: string;
@@ -492,6 +496,8 @@ export interface Supplier extends SyncedRecord {
   notes?: string;
   /** R8: usual credit days; a new purchase bill's "pay by" date follows it. */
   creditDays?: number;
+  /** R9: a group (Distributors, Local…). */
+  group?: string;
 }
 
 export interface SupplierSnapshot {

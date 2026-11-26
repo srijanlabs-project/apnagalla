@@ -5,6 +5,7 @@ import { add, callOutline, cartOutline, cashOutline, clipboardOutline, createOut
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState';
+import GroupField, { groupsIn } from '../../components/GroupField';
 import { AddressFields, FormSection, MoneyField, NumberField, TextArea, TextField } from '../../components/Fields';
 import FormPage from '../../components/FormPage';
 import GstinCheck from '../../components/GstinCheck';
@@ -112,6 +113,7 @@ export function SupplierEditScreen() {
   const existing = useLiveQuery(() => (isNew ? undefined : db.suppliers.get(id!)), [id]);
   const initial = useMemo(() => (isNew ? blankSupplier(actor) : existing), [isNew, existing, actor]);
   const { value: s, setValue, patch, save, saving } = useForm<Supplier>(initial);
+  const supplierGroups = useLiveQuery(async () => groupsIn(await db.suppliers.where('businessId').equals(actor.businessId).toArray()), [actor.businessId]);
   const [alert] = useIonAlert();
   const router = useIonRouter();
   if (!canBuy) return <NoAccess />;
@@ -157,6 +159,7 @@ export function SupplierEditScreen() {
       </FormSection>
       <FormSection title={t('Opening balance')} note={t('What you already owed this supplier before using ApnaGalla.')}>
         <MoneyField label={t('Amount you owe')} value={s.openingBalance || null} onChange={(v) => patch({ openingBalance: v ?? 0 })} disabled={!isNew && !isOwner} />
+        <GroupField value={s.group} groups={supplierGroups ?? []} onChange={(group) => patch({ group })} />
         <NumberField label={t('Credit days')} value={s.creditDays ?? null} onChange={(n) => patch({ creditDays: n && n > 0 ? Math.round(n) : undefined })} min={0} helper={t('Bills from this supplier are due this many days after the bill date.')} />
         <TextArea label={t('Notes')} value={s.notes} onChange={(notes) => patch({ notes })} />
       </FormSection>

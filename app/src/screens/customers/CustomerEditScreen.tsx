@@ -12,6 +12,8 @@ import { db, type Address, type Customer } from '../../lib/db';
 import { t } from '../../lib/i18n';
 import { deleteRecord, newId, putRecord, type Actor } from '../../lib/repo';
 import { useForm } from '../../lib/useForm';
+import GroupField, { groupsIn } from '../../components/GroupField';
+import CustomerPrices from './CustomerPrices';
 
 export function blankCustomer(actor: Actor, name = ''): Customer {
   return { id: newId(), businessId: actor.businessId, createdAt: '', updatedAt: '', updatedBy: '', name, billingAddress: {}, shippingAddress: null, openingBalance: 0 };
@@ -119,6 +121,7 @@ export default function CustomerEditScreen() {
   const { value: c, setValue, patch, save, saving } = useForm<Customer>(initial);
   const [alert] = useIonAlert();
   const router = useIonRouter();
+  const groups = useLiveQuery(async () => groupsIn(await db.customers.where('businessId').equals(actor.businessId).toArray()), [actor.businessId]);
   if (!c) return null;
 
   return (
@@ -133,6 +136,9 @@ export default function CustomerEditScreen() {
       <FormSection title={t('Opening balance')} note={t('Amount this customer already owed you before you started using the app. Added to their pending total.')}>
         <MoneyField label={t('Opening balance')} value={c.openingBalance} onChange={(v) => patch({ openingBalance: v ?? 0 })} disabled={!isOwner && !isNew} />
       </FormSection>
+      <FormSection title={t('Group')} note={t('Put customers in groups (Hotels, Contractors, Family…) to find them, remind them and see reports by group.')}>
+        <GroupField value={c.group} groups={groups ?? []} onChange={(group) => patch({ group })} />
+      </FormSection>
       <FormSection title={t('Customer type')} note={t('Wholesale and special customers get the items’ wholesale or special prices.')}>
         <SelectField
           label={t('Customer type')}
@@ -142,6 +148,7 @@ export default function CustomerEditScreen() {
           disabled={!isOwner && !isNew}
         />
       </FormSection>
+      {!isNew && <CustomerPrices c={c} patch={patch} />}
       <FormSection title={t('Credit limit')} note={t('Warns before billing on credit beyond this amount. Leave empty for no limit.')}>
         <MoneyField label={t('Credit limit')} value={c.creditLimit ?? null} onChange={(v) => patch({ creditLimit: v || null })} disabled={!isOwner} />
       </FormSection>

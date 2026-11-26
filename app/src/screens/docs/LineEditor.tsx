@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FormSection, MoneyField, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
 import { useBusiness } from '../../lib/business';
 import { db, type DocLine, type Item, type PriceLevel } from '../../lib/db';
-import { priceFor, sellable, unitOptions } from '../../lib/pricing';
+import { customerPrice, sellable, unitOptions, type CustomPrices } from '../../lib/pricing';
 import { serialsInStock } from '../../lib/serials';
 import { batchStock, isExpired, pickBatch } from '../../lib/batches';
 import { OFF } from '../../lib/offers';
@@ -31,7 +31,7 @@ import { isAreaLine, lineSize, rupees } from '../../lib/format';
 import { newId, putRecord } from '../../lib/repo';
 import { sync } from '../../lib/sync';
 
-export function lineFromItem(it: Item, level: PriceLevel = 'retail'): DocLine {
+export function lineFromItem(it: Item, level: PriceLevel = 'retail', custom?: CustomPrices): DocLine {
   const area = isAreaPricing(it.pricing);
   return {
     id: newId(),
@@ -41,7 +41,7 @@ export function lineFromItem(it: Item, level: PriceLevel = 'retail'): DocLine {
     // Area-priced: the size is entered next, which gives the quantity.
     qty: area ? 0 : 1,
     unit: area ? AREA_UNIT[it.pricing as AreaPricing] : it.unit,
-    rate: priceFor(it, level),
+    rate: customerPrice(it, level, custom),
     rateIncludesTax: it.rateIncludesTax,
     taxPct: it.taxPct,
     hsn: it.hsn,
@@ -68,11 +68,13 @@ interface Props {
   onDelete: (id: string) => void;
   /** The customer's price type (wholesale / special prices). */
   level?: PriceLevel;
+  /** R9: the customer's own prices. */
+  custom?: CustomPrices;
   /** Start with "Save this item to my catalogue" on (a product picked from the shared list). */
   saveNew?: boolean;
 }
 
-export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDelete, level = 'retail', saveNew = false }: Props) {
+export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDelete, level = 'retail', custom, saveNew = false }: Props) {
   const { actor, settings, perms } = useBusiness();
   const [l, setL] = useState<DocLine | null>(line);
   const [picking, setPicking] = useState(false);
@@ -203,7 +205,7 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
                 button
                 detail={false}
                 onClick={() => {
-                  setL({ ...lineFromItem(it, level), id: l.id });
+                  setL({ ...lineFromItem(it, level, custom), id: l.id });
                   setPicking(false);
                 }}
               >
@@ -321,9 +323,9 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
                     <SelectField
                       label={t('Unit')}
                       value={`${l.unit}|${l.unitFactor ?? 1}`}
-                      options={unitOptions(lineItem, level).map((u) => ({ value: `${u.unit}|${u.factor}`, label: u.factor === 1 ? u.unit : `${u.unit} (${u.factor} ${lineItem.unit})` }))}
+                      options={unitOptions(lineItem, level, custom).map((u) => ({ value: `${u.unit}|${u.factor}`, label: u.factor === 1 ? u.unit : `${u.unit} (${u.factor} ${lineItem.unit})` }))}
                       onChange={(v) => {
-                        const u = unitOptions(lineItem, level).find((x) => `${x.unit}|${x.factor}` === v);
+                        const u = unitOptions(lineItem, level, custom).find((x) => `${x.unit}|${x.factor}` === v);
                         if (u) set({ unit: u.unit, unitFactor: u.factor === 1 ? undefined : u.factor, rate: u.rate });
                       }}
                     />

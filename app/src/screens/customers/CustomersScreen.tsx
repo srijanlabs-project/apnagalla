@@ -1,4 +1,5 @@
-import { IonButton, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
+import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
+import { groupsIn } from '../../components/GroupField';
 import { formatIndianMobile } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { add, peopleOutline, cloudUploadOutline } from 'ionicons/icons';
@@ -14,6 +15,7 @@ import { receivables } from '../../lib/khata';
 export default function CustomersScreen() {
   const { actor, ledger, isOwner } = useBusiness();
   const [q, setQ] = useState('');
+  const [group, setGroup] = useState<string | null>(null);
   const customers = useLiveQuery(
     () =>
       db.customers
@@ -29,12 +31,25 @@ export default function CustomersScreen() {
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     const list = customers ?? [];
-    return s ? list.filter((c) => c.name.toLowerCase().includes(s) || (c.phone ?? '').includes(s)) : list;
-  }, [customers, q]);
+    return list.filter((c) => (!group || c.group === group) && (!s || c.name.toLowerCase().includes(s) || (c.phone ?? '').includes(s)));
+  }, [customers, q, group]);
+  const groups = groupsIn(customers);
 
   return (
     <PageShell title={t('Customers')} padded={false}>
       <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search name or phone')} />
+      {groups.length > 0 && (
+        <div className="filter-chips">
+          <IonChip outline={!!group} color={!group ? 'primary' : undefined} onClick={() => setGroup(null)}>
+            {t('All')}
+          </IonChip>
+          {groups.map((g) => (
+            <IonChip key={g} outline={group !== g} color={group === g ? 'primary' : undefined} onClick={() => setGroup(group === g ? null : g)}>
+              {g}
+            </IonChip>
+          ))}
+        </div>
+      )}
       {isOwner && (
         <div className="filter-chips">
           <IonButton size="small" fill="clear" routerLink="/tabs/items/import?kind=customers">

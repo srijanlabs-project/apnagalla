@@ -155,7 +155,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
     lines: () => doc?.lines ?? [],
     confirmRepeat: settings.confirmRepeatScan !== false,
     addNew: (it) => {
-      const line = lineFromItem(it, level);
+      const line = lineFromItem(it, level, custom);
       if (isAreaPricing(it.pricing) || it.trackSerial) {
         setScanning(false);
         setEditing({ line, isNew: true });
@@ -163,7 +163,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
     },
     addOne: (lineId) => setDoc((cur) => (cur ? { ...cur, lines: cur.lines.map((l) => (l.id === lineId ? { ...l, qty: l.qty + 1 } : l)) } : cur)),
     scale: scaleOf(settings),
-    addWeighed: (it, qty) => setDoc((cur) => (cur ? { ...cur, lines: [...cur.lines, { ...lineFromItem(it, level), qty }] } : cur)),
+    addWeighed: (it, qty) => setDoc((cur) => (cur ? { ...cur, lines: [...cur.lines, { ...lineFromItem(it, level, custom), qty }] } : cur)),
     unknown: (code) => {
       setScanning(false);
       void alert({
@@ -178,6 +178,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
   });
   useOffers(actor.businessId, doc?.lines, doc?.date, kind !== 'credit' && doc?.status === 'draft', (lines) => setDoc((cur) => (cur ? { ...cur, lines } : cur)), doc?.coupon, doc?.taxMode === 'none');
   const level = useLiveQuery(async () => (docCustomerId ? ((await db.customers.get(docCustomerId))?.priceLevel ?? 'retail') : 'retail'), [docCustomerId]) ?? 'retail';
+  const custom = useLiveQuery(async () => (docCustomerId ? (await db.customers.get(docCustomerId))?.itemPrices : undefined), [docCustomerId]);
 
   if (kind !== 'estimate' && !CAN_CREATE_INVOICES) {
     return (
@@ -682,11 +683,12 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         onClose={() => setPicker(false)}
         onPick={(party, customer) => {
           patch({ billTo: party, shipTo: null });
-          void repriceLines(doc.lines, customer?.priceLevel ?? 'retail').then((lines) => patch({ lines }));
+          void repriceLines(doc.lines, customer?.priceLevel ?? 'retail', customer?.itemPrices).then((lines) => patch({ lines }));
         }}
       />
       <LineEditor
         level={level}
+        custom={custom}
         line={editing?.line ?? null}
         isNew={editing?.isNew ?? false}
         noTax={noTax}

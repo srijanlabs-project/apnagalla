@@ -121,6 +121,7 @@ export default function SaleScreen() {
   // Wholesale / special customers get those prices.
   const customerId = bill?.billTo?.customerId;
   const level = useLiveQuery(async () => (customerId ? ((await db.customers.get(customerId))?.priceLevel ?? 'retail') : 'retail'), [customerId]) ?? 'retail';
+  const custom = useLiveQuery(async () => (customerId ? (await db.customers.get(customerId))?.itemPrices : undefined), [customerId]);
   const heldBills = useLiveQuery(
     () =>
       db.invoices
@@ -168,7 +169,7 @@ export default function SaleScreen() {
     },
     addOne: (lineId) => step(lineId, 1),
     scale: scaleOf(settings),
-    addWeighed: (it, qty) => patch((cur) => ({ lines: [...cur.lines, { ...lineFromItem(it, level), qty }] })),
+    addWeighed: (it, qty) => patch((cur) => ({ lines: [...cur.lines, { ...lineFromItem(it, level, custom), qty }] })),
     unknown: (code) => void byBarcode(code),
   });
 
@@ -191,14 +192,14 @@ export default function SaleScreen() {
   function addItem(it: Item) {
     // Priced by size: ask for the size straight away.
     if (isAreaPricing(it.pricing) || it.trackSerial) {
-      setEditing({ line: lineFromItem(it, level), isNew: true });
+      setEditing({ line: lineFromItem(it, level, custom), isNew: true });
       setQ('');
       return;
     }
     patch((cur) => {
       const same = cur.lines.find((l) => l.itemId === it.id && !l.dims);
       if (same) return { lines: cur.lines.map((l) => (l === same ? { ...l, qty: l.qty + 1 } : l)) };
-      return { lines: [...cur.lines, lineFromItem(it, level)] };
+      return { lines: [...cur.lines, lineFromItem(it, level, custom)] };
     });
     setQ('');
   }
@@ -571,12 +572,13 @@ export default function SaleScreen() {
         onClose={() => setPicker(false)}
         onPick={(party, customer) => {
           patch({ billTo: party, shipTo: null });
-          void repriceLines(bill.lines, customer?.priceLevel ?? 'retail').then((lines) => patch({ lines }));
+          void repriceLines(bill.lines, customer?.priceLevel ?? 'retail', customer?.itemPrices).then((lines) => patch({ lines }));
         }}
       />
       <LineEditor
         saveNew={editing?.saveNew}
         level={level}
+        custom={custom}
         line={editing?.line ?? null}
         isNew={editing?.isNew ?? false}
         noTax={bill.taxMode === 'none'}

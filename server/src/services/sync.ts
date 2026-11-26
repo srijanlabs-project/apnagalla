@@ -165,6 +165,11 @@ export class SyncService {
       if (existing?.purchasePrice !== undefined) data.purchasePrice = existing.purchasePrice;
     }
 
+    // R9: a customer's own prices are the owner's; staff edits keep what was there.
+    if (table === 'customers' && actor.role !== 'owner') {
+      if (existing?.itemPrices !== undefined) data.itemPrices = existing.itemPrices;
+      else delete data.itemPrices;
+    }
     const denied = this.checkPermission(actor, table, data, existing);
     if (denied) return reject(denied);
     if (table === 'invoices' && data.status === 'saved' && existing?.status !== 'saved' && actor.billsLeft !== undefined) {
