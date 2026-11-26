@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { gstr3b } from './gstReturns';
 import { balanceSheet, ledgerOf, ownerMoney, saveJournal, trialBalance } from './books';
 import { cashDay, closeDay } from './cashbook';
 import { db } from './db';
@@ -62,5 +63,25 @@ describe('R7.1 books', () => {
     await expect(saveJournal(owner, j([{ account: 'cash', debit: 100, credit: 0 }, { account: 'capital', debit: 0, credit: 90 }]))).rejects.toThrow();
     await saveJournal(owner, j([{ account: 'cash', debit: 100, credit: 0 }, { account: 'capital', debit: 0, credit: 100 }]));
     expect((await trialBalance('b1', D)).reduce((a, b) => a + b.balance, 0)).toBe(0);
+  });
+});
+
+describe('R7.2 GSTR-3B', () => {
+  it('outward taxable less returns, nil and non-GST, input credit and tax to pay', async () => {
+    await db.profiles.update('b1', { gstType: 'regular', taxIdValue: '27AAPFU0939F1ZV', address: { state: 'Maharashtra' } });
+    const d = await newInvoiceDraft(owner);
+    const inv = await saveInvoice(owner, { ...d, date: D, taxMode: 'gst', lines: [line('a', 'Fan', 2, 100000, { taxPct: 18 }), line('b', 'Rice', 1, 50000, { taxPct: 0 })] }, { finalize: true });
+    const n = await newCreditNoteDraft(owner, inv.id);
+    await saveCreditNote(owner, { ...n, date: D, reason: 'return', lines: n.lines.filter((l) => l.name === 'Fan').map((l) => ({ ...l, qty: 1 })) }, { finalize: true });
+    const b = await newInvoiceDraft(owner);
+    await saveInvoice(owner, { ...b, date: D, taxMode: 'none', lines: [line('c', 'Service', 1, 30000)] }, { finalize: true });
+    const pd = await newPurchaseDraft(owner);
+    await savePurchase(owner, { ...pd, date: D, taxMode: 'gst', interState: false, lines: [line('p', 'Fan', 1, 50000, { taxPct: 18 })] } as never, { finalize: true });
+    const r = await gstr3b('b1', { from: '2026-04-01', to: '2026-04-30' });
+    expect(r.outTaxable).toEqual({ taxable: 100000, igst: 0, cgst: 9000, sgst: 9000 });
+    expect(r.outNil).toBe(50000);
+    expect(r.outNonGst).toBe(30000);
+    expect(r.itc).toEqual({ taxable: 50000, igst: 0, cgst: 4500, sgst: 4500 });
+    expect(r.payable).toEqual({ taxable: 0, igst: 0, cgst: 4500, sgst: 4500 });
   });
 });

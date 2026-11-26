@@ -59,7 +59,9 @@ export type ReportId =
   | 'supplierDues'
   | 'consignment'
   | 'trialBalance'
-  | 'balanceSheet';
+  | 'balanceSheet'
+  | 'gstr3b'
+  | 'gstr9';
 
 const inRange = (d: string, p: Period) => d >= p.from && d <= p.to;
 const periodText = (p: Period) => {
@@ -770,6 +772,8 @@ export const REPORTS: ReportInfo[] = [
   { id: 'salesRegister', title: () => t('Sales register'), group: 'gst', period: true, ownerOnly: true, run: salesRegister },
   { id: 'purchaseRegister', title: () => t('Purchase register'), group: 'gst', period: true, ownerOnly: true, run: purchaseRegister },
   { id: 'hsn', title: () => t('HSN summary'), group: 'gst', period: true, ownerOnly: true, run: hsn },
+  { id: 'gstr3b', title: () => 'GSTR-3B', group: 'gst', period: true, ownerOnly: true, run: (c) => import('./gstReturns').then((m) => m.gstr3bTable(c.businessId, c)) },
+  { id: 'gstr9', title: () => t('GSTR-9 (annual)'), group: 'gst', period: true, ownerOnly: true, run: (c) => import('./gstReturns').then((m) => m.gstr9Table(c.businessId, c.to)) },
   { id: 'gstSummary', title: () => t('GST summary'), group: 'gst', period: true, ownerOnly: true, run: gstSummary },
   { id: 'pnl', title: () => t('Profit & loss statement'), group: 'money', period: true, ownerOnly: true, cost: true, run: pnl },
   { id: 'profit', title: () => t('Profit report'), group: 'money', period: true, ownerOnly: true, run: profit },
