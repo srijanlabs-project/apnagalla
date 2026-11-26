@@ -1,4 +1,5 @@
 import RecycleBinScreen from './RecycleBinScreen';
+import DayEndGate from '../../components/DayEndGate';
 import { IonIcon, IonLabel, IonRouterOutlet, IonTabBar, IonTabButton, IonTabs } from '@ionic/react';
 import { cubeOutline, documentTextOutline, ellipsisHorizontal, homeOutline, peopleOutline } from 'ionicons/icons';
 import { Navigate, Route } from 'react-router-dom';
@@ -60,14 +61,14 @@ export default function MainTabs() {
         <IonRouterOutlet>
           <Route path="home" element={<HomeOrDeliveries />} />
           <Route path="deliveries" element={<DeliveriesScreen />} />
-          <Route path="sale" element={<SaleScreen />} />
+          <Route path="sale" element={<DayEndGate><SaleScreen /></DayEndGate>} />
 
           <Route path="invoices" element={<DocListScreen kind="invoice" />} />
-          <Route path="invoices/new" element={<DocEditorScreen kind="invoice" />} />
+          <Route path="invoices/new" element={<DayEndGate backHref="/tabs/invoices"><DocEditorScreen kind="invoice" /></DayEndGate>} />
           <Route path="invoices/:id" element={<DocDetailScreen kind="invoice" />} />
           <Route path="invoices/:id/edit" element={<DocEditorScreen kind="invoice" />} />
           <Route path="estimates" element={<DocListScreen kind="estimate" />} />
-          <Route path="estimates/new" element={<DocEditorScreen kind="estimate" />} />
+          <Route path="estimates/new" element={<DayEndGate backHref="/tabs/estimates"><DocEditorScreen kind="estimate" /></DayEndGate>} />
           <Route path="estimates/:id" element={<DocDetailScreen kind="estimate" />} />
           <Route path="estimates/:id/edit" element={<DocEditorScreen kind="estimate" />} />
           <Route path="credit-notes" element={<DocListScreen kind="credit" />} />

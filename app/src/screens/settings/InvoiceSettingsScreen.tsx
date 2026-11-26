@@ -287,6 +287,17 @@ export default function InvoiceSettingsScreen() {
         />
       </FormSection>
 
+      <FormSection title={t('Day-end closing')}>
+        <ToggleRow
+          label={t('Day-end closing is compulsory')}
+          note={t('Before the first bill of a new day, the last day with sales must be closed with a cash count.')}
+          checked={s.dayEndRequired !== false}
+          onChange={(on) => patch({ dayEndRequired: on, ...(on ? { dayEndFrom: todayISO() } : {}) })}
+          disabled={ro}
+        />
+        <TextField label={t('Store closing time')} type="time" value={s.closingTime ?? '21:00'} onChange={(closingTime) => patch({ closingTime: closingTime || '21:00' })} disabled={ro} helper={t('After this time, Home reminds you to close the day.')} />
+      </FormSection>
+
       <FormSection title={t('Scanning')}>
         <ToggleRow
           label={t('Ask before adding the same item again')}

@@ -472,15 +472,39 @@ Asked for after R6 went live. Built in this order unless the owner changes it.
 
 | # | Request | What is there today | Status |
 |---|---|---|---|
-| Q1 | Bill photos: upload a picture from the gallery as well as taking one with the camera | Camera only | To do |
-| Q2 | An advance is tied to its estimate and customer, and is used only on that estimate's bill | An estimate's advance joins the customer's general advance, so "Use advance" on any other bill can use it | To do |
-| Q3 | Estimates in a list of their own | Estimates share one screen with invoices and credit notes (a tab) | To do |
-| Q4 | Invoice list: filters by date, customer and payment status; pages instead of one long list | Status chips and search only; every bill loads at once | To do |
-| Q5 | Day-end closing is compulsory: after the store's closing time the day must be closed, and the next day can't start until it is | Day-end cash count exists but is optional | To do |
-| Q6 | Barcode scanner can't read small barcodes | Low camera resolution, no zoom or focus help | To do |
-| Q7 | Everything deleted (bills, estimates, purchase orders…) is kept, not erased | Already kept: delete only marks a record deleted (phone and server); saved bills can only be cancelled. Missing: a screen to see and restore them | To do (recycle bin, moved up from R8) |
-| Q8 | A banner at the bottom of every PDF page with the seller's message | No such option | To do |
+| Q1 | Bill photos: upload a picture from the gallery as well as taking one with the camera | Camera only | Done |
+| Q2 | An advance is tied to its estimate and customer, and is used only on that estimate's bill | An estimate's advance joins the customer's general advance, so "Use advance" on any other bill can use it | Done |
+| Q3 | Estimates in a list of their own | Estimates share one screen with invoices and credit notes (a tab) | Done |
+| Q4 | Invoice list: filters by date, customer and payment status; pages instead of one long list | Status chips and search only; every bill loads at once | Done |
+| Q5 | Day-end closing is compulsory: after the store's closing time the day must be closed, and the next day can't start until it is | Day-end cash count exists but is optional | Done |
+| Q6 | Barcode scanner can't read small barcodes | Low camera resolution, no zoom or focus help | Done |
+| Q7 | Everything deleted (bills, estimates, purchase orders…) is kept, not erased | Already kept: delete only marks a record deleted (phone and server); saved bills can only be cancelled. Missing: a screen to see and restore them | Done (recycle bin: More → Deleted) |
+| Q8 | A banner at the bottom of every PDF page with the seller's message | No such option | Done |
 | Q9 | Membership and loyalty points | Not built (R9) | Design first, then build (moved up from R9 if the owner agrees) |
+
+Q decisions (auto mode, 27 Nov 2026):
+- Q1: photos have Camera and Gallery buttons (several pictures at once from the gallery); expense
+  bills, job photos and bill scans ask "Take a photo / Upload from gallery". Delivery proof stays
+  camera only.
+- Q2: an estimate's advance is held for that estimate: it doesn't settle the opening balance, "Use
+  advance" on other bills can't take it, and only the bill made from the estimate uses it. The
+  customer screen shows "Held for estimates". If the estimate is dropped: return the money, or the
+  owner moves it to the customer's general advance. On-account khata money stays a general advance.
+- Q3: Estimates (with work orders and challans) is first in More's list; the list filters by kind
+  and status. Q4: every bill list filters by dates and customer, shows the count and total, 25 a page.
+- Q5: day-end is compulsory by default (Invoice settings → Day-end closing, with the closing time).
+  The counter, new invoice and new estimate screens wait until the last day that had business
+  (bills, payments or expenses) is closed with a cash count; quiet days need nothing; days before
+  the rule began (27 Nov 2026, or when the owner turns it back on) are never asked for. After closing
+  time Home reminds to close today; billing late is still allowed. Anyone who bills can close; a
+  phone that missed another phone's close can sync from the same screen.
+- Q6: scanner asks for an HD picture with continuous focus and tries harder; zoom 1–4× and a light
+  when the phone allows; reads GS1 DataBar (fruit stickers), Code 93, Codabar, Data Matrix too;
+  "Type the code" when nothing reads.
+- Q7: nothing is erased (it never was); More → Deleted lists deleted records by group (bills,
+  people, items, money) and the owner brings any back.
+- Q8: Invoice design → "Message at the bottom of every page" (up to 200 letters), printed in the
+  design colour on every page of bills, estimates and credit notes.
 
 #### Release 11 — features for particular kinds of shop (planned 26 Nov 2026)
 Found by asking what retailers need that neither ApnaGalla nor the Vyapar list has. Design-first.

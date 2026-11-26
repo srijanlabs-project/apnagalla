@@ -111,6 +111,12 @@ export interface BusinessSettings extends SyncedRecord {
   staffMustLock: boolean;
   /** Scanning an item already on the bill asks before adding one more (default yes). */
   confirmRepeatScan?: boolean;
+  /** Day-end closing is compulsory (default on): billing waits until the last business day is closed. */
+  dayEndRequired?: boolean;
+  /** "HH:MM": the store closes; after it Home asks to close the day. */
+  closingTime?: string;
+  /** Days before this are never asked to be closed (set when the rule is turned on). */
+  dayEndFrom?: string;
   /** Staff can't bill on credit beyond a customer's credit limit (the owner still can). */
   creditLimitBlocks?: boolean;
   /** Delivery challans: their own number series. */

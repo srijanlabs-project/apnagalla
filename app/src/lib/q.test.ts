@@ -5,6 +5,8 @@ import { db, type Customer } from './db';
 import { applyAdvance, khataOf } from './khata';
 import { jobAdvance, releaseAdvance, settleJobAdvance, takeAdvance } from './jobs';
 import { buildDocDefinition } from './pdf/buildDoc';
+import { closingDue, dayToClose } from './dayEnd';
+import { cashDay, closeDay } from './cashbook';
 import { pdfInputFor } from './pdf';
 import { billMoney, convertEstimate, ensureBusinessRecords, newEstimateDraft, newInvoiceDraft, PermissionError, putRecord, saveEstimate, saveInvoice, settingsOf, type Actor } from './repo';
 
@@ -66,5 +68,24 @@ describe('Q8 seller banner', () => {
     expect(JSON.stringify(footer(2, 3))).toContain('Diwali sale');
     expect(JSON.stringify((plain.footer as (c: number, n: number) => unknown)(1, 1))).not.toContain('Diwali');
     expect((withBanner.pageMargins as number[])[3]).toBeGreaterThan((plain.pageMargins as number[])[3]!);
+  });
+});
+
+describe('Q5 compulsory day-end', () => {
+  it('a day with sales must be closed before billing on a later day', async () => {
+    const st = { ...(await settingsOf('b1')), dayEndFrom: '2026-01-01', closingTime: '21:00' };
+    const d = await newInvoiceDraft(owner);
+    await saveInvoice(owner, { ...d, date: '2026-01-10', lines: [line(10000)] }, { finalize: true });
+    // Same day: no block; after closing time a reminder.
+    expect(await dayToClose('b1', st, new Date(2026, 0, 10, 12))).toBeNull();
+    expect(await closingDue('b1', st, new Date(2026, 0, 10, 12))).toBe(false);
+    expect(await closingDue('b1', st, new Date(2026, 0, 10, 21, 30))).toBe(true);
+    // Next days: blocked until 10 Jan is closed (the quiet 11th needs nothing).
+    expect(await dayToClose('b1', st, new Date(2026, 0, 12, 9))).toBe('2026-01-10');
+    expect(await dayToClose('b1', { ...st, dayEndRequired: false }, new Date(2026, 0, 12, 9))).toBeNull();
+    expect(await dayToClose('b1', { ...st, dayEndFrom: '2026-01-11' }, new Date(2026, 0, 12, 9))).toBeNull();
+    await closeDay(staff, await cashDay('b1', '2026-01-10'), 0);
+    expect(await dayToClose('b1', st, new Date(2026, 0, 12, 9))).toBeNull();
+    expect(await closingDue('b1', st, new Date(2026, 0, 10, 21, 30))).toBe(false);
   });
 });

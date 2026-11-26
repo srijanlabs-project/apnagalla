@@ -3,6 +3,7 @@ import { todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { FormSection, MoneyField, TextField } from '../../components/Fields';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
@@ -46,7 +47,8 @@ function Lines({ title, lines, sign }: { title: string; lines: CashLine[]; sign:
 export default function CashBookScreen() {
   const { actor, isOwner } = useBusiness();
   const [toast] = useIonToast();
-  const [date, setDate] = useState(todayISO());
+  const asked = new URLSearchParams(useLocation().search).get('date');
+  const [date, setDate] = useState(asked && /^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked : todayISO());
   const day = useLiveQuery(() => cashDay(actor.businessId, date), [actor.businessId, date]);
   const [counted, setCounted] = useState<number | null>(null);
   const [note, setNote] = useState('');

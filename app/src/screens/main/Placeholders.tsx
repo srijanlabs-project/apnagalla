@@ -1,9 +1,11 @@
+import { todayISO } from '@invoice/shared';
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon, IonItem, IonLabel, IonList, IonListHeader, IonRouterLink, useIonRouter } from '@ionic/react';
 import { ChooseProductListCard } from '../settings/ProductListScreen';
 import type { BillingStatusDto } from '@invoice/shared';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { closingDue, dayToClose } from '../../lib/dayEnd';
 import { addOutline, cartOutline, clipboardOutline } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
 import StatusBadge from '../../components/StatusBadge';
@@ -35,6 +37,15 @@ export function HomeScreen() {
       .catch(() => setRenew(null));
   }, [actor.businessId, isOwner]);
   const seesMoney = isOwner || perms.access === 'readonly';
+  const { settings } = useBusiness();
+  const billsHere = CAN_CREATE_INVOICES && perms.access !== 'readonly' && perms.access !== 'warehouse';
+  // Day-end: a past day still open blocks billing; after closing time, a reminder for today.
+  const dayEnd = useLiveQuery(async () => {
+    if (!billsHere) return null;
+    const pending = await dayToClose(actor.businessId, settings);
+    if (pending) return { date: pending, block: true };
+    return (await closingDue(actor.businessId, settings)) ? { date: todayISO(), block: false } : null;
+  }, [actor.businessId, settings, ledger, billsHere]);
   const today = useLiveQuery(() => todaySummary(actor.businessId, canBuy, seesMoney && canBuy), [actor.businessId, canBuy, seesMoney, ledger]);
   const recent = useLiveQuery(
     () =>
@@ -72,6 +83,13 @@ export function HomeScreen() {
       {!CAN_CREATE_INVOICES && <p className="section-note">{webInvoiceNote()}</p>}
 
       <ChooseProductListCard />
+      {dayEnd && (
+        <IonRouterLink routerLink={`/tabs/cash-book?date=${dayEnd.date}`}>
+          <p className={dayEnd.block ? 'renew-banner' : 'day-end-banner'}>
+            {dayEnd.block ? t('{date} is not closed. Close it to start billing today.', { date: dateIN(dayEnd.date) }) : t('Closing time: count the cash and close today.')}
+          </p>
+        </IonRouterLink>
+      )}
       {renew && (
         <IonRouterLink routerLink="/tabs/more/plan">
           <p className="renew-banner">
