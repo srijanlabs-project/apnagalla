@@ -7,6 +7,7 @@ import { convertEstimate, ensureBusinessRecords, newEstimateDraft, newInvoiceDra
 import { landedCosts, newPurchaseDraft, recordSupplierPayment, savePurchase, supplierDues } from './purchases';
 import { moveBetweenGodowns, stockByPlace } from './godowns';
 import { stockLevels } from './stock';
+import { billConsignment, consignmentProgress, takeBackConsignment } from './consignment';
 import { DEFAULT_SCALE, ean13Check, parseScaleBarcode, scaleQty } from './scale';
 import { transfersOf } from './transfers';
 
@@ -124,5 +125,26 @@ describe('R8.5 weighing-scale barcodes', () => {
     expect(scaleQty({ unit: 'kg', rate: 4000 }, { grams: 1250 })).toBe(1.25);
     expect(scaleQty({ unit: 'g', rate: 40 }, { grams: 250 })).toBe(250);
     expect(scaleQty({ unit: 'kg', rate: 40000 }, { paise: 50000 })).toBe(1.25);
+  });
+});
+
+describe('R8.6 sale or return', () => {
+  it('goods leave on the challan, sold ones are billed without moving stock again, the rest come back', async () => {
+    await putRecord('items', owner, { id: 'k', name: 'Kurti', unit: 'pcs', rate: 80000, taxPct: 5 } as never);
+    const d = await newEstimateDraft(owner);
+    const dc = await saveEstimate(owner, { ...d, challan: true, consignment: true, billTo: { customerId: 'c1', name: 'Hotel Raj', address: {} }, lines: [line('a', 'Kurti', 20, 80000, { itemId: 'k' })] }, { finalize: true });
+    expect(dc.number).toMatch(/^DC/);
+    expect((await stockLevels('b1')).get('k')).toBe(-20);
+    const bill = await billConsignment(owner, dc.id);
+    await saveInvoice(owner, { ...bill, lines: [{ ...bill.lines[0]!, qty: 12 }] }, { finalize: true });
+    expect((await stockLevels('b1')).get('k')).toBe(-20);
+    await takeBackConsignment(staff, dc.id, { a: 5 });
+    let p = await consignmentProgress((await db.estimates.get(dc.id))!);
+    expect(p.lines[0]).toMatchObject({ sent: 20, sold: 12, returned: 5, out: 3 });
+    expect((await stockLevels('b1')).get('k')).toBe(-15);
+    await takeBackConsignment(staff, dc.id, { a: 99 }); // never more than is out
+    p = await consignmentProgress((await db.estimates.get(dc.id))!);
+    expect(p.settled).toBe(true);
+    expect((await stockLevels('b1')).get('k')).toBe(-12);
   });
 });

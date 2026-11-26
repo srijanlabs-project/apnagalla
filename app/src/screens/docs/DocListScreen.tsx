@@ -308,6 +308,7 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
                       { text: t('Proforma invoice'), handler: () => router.push('/tabs/estimates/new?proforma=1') },
                       { text: t('Work order'), handler: () => router.push('/tabs/estimates/new?work=1') },
                       { text: t('Delivery challan'), handler: () => router.push('/tabs/estimates/new?challan=1') },
+                      { text: t('Goods on sale or return'), handler: () => router.push('/tabs/estimates/new?challan=1&consign=1') },
                       { text: t('Cancel'), role: 'cancel' },
                     ],
                   })

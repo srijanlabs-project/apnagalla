@@ -118,6 +118,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         d = kind === 'invoice' ? await newInvoiceDraft(actor) : await newEstimateDraft(actor);
         if (kind === 'estimate' && new URLSearchParams(location.search).get('challan')) (d as Estimate).challan = true;
         if (kind === 'estimate' && new URLSearchParams(location.search).get('order')) (d as Estimate).order = true;
+        if (kind === 'estimate' && new URLSearchParams(location.search).get('consign')) Object.assign(d, { challan: true, consignment: true });
         if (kind === 'estimate' && new URLSearchParams(location.search).get('proforma')) (d as Estimate).proforma = true;
         if (kind === 'estimate' && new URLSearchParams(location.search).get('work')) (d as Estimate).job = blankJob('work', actor.userName);
         d.dueDate = addDaysISO(d.date, d.paymentTermsDays ?? 0);
@@ -386,6 +387,17 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         )}
 
         {/* ---------- header ---------- */}
+        {kind === 'estimate' && (doc as Estimate).challan && (
+          <FormSection>
+            <ToggleRow
+              label={t('Sale or return (consignment)')}
+              note={t('The party pays for what sells and sends back the rest. Bill and take back from the challan.')}
+              checked={!!(doc as Estimate).consignment}
+              onChange={(consignment) => patch({ consignment } as Partial<Estimate>)}
+              disabled={locked}
+            />
+          </FormSection>
+        )}
         {kind !== 'credit' && (
           <FormSection>
             {godownsOf(settings).length > 0 && (

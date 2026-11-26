@@ -59,6 +59,7 @@ import { usePrint } from '../../lib/usePrint';
 import { modeLabel, moneyOf } from '../../lib/ledger';
 import { DOC_BASE } from './DocEditorScreen';
 import { orderProgress, orderStateLabel } from '../../lib/orders';
+import { consignmentProgress, takeBackConsignment } from '../../lib/consignment';
 
 export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const { id } = useParams<{ id: string }>();
@@ -92,6 +93,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const settlement = useLiveQuery(async () => (kind === 'credit' && doc && doc.status === 'saved' ? settlementOf(doc as CreditNote) : undefined), [kind, doc, ledger]);
   // An estimate's advance (taken, less used or returned).
   const progress = useLiveQuery(async () => (kind === 'estimate' && doc && (doc as Estimate).order && doc.status !== 'draft' ? orderProgress(doc as Estimate) : null), [kind, doc, ledger]);
+  const consign = useLiveQuery(async () => (kind === 'estimate' && doc && (doc as Estimate).consignment && doc.status !== 'draft' ? consignmentProgress(doc as Estimate) : null), [kind, doc, ledger]);
   const estAdvance = useLiveQuery(async () => (kind === 'estimate' && id ? jobAdvance(actor.businessId, id) : 0), [kind, id, actor.businessId, ledger]);
   // Money the customer left on account, to use on this bill.
   const customerId = kind === 'invoice' ? (doc as Invoice | undefined)?.billTo?.customerId : undefined;
@@ -340,6 +342,67 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
               ))}
             </div>
           )}
+          {consign && (
+            <div className="order-progress">
+              <p>
+                <strong>{consign.settled ? t('Settled') : t('Sale or return')}</strong>
+                {consign.outValue > 0 ? ` · ${t('{amount} still with them', { amount: rupees(consign.outValue) })}` : ''}
+              </p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>{t('Item')}</th>
+                    <th>{t('Sent')}</th>
+                    <th>{t('Sold')}</th>
+                    <th>{t('Back')}</th>
+                    <th>{t('With them')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {consign.lines.map((l) => (
+                    <tr key={l.lineId}>
+                      <td>{l.name}</td>
+                      <td>{l.sent}</td>
+                      <td>{l.sold}</td>
+                      <td>{l.returned}</td>
+                      <td className={l.out > 0 ? 'text-danger' : 'text-success'}>{l.out}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {consign.bills.map((b) => (
+                <IonButton key={b.id} size="small" fill="clear" routerLink={`/tabs/invoices/${b.id}`}>
+                  {b.number || t('Draft')} · {dateIN(b.date)}
+                </IonButton>
+              ))}
+              {!consign.settled && CAN_CREATE_INVOICES && (
+                <IonButton
+                  size="small"
+                  fill="outline"
+                  onClick={() =>
+                    void alert({
+                      header: t('Goods came back'),
+                      inputs: consign.lines
+                        .filter((l) => l.out > 0)
+                        .map((l) => ({ name: l.lineId, type: 'number' as const, placeholder: `${l.name} (${t('max {n}', { n: l.out })})`, min: 0, max: l.out })),
+                      buttons: [
+                        { text: t('Cancel'), role: 'cancel' },
+                        {
+                          text: t('Save'),
+                          handler: (v: Record<string, string>) =>
+                            void takeBackConsignment(actor, doc.id, Object.fromEntries(Object.entries(v).map(([k, x]) => [k, Number(x) || 0])))
+                              .then((n) => void (n && toast({ message: t('Stock taken back'), duration: 1500, position: 'top', color: 'success' })))
+                              .catch(fail),
+                        },
+                      ],
+                    })
+                  }
+                >
+                  {t('Goods came back')}
+                </IonButton>
+              )}
+            </div>
+          )}
           {est && (estAdvance ?? 0) > 0 && <p className="text-success">{t("Advance received: {amount}, kept for this estimate's bill only", { amount: rupees(estAdvance ?? 0) })}</p>}
           {refundDue > 0 && (
             <p className="text-danger">
@@ -472,7 +535,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 <IonIcon icon={logoWhatsapp} slot="start" /> {t('Remind')}
               </IonButton>
             )}
-            {est && est.status !== 'draft' && est.status !== 'converted' && CAN_CREATE_INVOICES && (!est.order || (progress && progress.state !== 'done' && progress.state !== 'closed')) && (
+            {est && est.status !== 'draft' && est.status !== 'converted' && CAN_CREATE_INVOICES && (!est.order || (progress && progress.state !== 'done' && progress.state !== 'closed')) && (!est.consignment || (consign && !consign.settled)) && (
               <IonButton
                 color="success"
                 onClick={() =>
@@ -481,7 +544,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                     .catch(fail)
                 }
               >
-                {est.order ? (progress?.state === 'part' ? t('Bill the rest') : t('Make bill')) : t('Convert to invoice')}
+                {est.consignment ? t('Bill what was sold') : est.order ? (progress?.state === 'part' ? t('Bill the rest') : t('Make bill')) : t('Convert to invoice')}
               </IonButton>
             )}
             {est?.convertedInvoiceId && (

@@ -680,6 +680,7 @@ export async function convertEstimate(actor: Actor, estimateId: string): Promise
   if (!est) throw new Error(t('Estimate not found'));
   // An order is billed in parts and stays open until everything is delivered.
   if (est.order) return (await import('./orders')).billFromOrder(actor, est.id);
+  if (est.consignment) return (await import('./consignment')).billConsignment(actor, est.id);
   const draft = await newInvoiceDraft(actor);
   const inv: Invoice = {
     ...draft,

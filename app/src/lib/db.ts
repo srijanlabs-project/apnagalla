@@ -420,6 +420,8 @@ export interface Estimate extends DocBase {
   order?: boolean;
   /** R8: a proforma invoice (PI series): a quote in invoice form, often for an advance. */
   proforma?: boolean;
+  /** R8: a challan for goods on sale or return (consignment): bill what sold, take back the rest. */
+  consignment?: boolean;
 }
 
 export type WorkStage = 'measure' | 'quoted' | 'confirmed' | 'in_progress' | 'ready' | 'delivered' | 'cancelled';
@@ -463,6 +465,9 @@ export interface StockMove extends SyncedRecord {
   godownId?: string;
   fromGodownId?: string;
   toGodownId?: string;
+  /** R8: goods back from a sale-or-return challan (its id and line). */
+  consignmentId?: string;
+  fromLineId?: string;
   note?: string;
   date: string;
   byName?: string;
