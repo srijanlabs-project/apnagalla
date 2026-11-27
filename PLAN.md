@@ -312,7 +312,7 @@ Other names, Notes; other names separated by ";"). Re-uploading updates rows by 
 sheet (Word, Means). Phones pick changes up within a few hours, or at once from More → Product list.
 
 New shop types (27 Nov 2026): Fruits and vegetables, Acrylic and laser cutting, Cakes and bakery are
-product-list sections too. Draft lists in docs/product-list-review-shops.xlsx (136 / 98 / 130 rows, local
+product-list sections too. Draft lists are sheets in docs/product-list-review.xlsx (136 / 98 / 130 rows, local
 names for produce, HSN and GST after the Sept 2025 change, laser work as SAC 998898 at 18%); waiting for the
 client's review, then upload in the admin console under each section.
 
