@@ -6,6 +6,7 @@ import RemindersScreen from '../customers/RemindersScreen';
 import VisitsScreen from '../customers/VisitsScreen';
 import CratesScreen from '../customers/CratesScreen';
 import AssetsScreen from '../money/AssetsScreen';
+import { HomeCardsScreen, ToCollectScreen, UrgentDeliveriesScreen } from './HomeExtras';
 import ContactImportScreen from '../customers/ContactImportScreen';
 import LoyaltyScreen from '../settings/LoyaltyScreen';
 import { RentalsScreen, SchemesScreen, VouchersScreen } from '../money/ExtrasScreens';
@@ -97,6 +98,9 @@ export default function MainTabs() {
           <Route path="customers/reminders" element={<RemindersScreen />} />
           <Route path="customers/visits" element={<VisitsScreen />} />
           <Route path="assets" element={<AssetsScreen />} />
+          <Route path="to-collect" element={<ToCollectScreen />} />
+          <Route path="deliveries/urgent" element={<UrgentDeliveriesScreen />} />
+          <Route path="more/home-cards" element={<HomeCardsScreen />} />
           <Route path="assets/crates" element={<CratesScreen />} />
           <Route path="customers/import-contacts" element={<ContactImportScreen />} />
           <Route path="customers/:id" element={<CustomerDetailScreen />} />

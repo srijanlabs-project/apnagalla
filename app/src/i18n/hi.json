@@ -2423,5 +2423,18 @@
   "{name} added as a customer": "{name} ग्राहक के रूप में जुड़ गए",
   "{name} is already a customer": "{name} पहले से ग्राहक हैं",
   "{n} {kind} with others": "{n} {kind} दूसरों के पास",
-  "{qty} at {place}": "{place} में {qty}"
+  "{qty} at {place}": "{place} में {qty}",
+  "Choose the boxes Home shows on this phone. Figures a login may not see stay hidden anyway.": "चुनें कि इस फ़ोन पर होम में कौन से बॉक्स दिखें। जो आंकड़े किसी लॉगिन को देखने की अनुमति नहीं, वे वैसे भी छिपे रहते हैं।",
+  "Home screen": "होम स्क्रीन",
+  "Late and due in the next 48 hours, soonest first": "देर वाली और अगले 48 घंटे में होने वाली, सबसे जल्दी वाली पहले",
+  "Late · {date}": "देर · {date}",
+  "New expense": "नया खर्च",
+  "No deliveries due in the next 48 hours.": "अगले 48 घंटे में कोई डिलीवरी नहीं।",
+  "Nobody owes the store anything.": "किसी पर दुकान का कोई बकाया नहीं।",
+  "Received from {name}": "{name} से मिले",
+  "Saved: oldest bills marked paid first": "सेव हुआ: सबसे पुराने बिल पहले चुकता किए गए",
+  "Urgent deliveries": "ज़रूरी डिलीवरी",
+  "Urgent deliveries (next 48 hours)": "ज़रूरी डिलीवरी (अगले 48 घंटे)",
+  "{amount} overdue": "{amount} की तारीख निकल गई",
+  "{count} customers · {amount}": "{count} ग्राहक · {amount}"
 }

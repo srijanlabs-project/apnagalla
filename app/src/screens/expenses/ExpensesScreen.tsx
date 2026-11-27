@@ -2,7 +2,8 @@ import { IonButton, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, I
 import { todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { add, cameraOutline, walletOutline } from 'ionicons/icons';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import EmptyState from '../../components/EmptyState';
 import { SelectField, TextField, ToggleRow } from '../../components/Fields';
 import MoneyEntrySheet from '../../components/MoneyEntrySheet';
@@ -82,6 +83,12 @@ export default function ExpensesScreen() {
     setRepeat(false);
     setAdding(true);
   };
+  // Home → New expense opens the form straight away.
+  const location = useLocation();
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('add') === '1') open();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search, location.key]);
 
   const dueNow = (due ?? []).filter((d) => d.due.length > 0);
   const repeating = (due ?? []).filter((d) => !d.recurring.stopped);

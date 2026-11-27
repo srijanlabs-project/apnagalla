@@ -191,6 +191,10 @@ export default function MoreScreen() {
           <IonIcon icon={settingsOutline} slot="start" />
           <IonLabel>{t('Invoice settings')}</IonLabel>
         </IonItem>
+        <IonItem routerLink="/tabs/more/home-cards" detail lines="full">
+          <IonIcon icon={gridOutline} slot="start" />
+          <IonLabel>{t('Home screen')}</IonLabel>
+        </IonItem>
         <IonItem routerLink="/tabs/assets" detail lines="full">
           <IonIcon icon={cubeOutline} slot="start" />
           <IonLabel>{t('Store assets')}</IonLabel>
