@@ -7,7 +7,7 @@ import { z } from 'zod';
  * brand is the loose / unbranded generic item.
  */
 
-export const CATALOG_SECTIONS = ['kirana', 'hardware', 'garments'] as const;
+export const CATALOG_SECTIONS = ['kirana', 'hardware', 'garments', 'fruits_veg', 'acrylic', 'bakery'] as const;
 export type CatalogSection = (typeof CATALOG_SECTIONS)[number];
 
 export interface CatalogItemDto {

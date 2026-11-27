@@ -9,7 +9,7 @@ import { sync } from '../../lib/sync';
 import { t } from '../../lib/i18n';
 
 /** Sheets of the review workbook (docs/product-list-review.xlsx) for each list. */
-const SHEET_NAMES: Record<CatalogSection, string[]> = { kirana: ['Kirana'], hardware: ['Hardware & electrical', 'Hardware'], garments: ['Garments'] };
+const SHEET_NAMES: Record<CatalogSection, string[]> = { kirana: ['Kirana'], hardware: ['Hardware & electrical', 'Hardware'], garments: ['Garments'], fruits_veg: ['Fruits and vegetables'], acrylic: ['Acrylic and laser cutting'], bakery: ['Cakes and bakery'] };
 
 /** Sheet columns, in order (the same for upload and download). */
 export const CATALOG_COLUMNS = ['Category', 'Item', 'Brand', 'Size', 'Size unit', 'Sell unit', 'HSN', 'GST %', 'Other names', 'Notes'];

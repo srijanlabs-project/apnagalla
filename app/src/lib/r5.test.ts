@@ -117,3 +117,16 @@ describe('starter product lists', () => {
     expect(new Set(all.map((r) => r.id)).size).toBe(all.length);
   });
 });
+
+describe('Product list: new shop types', () => {
+  it('the starter sheets for fruits & vegetables, acrylic and bakery upload without problems', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { parseCsv } = await import('./importer');
+    for (const name of ['fruits_veg', 'acrylic', 'bakery']) {
+      const text = readFileSync(new URL(`../../../server/catalog/starter/${name}.csv`, import.meta.url), 'utf8');
+      const { rows, problems } = parseCatalogSheet(parseCsv(text));
+      expect(problems).toEqual([]);
+      expect(rows.length).toBeGreaterThan(90);
+    }
+  });
+});

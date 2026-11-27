@@ -24,6 +24,9 @@ export const SECTION_LABEL: Record<CatalogSection, () => string> = {
   kirana: () => t('Kirana / grocery'),
   hardware: () => t('Hardware and electrical'),
   garments: () => t('Garments'),
+  fruits_veg: () => t('Fruits and vegetables'),
+  acrylic: () => t('Acrylic and laser cutting'),
+  bakery: () => t('Cakes and bakery'),
 };
 
 const metaKey = (section: string) => `catalog.cursor.${section}`;

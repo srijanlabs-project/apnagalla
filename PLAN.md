@@ -311,6 +311,11 @@ Other names, Notes; other names separated by ";"). Re-uploading updates rows by 
 "Replace the whole section" also removes rows not in the sheet. Other spellings: a two-column
 sheet (Word, Means). Phones pick changes up within a few hours, or at once from More → Product list.
 
+New shop types (27 Nov 2026): Fruits and vegetables, Acrylic and laser cutting, Cakes and bakery are
+product-list sections too. Draft lists in docs/product-list-review-shops.xlsx (136 / 98 / 130 rows, local
+names for produce, HSN and GST after the Sept 2025 change, laser work as SAC 998898 at 18%); waiting for the
+client's review, then upload in the admin console under each section.
+
 Still open: someone on the client side to keep the list clean over time; "learning" from names
 many shops type that aren't in the list (later, needs consent in the terms); Excel import filling
 missing HSN / GST from the list (later).
