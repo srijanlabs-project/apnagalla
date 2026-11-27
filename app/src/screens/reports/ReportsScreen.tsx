@@ -12,6 +12,7 @@ import { useBusiness } from '../../lib/business';
 import { db } from '../../lib/db';
 import { shareTable, type CellValue, type ExportTable } from '../../lib/exportTable';
 import { t } from '../../lib/i18n';
+import { extraOn } from '../../lib/shopExtras';
 import { REPORTS, type ReportInfo, type Period } from '../../lib/reports';
 import { useSession } from '../../lib/session';
 import { sync } from '../../lib/sync';
@@ -26,9 +27,9 @@ const GROUPS: { id: ReportInfo['group']; title: () => string }[] = [
 
 /** Reports this person may open. */
 function useAllowed() {
-  const { isOwner, perms } = useBusiness();
+  const { isOwner, perms, settings } = useBusiness();
   // The accountant (view-only login) sees the owner's reports too.
-  return (r: ReportInfo) => perms.viewReports && (!r.ownerOnly || isOwner || perms.access === 'readonly') && (!r.cost || perms.seeCost);
+  return (r: ReportInfo) => perms.viewReports && (!r.ownerOnly || isOwner || perms.access === 'readonly') && (!r.cost || perms.seeCost) && (!r.extra || extraOn(settings, r.extra));
 }
 
 export function ReportsScreen() {

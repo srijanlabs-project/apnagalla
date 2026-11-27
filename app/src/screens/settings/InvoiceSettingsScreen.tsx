@@ -1,4 +1,5 @@
 import { scaleOf } from '../../lib/scale';
+import { SHOP_EXTRAS, extraOn } from '../../lib/shopExtras';
 import { IonButton, IonChip, IonIcon, IonInput, IonLabel } from '@ionic/react';
 import { closeCircle } from 'ionicons/icons';
 import { useState } from 'react';
@@ -354,6 +355,10 @@ export default function InvoiceSettingsScreen() {
           onChange={(areaBilling) => patch({ areaBilling })}
           disabled={ro}
         />
+        <p className="section-note">{t('Turn on only what your shop uses; the rest stays out of menus, item forms and reports.')}</p>
+        {SHOP_EXTRAS.map((x) => (
+          <ToggleRow key={x.key} label={x.label()} note={x.note()} checked={extraOn(s, x.key)} onChange={(on) => patch({ extras: { ...s.extras, [x.key]: on } })} disabled={ro} />
+        ))}
       </FormSection>
 
       <FormSection title={t('Units')}>

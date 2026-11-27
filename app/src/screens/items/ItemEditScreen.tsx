@@ -21,6 +21,8 @@ import { isLow, qtyText, setOpeningStock, stockLevels, tracksStock } from '../..
 import { scaleOf } from '../../lib/scale';
 import { BatchSection, PriceLevelsSection, ReturnSection, SerialSection, UnitsSection, VariantsSection } from './ItemExtras';
 import { withPriceHistory } from '../../lib/pricing';
+import Fold from '../../components/Fold';
+import { extraOn } from '../../lib/shopExtras';
 
 export function blankItem(actor: Actor, settings: BusinessSettings, name = '', barcode?: string): Item {
   return {
@@ -38,38 +40,17 @@ export function blankItem(actor: Actor, settings: BusinessSettings, name = '', b
   };
 }
 
-export function ItemForm({
-  value: it,
-  onChange: patch,
-  settings,
-  priceLocked,
-  showCost,
-}: {
-  value: Item;
-  onChange: (p: Partial<Item>) => void;
-  settings: BusinessSettings;
-  priceLocked?: boolean;
-  /** Owner, or staff when the store lets them see cost. */
-  showCost?: boolean;
-}) {
+/** Description, photo, category, code and barcode: kept in "More details" so the first screen is name, price and stock. */
+export function ItemDetailsFields({ value: it, onChange: patch, settings, priceLocked }: { value: Item; onChange: (p: Partial<Item>) => void; settings: BusinessSettings; priceLocked?: boolean }) {
   const cats = flattenCategories(useCategories(it.businessId));
-  // Selling price per unit as the customer pays it, to compare with MRP.
-  const finalPrice = it.rateIncludesTax ? it.rate : Math.round(it.rate * (1 + it.taxPct / 100));
-  const aboveMrp = !!it.mrp && finalPrice > it.mrp;
-  const margin = showCost && it.purchasePrice && it.rate ? (it.rateIncludesTax ? it.rate / (1 + it.taxPct / 100) : it.rate) - it.purchasePrice : null;
   const [scanning, setScanning] = useState(false);
   // Another item with the same barcode would make scanning ambiguous.
   const clash = useLiveQuery(
     async () => (it.barcode ? (await db.items.where('[businessId+barcode]').equals([it.businessId, it.barcode]).toArray()).find((x) => x.id !== it.id && !x.deleted) : undefined),
     [it.barcode, it.id, it.businessId],
   );
-  const preview = calculateInvoice({ lines: [{ qty: 1, rate: it.rate, rateIncludesTax: it.rateIncludesTax, taxPct: it.taxPct }], roundOff: false });
-  const units = settings.units.includes(it.unit) ? settings.units : [...settings.units, it.unit];
-  const rates = settings.taxRates.includes(it.taxPct) ? settings.taxRates : [...settings.taxRates, it.taxPct].sort((a, b) => a - b);
   return (
-    <>
-      <FormSection>
-        <TextField label={t('Item / service name')} required value={it.name} onChange={(name) => patch({ name })} />
+    <FormSection>
         <TextArea label={t('Description (optional)')} value={it.description} onChange={(description) => patch({ description })} />
         <ImagePicker label={t('Photo (optional)')} value={it.photo ?? undefined} onChange={(photo) => patch({ photo: photo ?? null })} maxPx={400} photo disabled={priceLocked} />
         <div className="field-row">
@@ -83,24 +64,6 @@ export function ItemForm({
           )}
           <TextField label={t('Item code')} value={it.code} onChange={(code) => patch({ code: code.trim() || undefined })} disabled={priceLocked} maxlength={30} autocapitalize="characters" />
         </div>
-        {(settings.areaBilling || (it.pricing && it.pricing !== 'unit')) && (
-          <SelectField
-            label={t('Priced')}
-            value={it.pricing ?? 'unit'}
-            options={[
-              { value: 'unit' as const, label: t('Per unit (piece, kg, box…)') },
-              { value: 'sqft' as const, label: t('Per sq ft (length × width)') },
-              { value: 'sqm' as const, label: t('Per sq m (length × width)') },
-              { value: 'rft' as const, label: t('Per running foot (length)') },
-              { value: 'rmt' as const, label: t('Per running metre (length)') },
-            ]}
-            onChange={(pricing) => patch({ pricing, ...(pricing !== 'unit' ? { unit: AREA_UNIT[pricing] } : {}) })}
-            disabled={priceLocked}
-          />
-        )}
-        {(it.pricing ?? 'unit') === 'unit' && (
-          <SelectField label={t('Unit')} value={it.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => patch({ unit })} />
-        )}
         <div className="search-row">
           <TextField
             label={t('Barcode')}
@@ -118,6 +81,53 @@ export function ItemForm({
         <BarcodeScanner isOpen={scanning} onClose={() => setScanning(false)} onScan={(barcode) => patch({ barcode })} />
         {scaleOf(settings).enabled && (it.pricing ?? 'unit') === 'unit' && (
           <TextField label={t('Code on the weighing scale (PLU)')} value={it.scaleCode} onChange={(v) => patch({ scaleCode: v.replace(/\D/g, '') || undefined })} inputmode="numeric" disabled={priceLocked} />
+        )}
+    </FormSection>
+  );
+}
+
+export function ItemForm({
+  value: it,
+  onChange: patch,
+  settings,
+  priceLocked,
+  showCost,
+}: {
+  value: Item;
+  onChange: (p: Partial<Item>) => void;
+  settings: BusinessSettings;
+  priceLocked?: boolean;
+  /** Owner, or staff when the store lets them see cost. */
+  showCost?: boolean;
+}) {
+  // Selling price per unit as the customer pays it, to compare with MRP.
+  const finalPrice = it.rateIncludesTax ? it.rate : Math.round(it.rate * (1 + it.taxPct / 100));
+  const aboveMrp = !!it.mrp && finalPrice > it.mrp;
+  const margin = showCost && it.purchasePrice && it.rate ? (it.rateIncludesTax ? it.rate / (1 + it.taxPct / 100) : it.rate) - it.purchasePrice : null;
+  const preview = calculateInvoice({ lines: [{ qty: 1, rate: it.rate, rateIncludesTax: it.rateIncludesTax, taxPct: it.taxPct }], roundOff: false });
+  const units = settings.units.includes(it.unit) ? settings.units : [...settings.units, it.unit];
+  const rates = settings.taxRates.includes(it.taxPct) ? settings.taxRates : [...settings.taxRates, it.taxPct].sort((a, b) => a - b);
+  return (
+    <>
+      <FormSection>
+        <TextField label={t('Item / service name')} required value={it.name} onChange={(name) => patch({ name })} />
+        {(settings.areaBilling || (it.pricing && it.pricing !== 'unit')) && (
+          <SelectField
+            label={t('Priced')}
+            value={it.pricing ?? 'unit'}
+            options={[
+              { value: 'unit' as const, label: t('Per unit (piece, kg, box…)') },
+              { value: 'sqft' as const, label: t('Per sq ft (length × width)') },
+              { value: 'sqm' as const, label: t('Per sq m (length × width)') },
+              { value: 'rft' as const, label: t('Per running foot (length)') },
+              { value: 'rmt' as const, label: t('Per running metre (length)') },
+            ]}
+            onChange={(pricing) => patch({ pricing, ...(pricing !== 'unit' ? { unit: AREA_UNIT[pricing] } : {}) })}
+            disabled={priceLocked}
+          />
+        )}
+        {(it.pricing ?? 'unit') === 'unit' && (
+          <SelectField label={t('Unit')} value={it.unit} options={units.map((u) => ({ value: u, label: u }))} onChange={(unit) => patch({ unit })} />
         )}
       </FormSection>
       <FormSection title={t('Price & tax')} note={priceLocked ? t('Only the owner can change prices.') : undefined}>
@@ -240,6 +250,11 @@ export default function ItemEditScreen() {
         </IonItem>
       )}
       <ItemForm value={it} onChange={patch} settings={settings} priceLocked={priceLocked} showCost={perms.seeCost} />
+      {isNew && tracksStock(it) && (
+        <FormSection>
+          <NumberField label={t('Opening stock')} value={opening} onChange={setOpening} suffix={it.unit} min={0} helper={t('How many you have now.')} />
+        </FormSection>
+      )}
       {isNew && !it.catalogId && it.name.trim().length >= 2 && (
         <>
           {sameNamed && sameNamed.length > 0 && (
@@ -264,6 +279,12 @@ export default function ItemEditScreen() {
           />
         </>
       )}
+      <Fold
+        title={t('More details')}
+        note={t('Photo, category, barcode, wholesale price, other units, sizes/colours, serial, batch')}
+        open={!isNew || !!(it.barcode || it.description || it.photo || it.categoryId || it.code)}
+      >
+      <ItemDetailsFields value={it} onChange={patch} settings={settings} priceLocked={priceLocked} />
       {!it.hasVariants && <PriceLevelsSection it={it} patch={patch} disabled={priceLocked} />}
       {!it.hasVariants && <UnitsSection it={it} patch={patch} disabled={priceLocked} />}
       {settings.onlineStore?.enabled && (
@@ -273,7 +294,7 @@ export default function ItemEditScreen() {
       )}
       <SerialSection it={it} patch={patch} disabled={priceLocked} />
       <BatchSection it={it} patch={patch} disabled={priceLocked} />
-      {settings.jewellery && (it.pricing ?? 'unit') === 'unit' && (
+      {extraOn(settings, 'jewellery') && settings.jewellery && (it.pricing ?? 'unit') === 'unit' && (
         <FormSection title={t('Jewellery')} note={t('A piece priced by weight at the day’s rate: bills ask for its weight, making and wastage.')}>
           <div className="field-row">
             <SelectField label={t('Metal')} value={it.metal ?? ''} options={[{ value: '', label: t('Not jewellery') }, { value: 'gold', label: t('Gold') }, { value: 'silver', label: t('Silver') }]} onChange={(m) => patch({ metal: (m || undefined) as Item['metal'], purity: m === 'gold' ? (it.purity ?? 22) : m === 'silver' ? (it.purity ?? 92.5) : undefined })} disabled={priceLocked} />
@@ -281,9 +302,11 @@ export default function ItemEditScreen() {
           </div>
         </FormSection>
       )}
+      {(extraOn(settings, 'pharmacy') || !!it.schedule) && (
       <FormSection>
         <SelectField label={t('Medicine schedule (pharmacy)')} value={it.schedule ?? ''} options={[{ value: '', label: t('Not scheduled') }, { value: 'H', label: 'Schedule H' }, { value: 'H1', label: 'Schedule H1' }, { value: 'X', label: 'Schedule X' }]} onChange={(s) => patch({ schedule: (s || undefined) as Item['schedule'] })} disabled={priceLocked} />
       </FormSection>
+      )}
       {(it.pricing ?? 'unit') === 'unit' && (
         <FormSection>
           <NumberField
@@ -298,11 +321,7 @@ export default function ItemEditScreen() {
       )}
       {!it.hasVariants && <ReturnSection it={it} patch={patch} disabled={priceLocked} />}
       <VariantsSection it={it} saved={!isNew} />
-      {isNew && tracksStock(it) && (
-        <FormSection>
-          <NumberField label={t('Opening stock')} value={opening} onChange={setOpening} suffix={it.unit} min={0} helper={t('How many you have now.')} />
-        </FormSection>
-      )}
+      </Fold>
       {!isNew && isOwner && (
         <IonButton
           color="danger"

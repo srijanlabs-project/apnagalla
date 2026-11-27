@@ -856,6 +856,8 @@ export interface ReportInfo {
   /** Contains purchase costs: owner, or staff allowed to see costs. */
   cost?: boolean;
   ownerOnly?: boolean;
+  /** Shown only when the shop has this feature on (Shop features). */
+  extra?: import('./shopExtras').ShopExtra;
   /** R7: filters this report understands. */
   filters?: ('customer' | 'item' | 'category')[];
   run: (ctx: ReportContext) => Promise<ExportTable>;
@@ -882,7 +884,7 @@ export const REPORTS: ReportInfo[] = [
   { id: 'purchaseRegister', title: () => t('Purchase register'), group: 'gst', period: true, ownerOnly: true, run: purchaseRegister },
   { id: 'purchasesByItem', title: () => t('Purchases by item'), group: 'stock', period: true, cost: true, filters: ['item', 'category'], run: purchasesByItem },
   { id: 'hsn', title: () => t('HSN summary'), group: 'gst', period: true, ownerOnly: true, run: hsn },
-  { id: 'scheduleRegister', title: () => t('Schedule H / H1 register (pharmacy)'), group: 'gst', period: true, ownerOnly: true, run: (c) => import('./modules').then((m) => m.scheduleRegister(c.businessId, c.from, c.to)) },
+  { id: 'scheduleRegister', title: () => t('Schedule H / H1 register (pharmacy)'), group: 'gst', extra: 'pharmacy', period: true, ownerOnly: true, run: (c) => import('./modules').then((m) => m.scheduleRegister(c.businessId, c.from, c.to)) },
   { id: 'gstr3b', title: () => 'GSTR-3B', group: 'gst', period: true, ownerOnly: true, run: (c) => import('./gstReturns').then((m) => m.gstr3bTable(c.businessId, c)) },
   { id: 'gstr9', title: () => t('GSTR-9 (annual)'), group: 'gst', period: true, ownerOnly: true, run: (c) => import('./gstReturns').then((m) => m.gstr9Table(c.businessId, c.to)) },
   { id: 'gstSummary', title: () => t('GST summary'), group: 'gst', period: true, ownerOnly: true, run: gstSummary },

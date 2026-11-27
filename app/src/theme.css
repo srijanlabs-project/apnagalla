@@ -302,3 +302,21 @@
 .order-progress th, .order-progress td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--ion-color-light-shade); }
 .order-progress th:not(:first-child), .order-progress td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
 .filter-chips.wrap { flex-wrap: wrap; gap: 6px; }
+
+/* Fold: a closed section with a one-line header (long forms). */
+.fold { margin: 8px 16px 12px; border: 1px solid var(--ion-color-light-shade, #ddd); border-radius: 10px; background: var(--ion-item-background, var(--ion-background-color)); }
+.fold-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.fold-head span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fold-head small { color: var(--ion-color-medium); font-size: 0.8rem; }
+.fold-head ion-icon { flex: 0 0 auto; font-size: 1.1rem; color: var(--ion-color-medium); }
+.fold-body { padding-bottom: 4px; }
+.fold-body > * { margin-left: -16px; margin-right: -16px; }
+.fold-open .fold-head { border-bottom: 1px solid var(--ion-color-light-shade, #ddd); }
+
+/* One-line setup prompt on Home (opens the full card when tapped). */
+.setup-banner { display: flex; width: 100%; margin: 4px 0 12px; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px dashed var(--ion-color-primary); border-radius: 10px; background: rgba(var(--ion-color-primary-rgb), 0.06); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.setup-banner span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.setup-banner small { color: var(--ion-color-medium); font-size: 0.8rem; }
+.setup-banner .setup-banner-go { color: var(--ion-color-primary); font-weight: 600; flex: 0 0 auto; }
+.more-search ion-searchbar { padding: 4px 12px 0; }
+.fold-open { border-color: transparent; background: none; }

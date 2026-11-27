@@ -1,7 +1,6 @@
 import {
   IonActionSheet,
   IonButton,
-  IonButtons,
   IonCard,
   IonCardContent,
   IonIcon,
@@ -22,7 +21,7 @@ import { jobAdvance, refundAdvance, releaseAdvance, stageLabel, takeAdvance } fr
 import DocPhotos from '../../components/DocPhotos';
 import { formatDateIN } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { cameraOutline, createOutline, documentOutline, ellipsisVertical, eyeOutline, logoWhatsapp, mailOutline, printOutline, shareSocialOutline, swapHorizontalOutline, walletOutline } from 'ionicons/icons';
+import { ellipsisVertical, logoWhatsapp, shareSocialOutline, swapHorizontalOutline, walletOutline } from 'ionicons/icons';
 import { printPdfFile, sendOnWhatsApp } from '../../lib/shopTools';
 import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
@@ -61,6 +60,7 @@ import { DOC_BASE } from './DocEditorScreen';
 import EInvoicePanel from '../../components/EInvoicePanel';
 import InstalmentPanel from '../../components/InstalmentPanel';
 import { payWithVoucher } from '../../lib/retailExtras';
+import { extraOn } from '../../lib/shopExtras';
 import { api } from '../../lib/api';
 import { orderProgress, orderStateLabel } from '../../lib/orders';
 import { consignmentProgress, takeBackConsignment } from '../../lib/consignment';
@@ -294,6 +294,91 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
     { text: t('Close'), role: 'cancel' as const },
   ];
 
+  // Everything that is not an everyday action lives in the "More" menu, so the bill shows 3–4 clear buttons.
+  const canTakePayment = !!inv && inv.status === 'saved' && pending > 0 && CAN_CREATE_INVOICES;
+  const extraButtons = [
+    ...(doc.billTo?.phone ? [{ text: t('Share PDF'), handler: () => void onShare() }] : []),
+    ...(emailOn && doc.status !== 'draft' ? [{ text: t('Email'), handler: onEmail }] : []),
+    { text: t('Print A4'), handler: () => void makePdf().then((pdf) => printPdfFile(pdfFileName(kind, doc), pdf.blob, `${view.title} ${doc.number}`)).catch(fail) },
+    ...(doc.status !== 'draft' && kind !== 'estimate'
+      ? [{ text: printer.canPrint ? t('Print receipt') : t('Receipt'), handler: () => (printer.canPrint ? void printer.print(kind, doc) : void printer.preview(kind, doc).then(setReceipt).catch(fail)) }]
+      : []),
+    { text: t('Preview'), handler: () => void onPreview() },
+    ...(canTakePayment && (advance ?? 0) > 0
+      ? [{ text: t('Use advance {amount}', { amount: rupees(Math.min(pending, advance ?? 0)) }), handler: () => void db.customers.get(customerId!).then((c) => c && applyAdvance(actor, c, inv!, Math.min(pending, advance ?? 0))).catch(fail) }]
+      : []),
+    ...(canTakePayment && (points ?? 0) >= loyaltyOf(settings).minRedeem
+      ? [
+          {
+            text: t('Use {n} points ({amount})', { n: Math.min(points!, Math.floor(pending / loyaltyOf(settings).pointValue)), amount: rupees(Math.min(points! * loyaltyOf(settings).pointValue, pending - (pending % loyaltyOf(settings).pointValue))) }),
+            handler: () =>
+              void redeemPoints(actor, inv!, points!, settings)
+                .then((p) => void (p && toast({ message: t('{n} points used', { n: p.points ?? 0 }), duration: 1500, position: 'top', color: 'success' })))
+                .catch(fail),
+          },
+        ]
+      : []),
+    ...(canTakePayment ? [{ text: t('Pay with credit note'), handler: () => setCreditPay(true) }] : []),
+    ...(canTakePayment && extraOn(settings, 'vouchers')
+      ? [
+          {
+            text: t('Pay with gift voucher'),
+            handler: () =>
+              void alert({
+                header: t('Pay with gift voucher'),
+                inputs: [{ name: 'code', placeholder: 'GV123456' }],
+                buttons: [
+                  { text: t('Cancel'), role: 'cancel' },
+                  { text: t('Use'), handler: (v: { code: string }) => void payWithVoucher(actor, inv!, v.code, pending).catch(fail) },
+                ],
+              }),
+          },
+        ]
+      : []),
+    ...(canTakePayment
+      ? [
+          {
+            text: t('Old item taken back'),
+            handler: () =>
+              void alert({
+                header: t('Old item taken back'),
+                message: t('The customer gives an old item (sofa, phone, fridge…) as part payment.'),
+                inputs: [
+                  { name: 'what', placeholder: t('What was taken (e.g. old 3-seater sofa)') },
+                  { name: 'value', type: 'number', placeholder: t('Value ₹'), min: 0 },
+                ],
+                buttons: [
+                  { text: t('Cancel'), role: 'cancel' },
+                  {
+                    text: t('Save'),
+                    handler: (v: { what: string; value: string }) => {
+                      const amount = Math.round((Number(v.value) || 0) * 100);
+                      if (!(amount > 0) || !v.what.trim()) return false;
+                      void recordPayments(actor, inv!.id, [{ mode: 'buyback', amount: Math.min(amount, pending), note: v.what.trim() }]).catch(fail);
+                    },
+                  },
+                ],
+              }),
+          },
+        ]
+      : []),
+    ...(!doc.deliveredAt && perms.access !== 'warehouse' && (doc.deliveryDate || est?.challan) && (inv?.status === 'saved' || (est && est.status !== 'draft' && est.status !== 'converted'))
+      ? [{ text: t('Delivered, with photo'), handler: () => deliveryCam.current?.click() }]
+      : []),
+    ...(est && (estAdvance ?? 0) > 0 && est.status !== 'converted' ? [{ text: t('Return advance'), handler: () => setAdvanceOpen('refund') }] : []),
+    ...(est && (estAdvance ?? 0) > 0 && est.status !== 'converted' && isOwner && est.billTo?.customerId
+      ? [
+          {
+            text: t("Move to customer's advance"),
+            handler: () =>
+              void releaseAdvance(actor, est)
+                .then((a) => void (a > 0 && toast({ message: t("Moved to the customer's advance"), duration: 1800, position: 'top', color: 'success' })))
+                .catch(fail),
+          },
+        ]
+      : []),
+  ];
+
   return (
     <PageShell title={doc.number || (kind === 'invoice' ? t('Invoice draft') : kind === 'estimate' ? t('Estimate draft') : t('Credit note draft'))} backHref={base} padded={false}>
       <IonCard>
@@ -457,58 +542,35 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
           )}
 
           <div className="detail-actions">
-            {doc.billTo?.phone && (
-              <IonButton color="success" onClick={() => void onShare(doc.billTo!.phone)} disabled={!!busy}>
-                {busy === 'wa' ? <IonSpinner name="dots" /> : <IonIcon icon={logoWhatsapp} slot="start" />} WhatsApp
-              </IonButton>
-            )}
-            <IonButton fill={doc.billTo?.phone ? 'outline' : 'solid'} onClick={() => void onShare()} disabled={!!busy}>
-              {busy === 'share' ? <IonSpinner name="dots" /> : <IonIcon icon={shareSocialOutline} slot="start" />} {t('Share PDF')}
-            </IonButton>
-            {emailOn && doc.status !== 'draft' && (
-              <IonButton fill="outline" onClick={onEmail} disabled={!!busy}>
-                {busy === 'mail' ? <IonSpinner name="dots" /> : <IonIcon icon={mailOutline} slot="start" />} {t('Email')}
-              </IonButton>
-            )}
-            <IonButton fill="outline" onClick={() => void makePdf().then((pdf) => printPdfFile(pdfFileName(kind, doc), pdf.blob, `${view.title} ${doc.number}`)).catch(fail)} disabled={!!busy}>
-              <IonIcon icon={documentOutline} slot="start" /> {t('Print A4')}
-            </IonButton>
-            {doc.status !== 'draft' && kind !== 'estimate' && (
-              <IonButton
-                fill="outline"
-                disabled={printer.busy}
-                onClick={() =>
-                  printer.canPrint
-                    ? void printer.print(kind, doc)
-                    : void printer
-                        .preview(kind, doc)
-                        .then(setReceipt)
-                        .catch(fail)
-                }
-              >
-                {printer.busy ? <IonSpinner name="dots" /> : <IonIcon icon={printOutline} slot="start" />} {printer.canPrint ? t('Print') : t('Receipt')}
-              </IonButton>
-            )}
-            <IonButton fill="outline" onClick={() => void onPreview()} disabled={!!busy}>
-              {busy === 'preview' ? <IonSpinner name="dots" /> : <IonIcon icon={eyeOutline} slot="start" />} {t('Preview')}
-            </IonButton>
             {inv && inv.status === 'saved' && pending > 0 && (
-              <IonButton fill="outline" onClick={() => setPayOpen('payment')}>
+              <IonButton onClick={() => setPayOpen('payment')}>
                 <IonIcon icon={walletOutline} slot="start" /> {t('Record payment')}
               </IonButton>
             )}
-            {inv && inv.status === 'saved' && pending > 0 && (advance ?? 0) > 0 && CAN_CREATE_INVOICES && (
+            {est && est.status !== 'draft' && est.status !== 'converted' && CAN_CREATE_INVOICES && (!est.order || (progress && progress.state !== 'done' && progress.state !== 'closed')) && (!est.consignment || (consign && !consign.settled)) && (
               <IonButton
-                fill="outline"
                 color="success"
                 onClick={() =>
-                  void db.customers
-                    .get(customerId!)
-                    .then((c) => c && applyAdvance(actor, c, inv, Math.min(pending, advance ?? 0)))
+                  void convertEstimate(actor, est.id)
+                    .then((d) => router.push(`/tabs/invoices/${d.id}/edit`))
                     .catch(fail)
                 }
               >
-                <IonIcon icon={walletOutline} slot="start" /> {t('Use advance {amount}', { amount: rupees(Math.min(pending, advance ?? 0)) })}
+                {est.consignment ? t('Bill what was sold') : est.order ? (progress?.state === 'part' ? t('Bill the rest') : t('Make bill')) : t('Convert to invoice')}
+              </IonButton>
+            )}
+            {doc.billTo?.phone ? (
+              <IonButton fill="outline" color="success" onClick={() => void onShare(doc.billTo!.phone)} disabled={!!busy}>
+                {busy === 'wa' ? <IonSpinner name="dots" /> : <IonIcon icon={logoWhatsapp} slot="start" />} WhatsApp
+              </IonButton>
+            ) : (
+              <IonButton fill={inv && inv.status === 'saved' && pending > 0 ? 'outline' : 'solid'} onClick={() => void onShare()} disabled={!!busy}>
+                {busy === 'share' ? <IonSpinner name="dots" /> : <IonIcon icon={shareSocialOutline} slot="start" />} {t('Share PDF')}
+              </IonButton>
+            )}
+            {inv && pending > 0 && (
+              <IonButton fill="outline" color="success" onClick={onReminder}>
+                <IonIcon icon={logoWhatsapp} slot="start" /> {t('Remind')}
               </IonButton>
             )}
             {!doc.deliveredAt && (doc.deliveryDate || est?.challan || perms.access === 'warehouse') && (inv?.status === 'saved' || (est && est.status !== 'draft' && est.status !== 'converted')) && (
@@ -518,11 +580,6 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 onClick={() => (perms.access === 'warehouse' ? deliveryCam.current?.click() : void markDelivered(actor, kind as 'invoice' | 'estimate', doc.id).catch(fail))}
               >
                 {t('Mark delivered')}
-              </IonButton>
-            )}
-            {!doc.deliveredAt && perms.access !== 'warehouse' && (doc.deliveryDate || est?.challan) && (inv?.status === 'saved' || (est && est.status !== 'draft' && est.status !== 'converted')) && (
-              <IonButton fill="clear" color="success" onClick={() => deliveryCam.current?.click()}>
-                <IonIcon icon={cameraOutline} slot="start" /> {t('Delivered, with photo')}
               </IonButton>
             )}
             <input
@@ -552,106 +609,9 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 <IonIcon icon={walletOutline} slot="start" /> {t('Keep {amount} as credit', { amount: rupees(refundDue) })}
               </IonButton>
             )}
-            {inv && inv.status === 'saved' && pending > 0 && CAN_CREATE_INVOICES && (
-              <IonButton
-                fill="clear"
-                onClick={() =>
-                  void alert({
-                    header: t('Old item taken back'),
-                    message: t('The customer gives an old item (sofa, phone, fridge…) as part payment.'),
-                    inputs: [
-                      { name: 'what', placeholder: t('What was taken (e.g. old 3-seater sofa)') },
-                      { name: 'value', type: 'number', placeholder: t('Value ₹'), min: 0 },
-                    ],
-                    buttons: [
-                      { text: t('Cancel'), role: 'cancel' },
-                      {
-                        text: t('Save'),
-                        handler: (v: { what: string; value: string }) => {
-                          const amount = Math.round((Number(v.value) || 0) * 100);
-                          if (!(amount > 0) || !v.what.trim()) return false;
-                          void recordPayments(actor, inv.id, [{ mode: 'buyback', amount: Math.min(amount, pending), note: v.what.trim() }]).catch(fail);
-                        },
-                      },
-                    ],
-                  })
-                }
-              >
-                {t('Old item taken back')}
-              </IonButton>
-            )}
-            {inv && inv.status === 'saved' && pending > 0 && CAN_CREATE_INVOICES && (
-              <IonButton
-                fill="clear"
-                onClick={() =>
-                  void alert({
-                    header: t('Pay with gift voucher'),
-                    inputs: [{ name: 'code', placeholder: 'GV123456' }],
-                    buttons: [
-                      { text: t('Cancel'), role: 'cancel' },
-                      { text: t('Use'), handler: (v: { code: string }) => void payWithVoucher(actor, inv, v.code, pending).catch(fail) },
-                    ],
-                  })
-                }
-              >
-                {t('Pay with gift voucher')}
-              </IonButton>
-            )}
-            {inv && inv.status === 'saved' && pending > 0 && CAN_CREATE_INVOICES && (
-              <IonButton fill="outline" onClick={() => setCreditPay(true)}>
-                {t('Pay with credit note')}
-              </IonButton>
-            )}
             {est && est.status !== 'draft' && est.status !== 'converted' && (
               <IonButton fill="outline" onClick={() => setAdvanceOpen('take')}>
                 <IonIcon icon={walletOutline} slot="start" /> {t('Take advance')}
-              </IonButton>
-            )}
-            {est && (estAdvance ?? 0) > 0 && est.status !== 'converted' && (
-              <IonButton fill="clear" color="danger" onClick={() => setAdvanceOpen('refund')}>
-                {t('Return advance')}
-              </IonButton>
-            )}
-            {est && (estAdvance ?? 0) > 0 && est.status !== 'converted' && isOwner && est.billTo?.customerId && (
-              <IonButton
-                fill="clear"
-                onClick={() =>
-                  void releaseAdvance(actor, est)
-                    .then((a) => void (a > 0 && toast({ message: t("Moved to the customer's advance"), duration: 1800, position: 'top', color: 'success' })))
-                    .catch(fail)
-                }
-              >
-                {t("Move to customer's advance")}
-              </IonButton>
-            )}
-            {inv && inv.status === 'saved' && pending > 0 && (points ?? 0) >= loyaltyOf(settings).minRedeem && CAN_CREATE_INVOICES && (
-              <IonButton
-                fill="outline"
-                color="tertiary"
-                onClick={() =>
-                  void redeemPoints(actor, inv, points!, settings)
-                    .then((p) => void (p && toast({ message: t('{n} points used', { n: p.points ?? 0 }), duration: 1500, position: 'top', color: 'success' })))
-                    .catch(fail)
-                }
-              >
-                {t('Use {n} points ({amount})', { n: Math.min(points!, Math.floor(pending / loyaltyOf(settings).pointValue)), amount: rupees(Math.min(points! * loyaltyOf(settings).pointValue, pending - (pending % loyaltyOf(settings).pointValue))) })}
-              </IonButton>
-            )}
-            {inv && pending > 0 && (
-              <IonButton fill="outline" color="success" onClick={onReminder}>
-                <IonIcon icon={logoWhatsapp} slot="start" /> {t('Remind')}
-              </IonButton>
-            )}
-            {est && est.status !== 'draft' && est.status !== 'converted' && CAN_CREATE_INVOICES && (!est.order || (progress && progress.state !== 'done' && progress.state !== 'closed')) && (!est.consignment || (consign && !consign.settled)) && (
-              <IonButton
-                color="success"
-                onClick={() =>
-                  void convertEstimate(actor, est.id)
-                    .then((d) => router.push(`/tabs/invoices/${d.id}/edit`))
-                    .catch(fail)
-                }
-              >
-                {est.consignment ? t('Bill what was sold') : est.order ? (progress?.state === 'part' ? t('Bill the rest') : t('Make bill')) : t('Convert to invoice')}
               </IonButton>
             )}
             {est?.convertedInvoiceId && (
@@ -659,11 +619,9 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 {t('Open invoice')}
               </IonButton>
             )}
-            {canEdit && (
-              <IonButton fill="clear" routerLink={`${base}/${doc.id}/edit`}>
-                <IonIcon icon={createOutline} slot="start" /> {t('Edit')}
-              </IonButton>
-            )}
+            <IonButton fill="clear" onClick={() => setMenu(true)}>
+              <IonIcon icon={ellipsisVertical} slot="start" /> {t('More')}
+            </IonButton>
           </div>
         </IonCardContent>
       </IonCard>
@@ -817,12 +775,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
         ))}
       </IonList>
 
-      <IonButtons className="detail-more">
-        <IonButton onClick={() => setMenu(true)}>
-          <IonIcon icon={ellipsisVertical} slot="start" /> {t('More actions')}
-        </IonButton>
-      </IonButtons>
-      <IonActionSheet isOpen={menu} onDidDismiss={() => setMenu(false)} buttons={menuButtons} />
+      <IonActionSheet isOpen={menu} onDidDismiss={() => setMenu(false)} buttons={[...extraButtons, ...menuButtons]} />
 
       <CreditPaySheet
         isOpen={creditPay}

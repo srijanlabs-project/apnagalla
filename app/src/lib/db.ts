@@ -121,6 +121,8 @@ export interface BusinessSettings extends SyncedRecord {
   assets?: { id: string; name: string; qty: number; value?: number; date?: string; place?: string; deleted?: boolean }[];
   /** The store counts stock in and out (default yes). Off: no stock counts, low-stock lists or stock warnings. */
   manageStock?: boolean;
+  /** Features only some shops need, switched on in Shop features (see lib/shopExtras.ts). */
+  extras?: Partial<Record<import('./shopExtras').ShopExtra, boolean>>;
   /** R9: the store's public order page at /s/<slug>. */
   onlineStore?: { enabled: boolean; slug: string; note?: string; minOrder?: number };
   /** R11 jewellery: the day's rates (paise per gram of 24K gold / 999 silver). */

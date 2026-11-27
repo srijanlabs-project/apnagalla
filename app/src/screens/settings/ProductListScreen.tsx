@@ -81,7 +81,19 @@ export function ChooseProductListCard() {
   const { actor, settings, isOwner } = useBusiness();
   const [sections, setSections] = useState<CatalogSection[]>([]);
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
   if (!isOwner || settings.catalogSections !== undefined) return null;
+  // A one-line banner on Home; the choices open only when tapped, so the day's figures stay on the first screen.
+  if (!open)
+    return (
+      <button type="button" className="setup-banner" onClick={() => setOpen(true)}>
+        <span>
+          <strong>{t('What does your shop sell?')}</strong>
+          <small>{t('Pick once to get ready-made item suggestions')}</small>
+        </span>
+        <span className="setup-banner-go">{t('Choose')}</span>
+      </button>
+    );
   return (
     <IonCard>
       <IonCardContent>
