@@ -2511,5 +2511,13 @@
   "one use": "एक बार",
   "short {amount}": "{amount} कम",
   "{amount} of {item}": "{amount} का {item}",
-  "{qty} {unit} at {rate} per {unit}": "{qty} {unit}, {rate} प्रति {unit}"
+  "{qty} {unit} at {rate} per {unit}": "{qty} {unit}, {rate} प्रति {unit}",
+  "Cash in: bills and khata payments taken in cash, other income and loans received in cash. For change given back, only the bill amount counts.": "नकद आया: नकद में लिए बिल और खाते के भुगतान, दूसरी आमदनी और नकद मिला लोन। छुट्टा वापस देने पर सिर्फ़ बिल की राशि गिनी जाती है।",
+  "Cash out: expenses, supplier payments, refunds and withdrawals paid in cash, and cash moved to the bank.": "नकद गया: नकद में दिए खर्च, सप्लायर भुगतान, रिफ़ंड और निकासी, और बैंक में जमा किया नकद।",
+  "Day start: the morning count is only a check against last night’s count; it does not change these figures.": "दिन की शुरुआत: सुबह की गिनती सिर्फ़ कल रात की गिनती से मिलान है; इससे ये आंकड़े नहीं बदलते।",
+  "Day-end: count the cash. Short or extra = counted − expected. Tomorrow starts from the counted cash.": "दिन का अंत: कैश गिनें। कम या ज़्यादा = गिना − अपेक्षित। कल गिने हुए कैश से शुरू होगा।",
+  "How is this worked out?": "यह कैसे निकला?",
+  "Opening cash: the cash counted at the last day-end (or, if a day was not closed, what the app expected then).": "शुरुआती कैश: पिछले दिन के अंत में गिना गया कैश (या, अगर दिन बंद नहीं हुआ, तो तब ऐप का अपेक्षित कैश)।",
+  "UPI, card, bank and cheque money never enters the drawer; it is shown under “Not in the drawer”.": "UPI, कार्ड, बैंक और चेक का पैसा गल्ले में नहीं आता; यह “गल्ले में नहीं” में दिखता है।",
+  "Gift vouchers work only with the internet. Connect and try again.": "गिफ़्ट वाउचर सिर्फ़ इंटरनेट के साथ चलते हैं। कनेक्ट करके फिर कोशिश करें।"
 }

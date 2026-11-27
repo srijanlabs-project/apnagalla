@@ -346,3 +346,8 @@ ion-input .label-text, ion-select .label-text, ion-textarea .label-text { white-
 .field-row ion-input .label-text, .field-row ion-select .label-text { font-size: 0.85rem; }
 ion-input .native-input::placeholder { text-overflow: clip; }
 ion-chip ion-label { white-space: normal; }
+.cash-help { margin: 4px 0 12px; padding: 8px 12px; border-radius: 10px; background: var(--app-surface, #f5f6f9); font-size: 0.85rem; }
+.cash-help summary { cursor: pointer; color: var(--ion-color-primary); font-weight: 600; }
+.cash-help ul { padding-left: 18px; margin: 8px 0 0; color: var(--ion-color-medium-shade, #555); }
+.cash-help li { margin-bottom: 4px; }
+.cash-formula { font-family: ui-monospace, monospace; margin: 8px 0; line-height: 1.6; }

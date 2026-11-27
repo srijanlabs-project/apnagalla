@@ -17,9 +17,14 @@
     "build:railway": "npm run build:server && npm run build:web",
     "start:server": "npm run start -w server",
     "test": "npm run test -w shared && npm run test -w server && npm run test -w @invoice/app",
-    "typecheck": "npm run typecheck -w shared && npm run typecheck -w server && npm run typecheck -w app"
+    "typecheck": "npm run typecheck -w shared && npm run typecheck -w server && npm run typecheck -w app",
+    "sanity": "playwright test -c e2e/playwright.config.ts",
+    "sanity:prod": "playwright test -c e2e/playwright.config.ts prod.spec"
   },
   "engines": {
     "node": ">=22"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
   }
 }

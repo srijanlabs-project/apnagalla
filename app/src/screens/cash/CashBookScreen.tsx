@@ -81,6 +81,23 @@ export default function CashBookScreen() {
           <strong>{rupees(day.expected)}</strong>
         </div>
       </div>
+      <details className="cash-help">
+        <summary>{t('How is this worked out?')}</summary>
+        <p className="cash-formula">
+          {t('Opening cash')} {rupees(day.opening)}
+          <br />+ {t('Cash in')} {rupees(day.cashIn.reduce((a, l) => a + l.amount, 0))}
+          <br />− {t('Cash out')} {rupees(day.cashOut.reduce((a, l) => a + l.amount, 0))}
+          <br />= <strong>{t('Cash in drawer (expected)')} {rupees(day.expected)}</strong>
+        </p>
+        <ul>
+          <li>{t('Opening cash: the cash counted at the last day-end (or, if a day was not closed, what the app expected then).')}</li>
+          <li>{t('Cash in: bills and khata payments taken in cash, other income and loans received in cash. For change given back, only the bill amount counts.')}</li>
+          <li>{t('Cash out: expenses, supplier payments, refunds and withdrawals paid in cash, and cash moved to the bank.')}</li>
+          <li>{t('UPI, card, bank and cheque money never enters the drawer; it is shown under “Not in the drawer”.')}</li>
+          <li>{t('Day-end: count the cash. Short or extra = counted − expected. Tomorrow starts from the counted cash.')}</li>
+          <li>{t('Day start: the morning count is only a check against last night’s count; it does not change these figures.')}</li>
+        </ul>
+      </details>
 
       {opened ? (
         <p className="section-note ion-padding-horizontal">

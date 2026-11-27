@@ -588,3 +588,26 @@ describe('R7 activity log', () => {
     expect((await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/activity`, headers: sH })).statusCode).toBe(403);
   });
 });
+
+describe('gift vouchers across phones', () => {
+  const vpay = (id: string, amount: number, extra: Record<string, unknown> = {}) => ({ id, invoiceId: 'inv1', kind: 'payment', amount, mode: 'voucher', reference: 'GV111111', date: '2026-11-25', updatedAt: at(0), ...extra });
+
+  it('the server never lets a voucher pay more than it holds, and a one-use voucher only once', async () => {
+    const { biz, oH, sH } = await setupStore('987041001');
+    await pushOk(biz.id, oH, [{ table: 'vouchers', id: 'v1', data: { id: 'v1', code: 'GV111111', amount: 50000, date: '2026-11-20', mode: 'cash', updatedAt: at(0) } }]);
+    // Live check (what the phone asks before using it).
+    const live = await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/vouchers/gv111111`, headers: sH });
+    expect(live.json().voucher).toMatchObject({ amount: 50000, left: 50000, uses: 0 });
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'vp1', data: vpay('vp1', 30000) }]))[0]!.status).toBe('ok');
+    // A second phone tries ₹300 more: only ₹200 is left.
+    expect((await pushOk(biz.id, oH, [{ table: 'payments', id: 'vp2', data: vpay('vp2', 30000) }]))[0]).toMatchObject({ status: 'rejected', reason: 'Only ₹200.00 is left on this voucher' });
+    expect((await pushOk(biz.id, oH, [{ table: 'payments', id: 'vp3', data: vpay('vp3', 20000) }]))[0]!.status).toBe('ok');
+    expect((await app.inject({ method: 'GET', url: `/v1/businesses/${biz.id}/vouchers/GV111111`, headers: sH })).json().voucher.left).toBe(0);
+
+    await pushOk(biz.id, oH, [{ table: 'vouchers', id: 'v2', data: { id: 'v2', code: 'GV222222', amount: 50000, singleUse: true, date: '2026-11-20', mode: 'cash', updatedAt: at(0) } }]);
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'vq1', data: vpay('vq1', 10000, { reference: 'GV222222' }) }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'vq2', data: vpay('vq2', 10000, { reference: 'GV222222' }) }]))[0]).toMatchObject({ status: 'rejected', reason: 'This voucher was for one use and is already used' });
+    // Unknown codes are refused too.
+    expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'vx', data: vpay('vx', 100, { reference: 'GV000000' }) }]))[0]).toMatchObject({ status: 'rejected' });
+  });
+});

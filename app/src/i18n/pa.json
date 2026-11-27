@@ -2511,5 +2511,13 @@
   "one use": "ਇੱਕ ਵਾਰ",
   "short {amount}": "{amount} ਘੱਟ",
   "{amount} of {item}": "{amount} ਦਾ {item}",
-  "{qty} {unit} at {rate} per {unit}": "{qty} {unit}, {rate} ਪ੍ਰਤੀ {unit}"
+  "{qty} {unit} at {rate} per {unit}": "{qty} {unit}, {rate} ਪ੍ਰਤੀ {unit}",
+  "Cash in: bills and khata payments taken in cash, other income and loans received in cash. For change given back, only the bill amount counts.": "ਨਕਦ ਆਇਆ: ਨਕਦ ਵਿੱਚ ਲਏ ਬਿੱਲ ਅਤੇ ਖਾਤੇ ਦੇ ਭੁਗਤਾਨ, ਹੋਰ ਆਮਦਨ ਅਤੇ ਨਕਦ ਮਿਲਿਆ ਲੋਨ। ਖੁੱਲ੍ਹੇ ਵਾਪਸ ਦੇਣ ਉੱਤੇ ਸਿਰਫ਼ ਬਿੱਲ ਦੀ ਰਕਮ ਗਿਣੀ ਜਾਂਦੀ ਹੈ।",
+  "Cash out: expenses, supplier payments, refunds and withdrawals paid in cash, and cash moved to the bank.": "ਨਕਦ ਗਿਆ: ਨਕਦ ਵਿੱਚ ਦਿੱਤੇ ਖਰਚੇ, ਸਪਲਾਇਰ ਭੁਗਤਾਨ, ਰਿਫ਼ੰਡ ਅਤੇ ਕਢਵਾਈ, ਅਤੇ ਬੈਂਕ ਵਿੱਚ ਜਮ੍ਹਾਂ ਕੀਤਾ ਨਕਦ।",
+  "Day start: the morning count is only a check against last night’s count; it does not change these figures.": "ਦਿਨ ਦੀ ਸ਼ੁਰੂਆਤ: ਸਵੇਰ ਦੀ ਗਿਣਤੀ ਸਿਰਫ਼ ਕੱਲ੍ਹ ਰਾਤ ਦੀ ਗਿਣਤੀ ਨਾਲ ਮਿਲਾਨ ਹੈ; ਇਸ ਨਾਲ ਇਹ ਅੰਕੜੇ ਨਹੀਂ ਬਦਲਦੇ।",
+  "Day-end: count the cash. Short or extra = counted − expected. Tomorrow starts from the counted cash.": "ਦਿਨ ਦਾ ਅੰਤ: ਕੈਸ਼ ਗਿਣੋ। ਘੱਟ ਜਾਂ ਵੱਧ = ਗਿਣਿਆ − ਉਮੀਦ ਕੀਤਾ। ਕੱਲ੍ਹ ਗਿਣੇ ਹੋਏ ਕੈਸ਼ ਤੋਂ ਸ਼ੁਰੂ ਹੋਵੇਗਾ।",
+  "How is this worked out?": "ਇਹ ਕਿਵੇਂ ਨਿਕਲਿਆ?",
+  "Opening cash: the cash counted at the last day-end (or, if a day was not closed, what the app expected then).": "ਸ਼ੁਰੂਆਤੀ ਕੈਸ਼: ਪਿਛਲੇ ਦਿਨ ਦੇ ਅੰਤ ਉੱਤੇ ਗਿਣਿਆ ਕੈਸ਼ (ਜਾਂ, ਜੇ ਦਿਨ ਬੰਦ ਨਹੀਂ ਹੋਇਆ, ਤਾਂ ਉਦੋਂ ਐਪ ਦਾ ਉਮੀਦ ਕੀਤਾ ਕੈਸ਼)।",
+  "UPI, card, bank and cheque money never enters the drawer; it is shown under “Not in the drawer”.": "UPI, ਕਾਰਡ, ਬੈਂਕ ਅਤੇ ਚੈੱਕ ਦਾ ਪੈਸਾ ਗੱਲੇ ਵਿੱਚ ਨਹੀਂ ਆਉਂਦਾ; ਇਹ “ਗੱਲੇ ਵਿੱਚ ਨਹੀਂ” ਹੇਠ ਦਿਸਦਾ ਹੈ।",
+  "Gift vouchers work only with the internet. Connect and try again.": "ਗਿਫ਼ਟ ਵਾਊਚਰ ਸਿਰਫ਼ ਇੰਟਰਨੈੱਟ ਨਾਲ ਚੱਲਦੇ ਹਨ। ਕਨੈਕਟ ਕਰਕੇ ਫਿਰ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
 }

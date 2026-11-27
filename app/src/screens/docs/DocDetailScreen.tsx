@@ -59,7 +59,7 @@ import { modeLabel, moneyOf } from '../../lib/ledger';
 import { DOC_BASE } from './DocEditorScreen';
 import EInvoicePanel from '../../components/EInvoicePanel';
 import InstalmentPanel from '../../components/InstalmentPanel';
-import { payWithVoucher } from '../../lib/retailExtras';
+import { checkVoucherOnline, payWithVoucher } from '../../lib/retailExtras';
 import { extraOn } from '../../lib/shopExtras';
 import { api } from '../../lib/api';
 import { orderProgress, orderStateLabel } from '../../lib/orders';
@@ -353,7 +353,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                 inputs: [{ name: 'code', placeholder: 'GV123456' }],
                 buttons: [
                   { text: t('Cancel'), role: 'cancel' },
-                  { text: t('Use'), handler: (v: { code: string }) => void payWithVoucher(actor, inv!, v.code, pending).catch(fail) },
+                  { text: t('Use'), handler: (v: { code: string }) => void checkVoucherOnline(actor.businessId, v.code).then((g) => payWithVoucher(actor, inv!, g.code, Math.min(pending, g.left))).catch(fail) },
                 ],
               }),
           },

@@ -174,6 +174,8 @@ export const api = {
   eInvoice: (id: string, gstin: string, payload: unknown) => request<{ irn: string; ackNo: string; ackDate: string; signedQr: string }>('POST', `/v1/businesses/${id}/einvoice`, { gstin, payload }, { timeoutMs: 40_000 }),
   eInvoiceCancel: (id: string, body: { gstin: string; irn: string; reason: '1' | '2' | '3' | '4'; remark: string }) => request<{ cancelled: boolean }>('POST', `/v1/businesses/${id}/einvoice/cancel`, body, { timeoutMs: 40_000 }),
   emailDoc: (id: string, body: { to: string; subject: string; body: string; fileName: string; pdfBase64: string }) => request<{ sent: boolean }>('POST', `/v1/businesses/${id}/email-doc`, body, { timeoutMs: 40_000 }),
+  voucher: (id: string, code: string) =>
+    request<{ voucher: { code: string; amount: number; left: number; uses: number; singleUse: boolean; validTill: string | null } | null }>('GET', `/v1/businesses/${id}/vouchers/${encodeURIComponent(code.trim().toUpperCase())}`),
   activity: (id: string, before?: string) => request<{ rows: ActivityRow[] }>('GET', `/v1/businesses/${id}/activity${before ? `?before=${encodeURIComponent(before)}` : ''}`),
   storeSlugFree: (id: string, slug: string) => request<{ free: boolean }>('GET', `/v1/businesses/${id}/store-slug/${encodeURIComponent(slug)}`),
   billing: (id: string) => request<{ status: BillingStatusDto; plans: PlanDto[] }>('GET', `/v1/businesses/${id}/billing`),

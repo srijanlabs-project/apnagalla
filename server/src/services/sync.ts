@@ -32,6 +32,7 @@ import {
   istToday,
 } from '@invoice/shared';
 import type { DB } from '../db/client';
+import { voucherPaymentProblem } from './vouchers';
 import { numberCounters, returnedNumbers, syncRecords } from '../db/schema';
 import { audit } from './audit';
 
@@ -181,6 +182,11 @@ export class SyncService {
     }
     const clash = await this.numberClash(tx, actor.businessId, table, id, data, existing);
     if (clash) return reject(clash);
+    // Gift vouchers: never more than is left, a one-use voucher only once, across every phone.
+    if (table === 'payments' && !existing) {
+      const problem = await voucherPaymentProblem(tx, actor.businessId, data, id, actor.today ?? istToday());
+      if (problem) return reject(problem);
+    }
 
     const [row] = await tx
       .insert(syncRecords)

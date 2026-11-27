@@ -73,6 +73,25 @@ export async function usableVoucher(businessId: string, code: string, today = to
   return v;
 }
 
+/**
+ * Vouchers are paid with only while online: the server sees every phone's uses, so a voucher can't be
+ * spent twice from two phones. Returns the code and what is left right now.
+ */
+export async function checkVoucherOnline(businessId: string, code: string, today = todayISO()): Promise<{ code: string; left: number }> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error(t('Gift vouchers work only with the internet. Connect and try again.'));
+  const { api } = await import('./api');
+  let v;
+  try {
+    v = (await api.voucher(businessId, code)).voucher;
+  } catch {
+    throw new Error(t('Gift vouchers work only with the internet. Connect and try again.'));
+  }
+  if (!v) throw new Error(t('No gift voucher with this code'));
+  if (v.validTill && v.validTill < today) throw new Error(t('This voucher expired on {date}', { date: v.validTill.split('-').reverse().join('/') }));
+  if (v.left <= 0) throw new Error(v.singleUse && v.uses > 0 ? t('This voucher was for one use and is already used') : t('Nothing is left on this voucher'));
+  return { code: v.code, left: v.left };
+}
+
 /** Pays a saved bill from a voucher (at most what is left, what is pending, and before it expires). */
 export async function payWithVoucher(actor: Actor, inv: Invoice, code: string, pending: number, today = todayISO()) {
   const v = await usableVoucher(actor.businessId, code, today);

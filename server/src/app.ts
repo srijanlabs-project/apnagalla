@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { voucherState } from './services/vouchers';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -408,6 +409,12 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     await accounts.requireRole(uid(req), req.params.businessId);
     const info = await gst.lookup(req.params.businessId, req.params.gstin);
     return { found: !!info, info };
+  });
+
+  /* ---------- gift vouchers: checked live (they are paid with only online) ---------- */
+  app.get<{ Params: BizParams & { code: string } }>('/v1/businesses/:businessId/vouchers/:code', authed, async (req) => {
+    await accounts.requireRole(uid(req), req.params.businessId);
+    return { voucher: await voucherState(db, req.params.businessId, req.params.code) };
   });
 
   /* ---------- R7 activity log (owner) ---------- */

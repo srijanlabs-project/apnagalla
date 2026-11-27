@@ -42,7 +42,7 @@ import { computeTotals, deleteDraft, effectiveGstType, newId, newInvoiceDraft, r
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
 import { qtyForAmount } from '../../lib/fresh';
-import { payWithVoucher, usableVoucher } from '../../lib/retailExtras';
+import { checkVoucherOnline, payWithVoucher } from '../../lib/retailExtras';
 import { extraOn } from '../../lib/shopExtras';
 import CouponField from '../../components/CouponField';
 import CreditPaySheet from '../../components/CreditPaySheet';
@@ -224,8 +224,8 @@ export default function SaleScreen() {
         {
           text: t('Use'),
           handler: (v: { code: string }) => {
-            void usableVoucher(actor.businessId, v.code)
-              .then((g) => setVoucherUse({ code: g.voucher.code, left: g.left }))
+            void checkVoucherOnline(actor.businessId, v.code)
+              .then((g) => setVoucherUse({ code: g.code, left: g.left }))
               .catch(fail);
           },
         },
