@@ -32,7 +32,8 @@ Checks production: server and database up, the web app opens without errors, adm
 API calls are refused, and (with a test login) sign in → read the store → save and delete a customer →
 live gift-voucher check.
 
-For the test login, create `e2e/.env.e2e` (never committed) like `e2e/env.e2e.example`, with a
-dedicated test number that has a store named "Sanity Test Store" (open the app once with it).
+Production signs in with real SMS codes, so the test-login part runs only on request: sign in once on
+the app with the test number to receive a code, then run with `$env:E2E_PHONE` and `$env:E2E_OTP` set
+for that run. Without them, the public checks still run.
 
 Reports: `npx playwright show-report e2e-report` (screenshots and a trace for every failure).

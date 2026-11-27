@@ -31,11 +31,12 @@ test('admin console opens; signed-out API calls are refused', async ({ request }
   expect((await request.get(`${BASE}/v1/me`)).status()).toBe(401);
 });
 
+// Production signs in with real SMS codes (MSG91) since 27 Nov 2026, so this runs only when a code is
+// given for the run:  $env:E2E_OTP = "<code from the SMS>"  (after requesting one for E2E_PHONE).
 test('test login: sign in, read the store, push and pull a record', async ({ request }) => {
   const phone = process.env.E2E_PHONE;
   const code = process.env.E2E_OTP;
-  test.skip(!phone || !code, 'Set E2E_PHONE and E2E_OTP in e2e/.env.e2e to run the test login');
-  await request.post(`${BASE}/v1/auth/otp/request`, { data: { phone } });
+  test.skip(!phone || !code, 'Production uses real SMS codes: give E2E_PHONE and a fresh E2E_OTP to run the test login');
   const v = await request.post(`${BASE}/v1/auth/otp/verify`, { data: { phone, code, client: 'mobile' } });
   expect(v.ok(), await v.text()).toBeTruthy();
   const { accessToken, me } = (await v.json()) as { accessToken: string; me: { memberships: { businessId: string; businessName: string }[] } };
