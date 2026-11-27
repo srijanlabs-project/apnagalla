@@ -111,7 +111,7 @@ test('5. counter sale, cash with change given back', async () => {
   await search.fill(ITEM);
   await page.getByText(ITEM, { exact: true }).first().click();
   await expect(page.getByText(/1 item/i)).toBeVisible();
-  await tap(/^\s*pay\s*$/i);
+  await tap(/^\s*pay\s/i);
   // ₹59 bill (₹50 + 18%) or ₹50: take the second quick amount (a round note), so change is due.
   const quick = page.locator('.cash-quick ion-chip');
   await expect(quick.first()).toBeVisible();
@@ -133,7 +133,7 @@ test('7. credit bill to a customer, then receive the payment from To collect', a
   await page.getByText(CUSTOMER).first().click();
   await page.getByPlaceholder(/search item or type barcode/i).fill(ITEM);
   await page.getByText(ITEM, { exact: true }).first().click();
-  await tap(/^\s*pay\s*$/i);
+  await tap(/^\s*pay\s/i);
   await tap(/save unpaid/i);
   await go('/tabs/to-collect');
   const row = page.locator('ion-item').filter({ hasText: CUSTOMER });
@@ -147,14 +147,14 @@ test('8. bill detail opens, More menu lists the actions', async () => {
   await go('/tabs/invoices');
   await page.locator('ion-item').filter({ hasText: CUSTOMER }).first().click();
   await expect(page.getByText(/history/i).first()).toBeVisible();
-  await tap(/^\s*more\s*$/i);
+  await page.locator('.action-bar .more-btn:visible').last().click();
   await expect(page.getByText(/print a4/i)).toBeVisible();
   await expect(page.getByText(/whatsapp to a number/i)).toBeVisible();
   await page.keyboard.press('Escape');
 });
 
 test('9. return items makes a credit note draft', async () => {
-  await tap(/^\s*more\s*$/i);
+  await page.locator('.action-bar .more-btn:visible').last().click();
   const ret = page.getByText(/return items/i).first();
   await expect(ret).toBeVisible();
   await ret.click();

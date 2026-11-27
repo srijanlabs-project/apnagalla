@@ -1,85 +1,48 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import Fold from '../../components/Fold';
+
 import { isAreaPricing } from '@invoice/shared';
-import {
-  IonBackButton,
-  IonButton,
-  IonButtons,
-  IonContent,
-  IonFooter,
-  IonHeader,
-  IonIcon,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonNote,
-  IonPage,
-  IonSegment,
-  IonSegmentButton,
-  IonSpinner,
-  IonTitle,
-  IonToolbar,
-  useIonAlert,
-  useIonRouter,
-  useIonToast,
-} from '@ionic/react';
-import { GST_STATES, addDaysISO, amountInWords, discountForTarget, parseRupees, type ChargeInput } from '@invoice/shared';
-import { addOutline, closeCircle, personCircleOutline, barcodeOutline } from 'ionicons/icons';
+import { IonBackButton, IonButton, IonButtons, IonContent, IonFooter, IonHeader, IonPage, IonSpinner, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
+import { addDaysISO, discountForTarget, parseRupees } from '@invoice/shared';
+
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
-import { AddressFields, FormSection, MoneyField, NumberField, SelectField, TextArea, TextField, ToggleRow } from '../../components/Fields';
+
 import { useBusiness } from '../../lib/business';
 import { api } from '../../lib/api';
 import { db, type CreditNote, type DocBase, type DocLine, type Estimate, type Invoice } from '../../lib/db';
-import { gstViewOf, taxRows } from '../../lib/gstView';
+import { gstViewOf } from '../../lib/gstView';
 import { t } from '../../lib/i18n';
-import { addressLines, dateIN, lineSize, rupees } from '../../lib/format';
-import {
-  computeTotals,
-  creditableAmount,
-  effectiveGstType,
-  isNumberTaken,
-  newEstimateDraft,
-  newId,
-  newInvoiceDraft,
-  previewNextNumber,
-  saveCreditNote,
-  saveEstimate,
-  saveInvoice,
-  seriesOf,
-  PermissionError,
-  putRecord,
-  type DocKind,
-} from '../../lib/repo';
-import { PAYMENT_TERMS } from '../settings/InvoiceSettingsScreen';
+import { rupees } from '../../lib/format';
+import { computeTotals, creditableAmount, effectiveGstType, isNumberTaken, newEstimateDraft, newInvoiceDraft, previewNextNumber, saveCreditNote, saveEstimate, saveInvoice, seriesOf, PermissionError, putRecord, type DocKind } from '../../lib/repo';
+
 import CustomerPicker, { snapshotOf } from './CustomerPicker';
-import CreditLimitNote from '../../components/CreditLimitNote';
-import CouponField from '../../components/CouponField';
+
 import { blankJob, settleJobAdvance } from '../../lib/jobs';
 import { creditOverLimit } from '../../lib/khata';
 import { repriceLines } from '../../lib/pricing';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from './LineEditor';
-import { godownsOf } from '../../lib/godowns';
+
 import { scaleOf } from '../../lib/scale';
 import { needsPrescription } from '../../lib/modules';
 import { addOrMerge } from '../../lib/mergeLines';
-import BarcodeScanner from '../../components/BarcodeScanner';
+
 import { useScanToBill } from '../../lib/useScanToBill';
-import { sync } from '../../lib/sync';
+
 import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
+import PartySection from './editor/PartySection';
+import LinesSection from './editor/LinesSection';
+import AdjustSection from './editor/AdjustSection';
+import TotalsSection from './editor/TotalsSection';
+import HeaderSection from './editor/HeaderSection';
+import ExtrasSection from './editor/ExtrasSection';
+import type { EditorCtx } from './editor/types';
 
 type Doc = Invoice | Estimate | CreditNote;
 
 export const DOC_BASE: Record<DocKind, string> = { invoice: '/tabs/invoices', estimate: '/tabs/estimates', credit: '/tabs/credit-notes' };
 export const DOC_LABEL: Record<DocKind, string> = { invoice: 'Invoice', estimate: 'Estimate', credit: 'Credit note' };
 
-const CREDIT_REASONS = [
-  { value: 'return' as const, label: 'Goods returned' },
-  { value: 'price' as const, label: 'Price reduced / discount after sale' },
-  { value: 'other' as const, label: 'Other correction' },
-];
-// i18n: labels above are translated where rendered
 
 export default function DocEditorScreen({ kind }: { kind: DocKind }) {
   const { id } = useParams<{ id: string }>();
@@ -310,6 +273,8 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
   const bankOptions = [{ value: '', label: t("Don't show") }, ...bankAccounts.map((b) => ({ value: b.id, label: `${b.bankName} ••••${b.accountNumber.slice(-4)}` }))];
   const upiOptions = [{ value: '', label: t("Don't show") }, ...upiIds.map((u) => ({ value: u.id, label: u.upiId }))];
 
+  const c: EditorCtx = { doc, setDoc, patch, locked, view, noTax, credit, totals, settings, actor, byKind, wasDraft, nextNumber, isOwner, gstType, setPicker, setEditing, scanning, setScanning, scanToBill, askTargetTotal, targetBefore, targetAfter, overCredit, room, setTerms, bankOptions, upiOptions, bankAccounts, upiIds, team, rxNeeded, againstBefore, againstAfter, kind };
+
   return (
     <IonPage>
       <IonHeader>
@@ -328,373 +293,12 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
           </p>
         )}
 
-        {/* ---------- GST kind ---------- */}
-        {credit ? (
-          <div className="target-chip">
-            <span>
-              {againstBefore}
-              <strong>{credit.invoiceNumber}</strong>
-              {againstAfter}
-            </span>
-          </div>
-        ) : gstType === 'regular' && wasDraft ? (
-          <IonSegment value={doc.taxMode ?? 'gst'} disabled={locked} onIonChange={sync((e) => patch({ taxMode: e.detail.value as 'gst' | 'none' }))}>
-            <IonSegmentButton value="gst">
-              <IonLabel>{kind === 'estimate' ? t('With GST') : t('Tax invoice (GST)')}</IonLabel>
-            </IonSegmentButton>
-            <IonSegmentButton value="none">
-              <IonLabel>{t('Without GST')}</IonLabel>
-            </IonSegmentButton>
-          </IonSegment>
-        ) : gstType !== 'regular' && wasDraft ? (
-          <p className="section-note">
-            {gstType === 'composition'
-              ? t('Composition scheme: bills of supply without GST. Change this in More → Business profile.')
-              : t('Your store is not GST-registered, so bills have no GST. Change this in More → Business profile.')}
-          </p>
-        ) : null}
-
-        {/* ---------- customer ---------- */}
-        <div className="party-card" onClick={() => !locked && !credit && setPicker(true)}>
-          <IonIcon icon={personCircleOutline} />
-          {doc.billTo ? (
-            <div>
-              <strong>{doc.billTo.name}</strong>
-              <p>{[doc.billTo.phone, ...addressLines(doc.billTo.address)].filter(Boolean).join(' · ')}</p>
-            </div>
-          ) : (
-            <div>
-              <strong className="text-primary">{t('Select customer')}</strong>
-              <p>{t('Bill to')}</p>
-            </div>
-          )}
-        </div>
-        {kind === 'invoice' && doc.status === 'draft' && <CreditLimitNote businessId={actor.businessId} customerId={doc.billTo?.customerId} billAmount={totals?.grandTotal ?? 0} />}
-        {doc.billTo?.customerId && !credit && (
-          <ToggleRow
-            label={t('Ship to a different address')}
-            checked={!!doc.shipTo}
-            onChange={async (on) => {
-              const c = on && doc.billTo?.customerId ? await db.customers.get(doc.billTo.customerId) : null;
-              patch({ shipTo: on ? { ...(c?.shippingAddress ?? doc.billTo!.address) } : null });
-            }}
-            disabled={locked}
-          />
-        )}
-        {doc.shipTo && !credit && (
-          <FormSection title={t('Ship to')}>
-            <AddressFields value={doc.shipTo} onChange={(a) => patch((cur) => ({ shipTo: { ...cur.shipTo, ...a } }))} disabled={locked} />
-          </FormSection>
-        )}
-        {view.mode === 'gst' && (
-          <SelectField
-            label={t('Place of supply')}
-            value={view.pos ?? ''}
-            options={[...(view.pos ? [] : [{ value: '', label: t('Choose the state') }]), ...GST_STATES.map((st) => ({ value: st.code, label: `${st.name} (${st.code})` }))]}
-            onChange={(code) => patch({ placeOfSupply: code || null })}
-            disabled={locked || !!credit}
-          />
-        )}
-
-        {/* ---------- header ---------- */}
-        <Fold
-          title={byKind(t('Invoice no., date and terms'), t('Estimate no. and date'), t('Credit note no. and date'))}
-          note={[doc.number || nextNumber || t('Number given when you save'), dateIN(doc.date), kind === 'invoice' && doc.dueDate && doc.dueDate !== doc.date ? t('due {date}', { date: dateIN(doc.dueDate) }) : null, doc.reference || null].filter(Boolean).join(' · ')}
-          open={!!credit || doc.customFields.length > 0}
-        >
-        <FormSection title={byKind(t('Invoice details'), t('Estimate details'), t('Credit note details'))}>
-          <div className="field-row">
-            <TextField
-              label={byKind(t('Invoice no.'), t('Estimate no.'), t('Credit note no.'))}
-              value={doc.number}
-              placeholder={nextNumber}
-              helper={!doc.number && wasDraft ? (nextNumber ? t('Auto: {number}', { number: nextNumber }) : t('Auto: given when you save')) : undefined}
-              onChange={(number) => patch({ number: number.trim() })}
-              disabled={locked || (!isOwner && !wasDraft)}
-            />
-            <label className="date-field">
-              <span>{t('Date')}</span>
-              <input
-                type="date"
-                value={doc.date}
-                disabled={locked}
-                onChange={(e) =>
-                  e.target.value && patch({ date: e.target.value, dueDate: doc.paymentTermsDays != null ? addDaysISO(e.target.value, doc.paymentTermsDays) : doc.dueDate })
-                }
-              />
-            </label>
-          </div>
-          {credit && (
-            <SelectField label={t('Reason')} value={credit.reason} options={CREDIT_REASONS.map((x) => ({ ...x, label: t(x.label) }))} onChange={(reason) => patch({ reason } as Partial<CreditNote>)} disabled={locked || !isOwner} />
-          )}
-          {kind === 'invoice' && (
-            <div className="field-row">
-              {/* i18n: PAYMENT_TERMS labels (from InvoiceSettingsScreen) are translated where rendered */}
-              <SelectField
-                label={t('Payment terms')}
-                value={PAYMENT_TERMS.some((p) => p.value === doc.paymentTermsDays) ? doc.paymentTermsDays : -1}
-                options={[...PAYMENT_TERMS.map((x) => ({ ...x, label: t(x.label) })), { value: -1, label: t('Custom date') }]}
-                onChange={(v) => (v === -1 ? patch({ paymentTermsDays: undefined }) : setTerms(v))}
-                disabled={locked}
-              />
-              <label className="date-field">
-                <span>{t('Due date')}</span>
-                <input type="date" value={doc.dueDate ?? ''} min={doc.date} disabled={locked} onChange={(e) => patch({ dueDate: e.target.value || undefined, paymentTermsDays: undefined })} />
-              </label>
-            </div>
-          )}
-          {!credit && <TextField label={t('Reference / PO no.')} value={doc.reference} onChange={(reference) => patch({ reference })} disabled={locked} />}
-          {doc.customFields.map((f, i) => (
-            <TextField
-              key={f.label}
-              label={f.label}
-              value={f.value}
-              onChange={(value) => patch((cur) => ({ customFields: cur.customFields.map((x, j) => (j === i ? { ...x, value } : x)) }))}
-              disabled={locked}
-            />
-          ))}
-        </FormSection>
-        </Fold>
-
-        {kind === 'estimate' && (doc as Estimate).challan && (
-          <FormSection>
-            <ToggleRow
-              label={t('Sale or return (consignment)')}
-              note={t('The party pays for what sells and sends back the rest. Bill and take back from the challan.')}
-              checked={!!(doc as Estimate).consignment}
-              onChange={(consignment) => patch({ consignment } as Partial<Estimate>)}
-              disabled={locked}
-            />
-          </FormSection>
-        )}
-        {kind !== 'credit' && (
-          <FormSection>
-            {godownsOf(settings).length > 0 && (
-          <SelectField
-            label={t('Goods leave from')}
-            value={doc.godownId ?? ''}
-            options={[{ value: '', label: t('Shop') }, ...godownsOf(settings).map((g) => ({ value: g.id, label: g.name }))]}
-            onChange={(v) => patch({ godownId: v || undefined })}
-            disabled={locked}
-          />
-        )}
-          </FormSection>
-        )}
-        {kind === 'estimate' && !(doc as Estimate).challan && !(doc as Estimate).order && !(doc as Estimate).proforma && (
-          <FormSection>
-            <ToggleRow
-              label={t('This is a work order')}
-              note={t('Track it from measurement to delivery, with photos and an advance.')}
-              checked={!!(doc as Estimate).job}
-              onChange={(on) => patch({ job: on ? ((doc as Estimate).job ?? blankJob('work', actor.userName)) : null } as Partial<Estimate>)}
-              disabled={locked}
-            />
-            {(doc as Estimate).job && (
-              <>
-                <TextField label={t('What work')} value={(doc as Estimate).job!.title} onChange={(title) => patch({ job: { ...(doc as Estimate).job!, title } } as Partial<Estimate>)} disabled={locked} />
-                <TextArea label={t('Measurements and notes')} value={(doc as Estimate).job!.measurements} onChange={(measurements) => patch({ job: { ...(doc as Estimate).job!, measurements } } as Partial<Estimate>)} disabled={locked} />
-                {!wasDraft || doc.number ? (
-                  <IonButton size="small" fill="clear" routerLink={`/tabs/jobs/${doc.id}`}>
-                    {t('Open the work order (stages, photos, advance)')}
-                  </IonButton>
-                ) : null}
-              </>
-            )}
-          </FormSection>
-        )}
-        {/* ---------- lines ---------- */}
-        <FormSection title={t('Items')}>
-          <IonList className="line-list">
-            {doc.lines.map((l, i) => {
-              const r = totals.lines[i]!;
-              return (
-                <IonItem key={l.id} button={!locked} detail={false} onClick={() => !locked && setEditing({ line: l, isNew: false })}>
-                  <IonLabel>
-                    <h2>{l.name}</h2>
-                    {lineSize(l) && <p>{lineSize(l)}</p>}
-                    <p>
-                      {l.qty} {l.unit} × {rupees(l.rate)}
-                      {l.rateIncludesTax ? ` ${t('incl.')}` : ''}
-                      {r.lineDiscount ? ` − ${rupees(r.lineDiscount)}` : ''}
-                      {noTax ? '' : ` · ${t('tax {pct}%', { pct: l.taxPct })}`}
-                      {l.hsn && !noTax ? ` · ${t('HSN {code}', { code: l.hsn })}` : ''}
-                    </p>
-                  </IonLabel>
-                  <IonNote slot="end" className="amount-note">
-                    {rupees(r.net)}
-                  </IonNote>
-                </IonItem>
-              );
-            })}
-          </IonList>
-          {!locked && !credit && (
-            <div className="field-row">
-              <IonButton
-                expand="block"
-                fill="outline"
-                onClick={() => setEditing({ line: { id: newId(), name: '', qty: 1, unit: settings.units[0] ?? 'pcs', rate: 0, rateIncludesTax: false, taxPct: settings.defaultTaxPct }, isNew: true })}
-              >
-                <IonIcon icon={addOutline} slot="start" /> {t('Add item')}
-              </IonButton>
-              <IonButton expand="block" fill="outline" onClick={() => setScanning(true)}>
-                <IonIcon icon={barcodeOutline} slot="start" /> {t('Scan')}
-              </IonButton>
-            </div>
-          )}
-          <BarcodeScanner
-            isOpen={scanning}
-            continuous
-            title={t('Scan items')}
-            onClose={() => setScanning(false)}
-            onScan={(code) => {
-              void scanToBill(code);
-              return true;
-            }}
-          />
-        </FormSection>
-
-        {/* ---------- discount & charges ---------- */}
-        {!credit && (
-        <>
-        <FormSection title={noTax ? t('Discount on total') : t('Discount on total (before tax)')}>
-          {kind !== 'credit' && !locked && <CouponField businessId={actor.businessId} value={doc.coupon} date={doc.date} invoiceId={doc.id} onChange={(coupon) => patch({ coupon })} />}
-          {doc.targetTotal != null ? (
-            <div className="target-chip">
-              <span>
-                {targetBefore}
-                <strong>{rupees(doc.targetTotal)}</strong>
-                {targetAfter}
-              </span>
-              {!locked && <IonIcon icon={closeCircle} onClick={() => patch({ targetTotal: null })} aria-label={t('Remove final amount')} />}
-            </div>
-          ) : (
-            <>
-              <IonSegment value={doc.overallDiscount?.type ?? 'pct'} disabled={locked} onIonChange={sync((e) => patch({ overallDiscount: { type: e.detail.value as 'pct' | 'amount', value: 0 } }))}>
-                <IonSegmentButton value="pct">
-                  <IonLabel>%</IonLabel>
-                </IonSegmentButton>
-                <IonSegmentButton value="amount">
-                  <IonLabel>₹</IonLabel>
-                </IonSegmentButton>
-              </IonSegment>
-              {(doc.overallDiscount?.type ?? 'pct') === 'pct' ? (
-                <NumberField label={t('Discount %')} value={doc.overallDiscount?.value || null} onChange={(v) => patch({ overallDiscount: v ? { type: 'pct', value: v } : null })} min={0} max={100} suffix="%" disabled={locked} />
-              ) : (
-                <MoneyField label={t('Discount ₹')} value={doc.overallDiscount?.value || null} onChange={(v) => patch({ overallDiscount: v ? { type: 'amount', value: v } : null })} disabled={locked} />
-              )}
-            </>
-          )}
-          {!locked && doc.lines.length > 0 && (
-            <IonButton size="small" fill="clear" onClick={askTargetTotal}>
-              {t('Set final amount…')}
-            </IonButton>
-          )}
-        </FormSection>
-
-        <FormSection title={t('Additional charges')}>
-          {doc.charges.map((c, i) => (
-            <div key={i} className="charge-row">
-              <TextField label={t('Charge')} value={c.label} onChange={(label) => patch((cur) => ({ charges: cur.charges.map((x, j) => (j === i ? { ...x, label } : x)) }))} disabled={locked} />
-              <MoneyField label={t('Amount')} value={c.amount} onChange={(amount) => patch((cur) => ({ charges: cur.charges.map((x, j) => (j === i ? { ...x, amount: amount ?? 0 } : x)) }))} disabled={locked} />
-              {!noTax && (
-                <SelectField
-                  label={t('Tax %')}
-                  value={c.taxPct}
-                  options={settings.taxRates.map((r) => ({ value: r, label: `${r}%` }))}
-                  onChange={(taxPct) => patch((cur) => ({ charges: cur.charges.map((x, j) => (j === i ? { ...x, taxPct } : x)) }))}
-                  disabled={locked}
-                />
-              )}
-              {!locked && <IonIcon icon={closeCircle} className="charge-remove" onClick={() => patch((cur) => ({ charges: cur.charges.filter((_, j) => j !== i) }))} />}
-            </div>
-          ))}
-          {!locked && (
-            <IonButton size="small" fill="clear" onClick={() => patch({ charges: [...doc.charges, { label: 'Delivery', amount: 0, taxPct: 0 } as ChargeInput] })}>
-              <IonIcon icon={addOutline} slot="start" /> {t('Add charge (delivery, packing…)')}
-            </IonButton>
-          )}
-        </FormSection>
-        </>
-        )}
-
-        {/* ---------- summary ---------- */}
-        <div className="summary">
-          <Row label={t('Subtotal')} value={totals.subtotal} />
-          {totals.itemDiscount > 0 && <Row label={t('Item discounts')} value={-totals.itemDiscount} />}
-          {totals.overallDiscount > 0 && <Row label={t('Discount on total')} value={-totals.overallDiscount} />}
-          {!noTax && <Row label={t('Taxable amount')} value={totals.taxableAmount + totals.chargesTotal} />}
-          {noTax && totals.chargesTotal > 0 && <Row label={t('Charges')} value={totals.chargesTotal} />}
-          {taxRows(view, totals).map((t) => (
-            <Row key={t.label} label={t.label} value={t.amount} />
-          ))}
-          {totals.roundOff !== 0 && <Row label={t('Round off')} value={totals.roundOff} />}
-          <Row label={t('Total')} value={totals.grandTotal} strong />
-          {view.mode === 'gst' && view.pos && <p className="in-words">
-              {view.interState ? t('Other state: place of supply {place}', { place: view.posLabel }) : t('Same state: place of supply {place}', { place: view.posLabel })}
-            </p>}
-          {overCredit && <p className="in-words text-danger">{t('More than the {amount} left on invoice {number}', { amount: rupees(room!), number: credit!.invoiceNumber })}</p>}
-          <p className="in-words">{amountInWords(totals.grandTotal)}</p>
-        </div>
-        <ToggleRow label={t('Round off to nearest ₹1')} checked={doc.roundOff} onChange={(roundOff) => patch({ roundOff })} disabled={locked || doc.targetTotal != null} />
-
-        <Fold
-          title={t('Delivery, notes and bank details')}
-          note={doc.deliveryDate ? t('Delivery {date}', { date: dateIN(doc.deliveryDate) }) : t('Optional')}
-          open={!!doc.deliveryDate || !!rxNeeded}
-        >
-        {/* ---------- footer ---------- */}
-        {!credit && (
-        <FormSection title={t('Payment details on the PDF')}>
-          <SelectField label={t('Bank account')} value={doc.bankAccountId ?? ''} options={bankOptions} onChange={(v) => patch({ bankAccountId: v || null })} disabled={locked} />
-          <SelectField label={t('UPI QR code')} value={doc.upiIdId ?? ''} options={upiOptions} onChange={(v) => patch({ upiIdId: v || null })} disabled={locked} />
-          {bankAccounts.length === 0 && upiIds.length === 0 && <p className="section-note">{t('Add bank / UPI details in More → Payment details.')}</p>}
-        </FormSection>
-        )}
-        {!credit && (
-          <FormSection title={t('Delivery')} note={t('Optional. The day before, the person delivering gets a phone alert.')}>
-            <div className="field-row">
-              <label className="date-field">
-                <span>{t('Delivery date')}</span>
-                <input type="date" value={doc.deliveryDate ?? ''} min={doc.date} disabled={locked} onChange={(e) => patch({ deliveryDate: e.target.value || null })} />
-              </label>
-              {doc.deliveryDate && (
-                <SelectField
-                  label={t('Delivered by')}
-                  value={doc.deliveryAssignee?.userId ?? ''}
-                  options={[{ value: '', label: t('Not assigned') }, ...team.map((m) => ({ value: m.userId, label: m.userId === actor.userId ? t('Me ({name})', { name: m.name }) : m.name }))]}
-                  onChange={(userId) => patch({ deliveryAssignee: userId ? { userId, name: team.find((t) => t.userId === userId)?.name ?? '' } : null })}
-                  disabled={locked}
-                />
-              )}
-            </div>
-            {doc.deliveryDate && (
-              <div className="field-row">
-                <TextField label={t('Time / slot')} value={doc.deliverySlot} onChange={(deliverySlot) => patch({ deliverySlot: deliverySlot || undefined })} placeholder={t('Morning, 2–4 pm…')} disabled={locked} />
-                <TextField label={t('Floor / lift')} value={doc.deliveryFloor} onChange={(deliveryFloor) => patch({ deliveryFloor: deliveryFloor || undefined })} placeholder={t('3rd floor, no lift')} disabled={locked} />
-              </div>
-            )}
-            {kind === 'invoice' && rxNeeded && (
-              <>
-                <p className="section-note text-danger">{t('Scheduled medicine on this bill: note the prescription.')}</p>
-                <div className="field-row">
-                  <TextField label={t('Patient')} value={(doc as Invoice).rx?.patient} onChange={(patient) => patch({ rx: { ...(doc as Invoice).rx, patient } } as Partial<Invoice>)} disabled={locked} />
-                  <TextField label={t('Doctor')} value={(doc as Invoice).rx?.doctor} onChange={(doctor) => patch({ rx: { ...(doc as Invoice).rx, doctor } } as Partial<Invoice>)} disabled={locked} />
-                </div>
-                <TextField label={t('Prescription no. (optional)')} value={(doc as Invoice).rx?.number} onChange={(number) => patch({ rx: { ...(doc as Invoice).rx, number } } as Partial<Invoice>)} disabled={locked} />
-              </>
-            )}
-            {kind === 'invoice' && (
-              <TextField label={t('Site / project (contractors)')} value={(doc as Invoice).site} onChange={(site) => patch({ site: site || undefined } as Partial<Invoice>)} placeholder={t('e.g. Sharma house, Sector 12')} disabled={locked} />
-            )}
-          </FormSection>
-        )}
-
-        <FormSection title={t('Notes & terms')}>
-          <TextArea label={t('Notes')} value={doc.notes} onChange={(notes) => patch({ notes })} disabled={locked} />
-          <TextArea label={t('Notes for us (not printed)')} value={doc.privateNotes} onChange={(privateNotes) => patch({ privateNotes })} helper={t('Only the shop sees these; never on the bill or WhatsApp.')} />
-          <TextArea label={t('Terms & conditions')} value={doc.terms} onChange={(terms) => patch({ terms })} disabled={locked} rows={3} />
-        </FormSection>
-        </Fold>
+        <PartySection c={c} />
+        <LinesSection c={c} />
+        <TotalsSection c={c} />
+        <AdjustSection c={c} />
+        <HeaderSection c={c} />
+        <ExtrasSection c={c} />
       </IonContent>
 
       {!locked && (
@@ -745,14 +349,5 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         }}
       />
     </IonPage>
-  );
-}
-
-function Row({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
-  return (
-    <div className={strong ? 'summary-row strong' : 'summary-row'}>
-      <span>{label}</span>
-      <span>{rupees(value)}</span>
-    </div>
   );
 }

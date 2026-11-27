@@ -1,31 +1,6 @@
-import {
-  IonBackButton,
-  IonButton,
-  IonButtons,
-  IonChip,
-  IonContent,
-  IonFooter,
-  IonHeader,
-  IonIcon,
-  IonItem,
-  IonLabel,
-  IonList,
-  IonNote,
-  IonPage,
-  IonSearchbar,
-  IonSpinner,
-  IonTitle,
-  IonToolbar,
-  useIonAlert,
-  useIonRouter,
-  useIonToast,
-} from '@ionic/react';
-import { itemFieldsFrom } from '../../lib/catalog';
-import CatalogSuggestions from '../../components/CatalogSuggestions';
-import { isAreaPricing } from '@invoice/shared';
-import { formatPaise } from '@invoice/shared';
+import { IonBackButton, IonButton, IonButtons, IonChip, IonContent, IonFooter, IonHeader, IonPage, IonSpinner, IonTitle, IonToolbar, useIonAlert, useIonRouter, useIonToast } from '@ionic/react';
+import { isAreaPricing, formatPaise } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { addOutline, barcodeOutline, printOutline, checkmarkCircle, logoWhatsapp, personCircleOutline, removeOutline, shareSocialOutline } from 'ionicons/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import BarcodeScanner from '../../components/BarcodeScanner';
@@ -38,13 +13,10 @@ import { isAreaLine, lineSize, rupees } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { pdfFileName, pdfInputFor, renderPdf, sharePdf } from '../../lib/pdf';
 import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
-import { computeTotals, deleteDraft, effectiveGstType, newId, newInvoiceDraft, recordPayments, saveInvoice, type NewPayment } from '../../lib/repo';
+import { computeTotals, deleteDraft, effectiveGstType, newInvoiceDraft, recordPayments, saveInvoice, type NewPayment } from '../../lib/repo';
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
-import CreditLimitNote from '../../components/CreditLimitNote';
 import { qtyForAmount } from '../../lib/fresh';
 import { checkVoucherOnline, payWithVoucher } from '../../lib/retailExtras';
-import { extraOn } from '../../lib/shopExtras';
-import CouponField from '../../components/CouponField';
 import CreditPaySheet from '../../components/CreditPaySheet';
 import { payWithCredit } from '../../lib/credit';
 import { applyExchange, creditOverLimit } from '../../lib/khata';
@@ -53,6 +25,12 @@ import { repriceLines, sellable } from '../../lib/pricing';
 import { useScanToBill } from '../../lib/useScanToBill';
 import { useOffers } from '../../lib/useOffers';
 import LineEditor, { lineFromItem } from '../docs/LineEditor';
+import SaleDone from './SaleDone';
+import SaleTop from './SaleTop';
+import ItemSearch from './ItemSearch';
+import SearchResults from './SearchResults';
+import Cart from './Cart';
+import type { SaleCtx } from './saleTypes';
 import { scaleOf } from '../../lib/scale';
 import { loyaltyOf, pointsOf, redeemPoints } from '../../lib/loyalty';
 import { addOrMerge } from '../../lib/mergeLines';
@@ -164,6 +142,21 @@ export default function SaleScreen() {
   const totals = useMemo(() => (bill ? computeTotals(bill) : null), [bill]);
   useOffers(actor.businessId, bill?.lines, bill?.date, !!bill, (lines) => setBill((cur) => (cur ? { ...cur, lines } : cur)), bill?.coupon, bill?.taxMode === 'none');
 
+  // Camera scans: a repeat asks "Add 1 more?" when the store wants it.
+  const scanToBill = useScanToBill({
+    businessId: actor.businessId,
+    lines: () => bill?.lines ?? [],
+    confirmRepeat: settings.confirmRepeatScan !== false,
+    addNew: (it) => {
+      if (isAreaPricing(it.pricing) || it.trackSerial) setScanning(false);
+      addItem(it);
+    },
+    addOne: (lineId) => step(lineId, 1),
+    scale: scaleOf(settings),
+    addWeighed: (it, qty) => patch((cur) => ({ lines: [...cur.lines, { ...lineFromItem(it, level, custom), qty }] })),
+    unknown: (code) => void byBarcode(code),
+  });
+
   if (!CAN_CREATE_INVOICES) {
     return (
       <IonPage>
@@ -181,21 +174,6 @@ export default function SaleScreen() {
       </IonPage>
     );
   }
-
-  // Camera scans: a repeat asks "Add 1 more?" when the store wants it.
-  const scanToBill = useScanToBill({
-    businessId: actor.businessId,
-    lines: () => bill?.lines ?? [],
-    confirmRepeat: settings.confirmRepeatScan !== false,
-    addNew: (it) => {
-      if (isAreaPricing(it.pricing) || it.trackSerial) setScanning(false);
-      addItem(it);
-    },
-    addOne: (lineId) => step(lineId, 1),
-    scale: scaleOf(settings),
-    addWeighed: (it, qty) => patch((cur) => ({ lines: [...cur.lines, { ...lineFromItem(it, level, custom), qty }] })),
-    unknown: (code) => void byBarcode(code),
-  });
 
   if (!bill || !totals) {
     return (
@@ -350,6 +328,8 @@ export default function SaleScreen() {
   // The amount is shown in bold, wherever the language puts it in the sentence.
   const [giveBackBefore, giveBackAfter = ''] = t('Give back {amount}').split('{amount}');
 
+  const payable = Math.max(0, totals.grandTotal - (exchange?.credit ?? 0) - Math.min(creditUse?.left ?? 0, Math.max(0, totals.grandTotal - (exchange?.credit ?? 0))) - pointsValue - voucherValue);
+  const c: SaleCtx = { bill, patch, q, setQ, items, matches, byAmount, addItem, addForAmount, byBarcode, setScanning, setEditing, settings, perms, level, custom, totals, step, walkIn, exchange, actor, creditUse, setCreditUse, setCreditPick, pointsLeft, usePoints, setUsePoints, pointsValue, voucherUse, setVoucherUse, voucherValue, askVoucher, couponOpen, setCouponOpen, regular, setPicker, done, printer, whatsappText, shareBill, startNew, giveBackBefore, giveBackAfter };
   return (
     <IonPage>
       <IonHeader>
@@ -375,227 +355,13 @@ export default function SaleScreen() {
 
       {done ? (
         <IonContent className="ion-padding">
-          <div className="sale-done">
-            <IonIcon icon={checkmarkCircle} color="success" />
-            <h2>
-              {done.invoice.number} · {rupees(done.invoice.totals.grandTotal)}
-            </h2>
-            <p>
-              {done.paid >= done.invoice.totals.grandTotal
-                ? t('Paid in full')
-                : done.paid > 0
-                  ? t('Paid {paid}, balance {balance}', { paid: rupees(done.paid), balance: rupees(done.invoice.totals.grandTotal - done.paid) })
-                  : t('Saved unpaid')}
-            </p>
-            {done.change > 0 && (
-              <p className="sale-change">
-                {giveBackBefore}
-                <strong>{rupees(done.change)}</strong>
-                {giveBackAfter}
-              </p>
-            )}
-          </div>
-          <div className="detail-actions">
-            {printer.canPrint && (
-              <IonButton onClick={() => void printer.print('invoice', done.invoice, done.change)} disabled={printer.busy}>
-                {printer.busy ? <IonSpinner name="dots" /> : <IonIcon icon={printOutline} slot="start" />} {t('Print')}
-              </IonButton>
-            )}
-            <IonButton color="success" onClick={() => whatsappText(done.invoice, done.paid)}>
-              <IonIcon icon={logoWhatsapp} slot="start" /> {t('WhatsApp bill')}
-            </IonButton>
-            <IonButton fill="outline" onClick={() => void shareBill(done.invoice)}>
-              <IonIcon icon={shareSocialOutline} slot="start" /> {t('Share PDF')}
-            </IonButton>
-            <IonButton fill="clear" routerLink={`/tabs/invoices/${done.invoice.id}`}>
-              {t('Open bill')}
-            </IonButton>
-          </div>
-          <IonButton expand="block" size="large" onClick={startNew}>
-            <IonIcon icon={addOutline} slot="start" /> {t('Next sale')}
-          </IonButton>
+          <SaleDone c={c} />
         </IonContent>
       ) : (
         <IonContent className="sale-content">
-          <div className="sale-top">
-            <IonChip onClick={() => setPicker(true)}>
-              <IonIcon icon={personCircleOutline} />
-              <IonLabel>{walkIn && (!bill.billTo || bill.billTo.name === WALK_IN.name) ? t('Walk-in customer') : bill.billTo!.name}</IonLabel>
-            </IonChip>
-            {exchange && exchange.credit > 0 && (
-              <p className="section-note text-success">{t('Exchange: {amount} from bill {number} is taken off', { amount: rupees(exchange.credit), number: exchange.old.number })}</p>
-            )}
-            {!walkIn && <CreditLimitNote businessId={actor.businessId} customerId={bill.billTo?.customerId} billAmount={totals?.grandTotal ?? 0} />}
-            {bill.lines.length > 0 &&
-              (!walkIn || !!creditUse) &&
-              (creditUse ? (
-                <IonChip color="success" onClick={() => setCreditUse(null)}>
-                  <IonLabel>{t('Credit note {number}: {amount}', { number: creditUse.number, amount: rupees(Math.min(creditUse.left, totals?.grandTotal ?? 0)) })} ✕</IonLabel>
-                </IonChip>
-              ) : (
-                <IonChip outline onClick={() => setCreditPick(true)}>
-                  <IonLabel>{t('Use credit note')}</IonLabel>
-                </IonChip>
-              ))}
-            {bill.lines.length > 0 && !walkIn && pointsLeft >= loyaltyOf(settings).minRedeem && (
-              <IonChip color={usePoints ? 'success' : undefined} outline={!usePoints} onClick={() => setUsePoints(!usePoints)}>
-                <IonLabel>
-                  {usePoints ? t('Points: {amount} off', { amount: rupees(pointsValue) }) : t('Use {n} points ({amount})', { n: pointsLeft, amount: rupees(pointsLeft * loyaltyOf(settings).pointValue) })}
-                  {usePoints ? ' ✕' : ''}
-                </IonLabel>
-              </IonChip>
-            )}
-            {bill.lines.length > 0 && extraOn(settings, 'vouchers') && (
-              <IonChip color={voucherUse ? 'success' : undefined} outline={!voucherUse} onClick={() => (voucherUse ? setVoucherUse(null) : askVoucher())}>
-                <IonLabel>{voucherUse ? `${t('Voucher {code}: {amount}', { code: voucherUse.code, amount: rupees(voucherValue) })} ✕` : t('Gift voucher')}</IonLabel>
-              </IonChip>
-            )}
-            {bill.lines.length > 0 && !couponOpen && !bill.coupon && (
-              <IonChip outline onClick={() => setCouponOpen(true)}>
-                <IonLabel>{t('Coupon')}</IonLabel>
-              </IonChip>
-            )}
-            {bill.lines.length > 0 && (couponOpen || !!bill.coupon) && <CouponField businessId={actor.businessId} value={bill.coupon} date={bill.date} invoiceId={bill.id} onChange={(coupon) => patch({ coupon })} />}
-            {regular && (
-              <div className="sale-tax">
-                {(['gst', 'none'] as const).map((m) => (
-                  <IonChip key={m} color={(bill.taxMode ?? 'gst') === m ? 'primary' : undefined} outline={(bill.taxMode ?? 'gst') !== m} onClick={() => patch({ taxMode: m })}>
-                    <IonLabel>{m === 'gst' ? t('GST bill') : t('No GST')}</IonLabel>
-                  </IonChip>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="search-row">
-            <IonSearchbar
-              value={q}
-              onIonInput={(e) => setQ(String(e.detail.value ?? ''))}
-              // A USB / Bluetooth scanner types the code and presses Enter.
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && q.trim()) {
-                  const code = q.trim();
-                  if ((items ?? []).some((i) => i.barcode === code)) byBarcode(code);
-                  else if (matches.length === 1) addItem(matches[0]!);
-                }
-              }}
-              placeholder={t('Search item or type barcode')}
-              debounce={0}
-            />
-            <IonButton fill="clear" onClick={() => setScanning(true)} aria-label={t('Scan barcode')}>
-              <IonIcon icon={barcodeOutline} slot="icon-only" />
-            </IonButton>
-          </div>
-
-          {q.trim() ? (
-            <IonList>
-              {byAmount?.found.map((it) => {
-                const line = lineFromItem(it, level, custom);
-                const qty = qtyForAmount(byAmount.amount, line.rate, line.taxPct, line.rateIncludesTax);
-                return (
-                  <IonItem key={`amt-${it.id}`} button detail={false} onClick={() => addForAmount(it, byAmount.amount)}>
-                    <IonLabel>
-                      <h2>{t('{amount} of {item}', { amount: rupees(byAmount.amount), item: it.name })}</h2>
-                      <p>{t('{qty} {unit} at {rate} per {unit}', { qty, unit: it.unit, rate: rupees(line.rate) })}</p>
-                    </IonLabel>
-                  </IonItem>
-                );
-              })}
-              {matches.map((it) => (
-                <IonItem key={it.id} button detail={false} onClick={() => addItem(it)}>
-                  <IonLabel>
-                    <h2>{it.name}</h2>
-                    <p>{t('per {unit}', { unit: it.unit })}</p>
-                  </IonLabel>
-                  <IonNote slot="end">{rupees(it.rate)}</IonNote>
-                </IonItem>
-              ))}
-              <IonItem
-                button
-                detail={false}
-                onClick={() => {
-                  setEditing({
-                    line: { id: newId(), name: q.trim(), qty: 1, unit: settings.units[0] ?? 'pcs', rate: 0, rateIncludesTax: true, taxPct: settings.defaultTaxPct },
-                    isNew: true,
-                  });
-                  setQ('');
-                }}
-              >
-                <IonLabel color="primary">{t('+ Sell "{name}" (not in the catalogue)', { name: q.trim() })}</IonLabel>
-              </IonItem>
-              {matches.length < 5 && (
-                <CatalogSuggestions
-                  query={q}
-                  limit={5}
-                  exclude={matches.map((m) => m.name)}
-                  onPick={(row) => {
-                    const f = itemFieldsFrom(row, settings.defaultTaxPct, settings.units);
-                    setEditing({
-                      line: { id: newId(), name: f.name!, qty: 1, unit: f.unit!, rate: 0, rateIncludesTax: true, taxPct: f.taxPct!, hsn: f.hsn },
-                      isNew: true,
-                      saveNew: perms.access === 'full',
-                    });
-                    setQ('');
-                  }}
-                />
-              )}
-            </IonList>
-          ) : bill.lines.length === 0 ? (
-            <div className="sale-empty">
-              <p>{t('Search an item above to start the bill.')}</p>
-              {(items ?? []).length > 0 && (
-                <div className="sale-quick">
-                  {(items ?? []).slice(0, 12).map((it) => (
-                    <IonButton key={it.id} fill="outline" size="small" onClick={() => addItem(it)}>
-                      {it.name}
-                    </IonButton>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-            {(items ?? []).length > 0 && (
-              <div className="sale-quick sale-quick-row">
-                {(items ?? []).slice(0, 12).map((it) => (
-                  <IonButton key={it.id} fill="outline" size="small" onClick={() => addItem(it)}>
-                    {it.name}
-                  </IonButton>
-                ))}
-              </div>
-            )}
-            <IonList className="cart">
-              {bill.lines.map((l, i) => (
-                <IonItem key={l.id} lines="full">
-                  <IonLabel onClick={() => setEditing({ line: l, isNew: false })}>
-                    <h2>{l.name}</h2>
-                    <p>
-                      {isAreaLine(l) ? lineSize(l) : `${rupees(l.rate)} / ${l.unit}`}
-                      {(bill.taxMode ?? 'gst') !== 'none' && !l.rateIncludesTax && l.taxPct > 0 ? ` ${t('+ {pct}% GST', { pct: l.taxPct })}` : ''}
-                    </p>
-                  </IonLabel>
-                  <div slot="end" className="qty-stepper">
-                    {isAreaLine(l) ? (
-                      <IonButton fill="clear" size="small" onClick={() => setEditing({ line: l, isNew: false })}>
-                        {t('Size')}
-                      </IonButton>
-                    ) : (
-                      <>
-                        <IonButton fill="outline" size="small" onClick={() => step(l.id, -1)} aria-label={t('One less')}>
-                          <IonIcon icon={removeOutline} />
-                        </IonButton>
-                        <span>{l.qty}</span>
-                        <IonButton fill="outline" size="small" onClick={() => step(l.id, 1)} aria-label={t('One more')}>
-                          <IonIcon icon={addOutline} />
-                        </IonButton>
-                      </>
-                    )}
-                    <strong>{rupees(totals.lines[i]?.amount ?? 0)}</strong>
-                  </div>
-                </IonItem>
-              ))}
-            </IonList>
-            </>
-          )}
+          <SaleTop c={c} />
+          <ItemSearch c={c} />
+          {q.trim() ? <SearchResults c={c} /> : <Cart c={c} />}
         </IonContent>
       )}
 
@@ -632,7 +398,7 @@ export default function SaleScreen() {
                 </IonButton>
               )}
               <IonButton disabled={!bill.lines.length || busy} onClick={() => setPaying(true)}>
-                {busy ? <IonSpinner name="dots" /> : t('Pay')}
+                {busy ? <IonSpinner name="dots" /> : t('Pay {amount}', { amount: rupees(payable) })}
               </IonButton>
             </div>
           </IonToolbar>
@@ -641,7 +407,7 @@ export default function SaleScreen() {
 
       <PaySheet
         isOpen={paying}
-        amount={Math.max(0, totals.grandTotal - (exchange?.credit ?? 0) - Math.min(creditUse?.left ?? 0, Math.max(0, totals.grandTotal - (exchange?.credit ?? 0))) - pointsValue - voucherValue)}
+        amount={payable}
         upi={upi}
         qrNote={profile.name}
         requireFull={walkIn}

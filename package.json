@@ -18,7 +18,7 @@
     "start:server": "npm run start -w server",
     "test": "npm run test -w shared && npm run test -w server && npm run test -w @invoice/app",
     "typecheck": "npm run typecheck -w shared && npm run typecheck -w server && npm run typecheck -w app",
-    "sanity": "playwright test -c e2e/playwright.config.ts",
+    "sanity": "npm run lint -w @invoice/app && playwright test -c e2e/playwright.config.ts",
     "sanity:prod": "playwright test -c e2e/playwright.config.ts prod.spec"
   },
   "engines": {

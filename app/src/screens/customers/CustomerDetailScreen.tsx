@@ -1,4 +1,4 @@
-import { IonButton, IonCard, IonCardContent, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonModal, IonNote, IonSegment, IonSegmentButton, IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, useIonToast, IonRouterLink, useIonRouter, IonChip } from '@ionic/react';
+import { IonButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonModal, IonNote, IonSegment, IonSegmentButton, IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, useIonToast, IonRouterLink, useIonRouter, IonChip } from '@ionic/react';
 import { addDaysISO, formatIndianMobile, todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { loyaltyOf, pointsOf, tierFor, yearSpend } from '../../lib/loyalty';
@@ -64,88 +64,91 @@ export default function CustomerDetailScreen() {
   };
 
   return (
-    <PageShell title={c.name} backHref="/tabs/customers" padded={false}>
-      <IonCard>
-        <IonCardContent>
-          {c.phone && <p>{formatIndianMobile(c.phone)}</p>}
-          {c.email && <p>{c.email}</p>}
-          {addressLines(c.billingAddress).map((l) => (
-            <p key={l}>{l}</p>
-          ))}
-          <div className="detail-actions">
-            {c.phone && (
-              <>
-                <IonButton size="small" fill="outline" href={`tel:${c.phone}`}>
-                  <IonIcon icon={callOutline} slot="start" /> {t('Call')}
-                </IonButton>
-                <IonButton size="small" fill="outline" href={`https://wa.me/${c.phone.replace('+', '')}`} target="_blank">
-                  <IonIcon icon={logoWhatsapp} slot="start" /> WhatsApp
-                </IonButton>
-              </>
-            )}
-            <IonButton size="small" fill="outline" routerLink={`/tabs/customers/${c.id}/edit`}>
-              <IonIcon icon={createOutline} slot="start" /> {t('Edit')}
+    <PageShell
+      title={c.name}
+      backHref="/tabs/customers"
+      padded={false}
+      headerEnd={
+        <IonButton routerLink={`/tabs/customers/${c.id}/edit`}>
+          <IonIcon icon={createOutline} slot="start" /> {t('Edit')}
+        </IonButton>
+      }
+    >
+      {/* One summary: what they owe first, how to reach them under it. */}
+      <section className="bill-card party-card-big">
+        <span className="section-note">{khata.balance >= 0 ? t('To collect') : t('We owe them')}</span>
+        <strong className={khata.balance > 0 ? 'party-due text-danger' : 'party-due'}>{rupees(Math.abs(khata.balance))}</strong>
+        <p className="section-note">
+          {[c.phone ? formatIndianMobile(c.phone) : null, c.email || null, ...addressLines(c.billingAddress)].filter(Boolean).join(' · ')}
+        </p>
+        {overLimit && <p className="text-danger">{t('Above the credit limit')}</p>}
+        {c.phone && (
+          <div className="party-contact">
+            <IonButton fill="outline" href={`tel:${c.phone}`}>
+              <IonIcon icon={callOutline} slot="start" /> {t('Call')}
             </IonButton>
+            <IonButton fill="outline" href={`https://wa.me/${c.phone.replace('+', '')}`} target="_blank">
+              <IonIcon icon={logoWhatsapp} slot="start" /> WhatsApp
+            </IonButton>
+            {khata.balance > 0 && (
+              <IonButton fill="outline" onClick={remind}>
+                <IonIcon icon={notificationsOutline} slot="start" /> {t('Remind')}
+              </IonButton>
+            )}
           </div>
-        </IonCardContent>
-      </IonCard>
+        )}
+      </section>
 
-      <div className="stat-grid party-stats">
-        <div className="mini-stat">
-          <span>{khata.balance >= 0 ? t('To collect') : t('We owe them')}</span>
-          <strong className={khata.balance > 0 ? 'text-danger' : ''}>{rupees(Math.abs(khata.balance))}</strong>
+      {(loyalty || khata.advance > 0 || khata.held > 0 || c.creditLimit) && (
+        <div className="stat-grid party-stats">
+          {loyalty && (
+            <div className="mini-stat">
+              <span>{loyalty.tier ? t('{tier} member · points', { tier: loyalty.tier.name }) : t('Points')}</span>
+              <strong className="text-success">
+                {loyalty.balance} <small>({rupees(loyalty.worth)})</small>
+              </strong>
+            </div>
+          )}
+          {khata.advance > 0 && (
+            <div className="mini-stat">
+              <span>{t('Advance')}</span>
+              <strong className="text-success">{rupees(khata.advance)}</strong>
+            </div>
+          )}
+          {khata.held > 0 && (
+            <div className="mini-stat">
+              <span>{t('Held for estimates')}</span>
+              <strong className="text-success">{rupees(khata.held)}</strong>
+            </div>
+          )}
+          {c.creditLimit ? (
+            <div className="mini-stat">
+              <span>{t('Credit limit')}</span>
+              <strong className={overLimit ? 'text-danger' : ''}>{rupees(c.creditLimit)}</strong>
+            </div>
+          ) : null}
         </div>
-        {loyalty && (
-          <div className="mini-stat">
-            <span>{loyalty.tier ? t('{tier} member · points', { tier: loyalty.tier.name }) : t('Points')}</span>
-            <strong className="text-success">
-              {loyalty.balance} <small>({rupees(loyalty.worth)})</small>
-            </strong>
-          </div>
-        )}
-        {khata.advance > 0 && (
-          <div className="mini-stat">
-            <span>{t('Advance')}</span>
-            <strong className="text-success">{rupees(khata.advance)}</strong>
-          </div>
-        )}
-        {khata.held > 0 && (
-          <div className="mini-stat">
-            <span>{t('Held for estimates')}</span>
-            <strong className="text-success">{rupees(khata.held)}</strong>
-          </div>
-        )}
-        {c.creditLimit ? (
-          <div className="mini-stat">
-            <span>{t('Credit limit')}</span>
-            <strong className={overLimit ? 'text-danger' : ''}>{rupees(c.creditLimit)}</strong>
-          </div>
-        ) : null}
-      </div>
-      {overLimit && <p className="section-note text-danger ion-padding-horizontal">{t('Above the credit limit')}</p>}
+      )}
 
-      <div className="detail-actions ion-padding-horizontal">
+      {/* The two main jobs, then the rest as plain links. */}
+      <div className="party-main">
         <IonButton onClick={() => setReceiving(true)}>
           <IonIcon icon={cashOutline} slot="start" /> {t('Receive payment')}
         </IonButton>
-        {c.phone && khata.balance > 0 && (
-          <IonButton fill="outline" onClick={remind}>
-            <IonIcon icon={notificationsOutline} slot="start" /> {t('Remind')}
-          </IonButton>
-        )}
-        <IonButton fill="outline" onClick={() => setStatement(true)}>
-          <IonIcon icon={documentTextOutline} slot="start" /> {t('Statement')}
-        </IonButton>
-      </div>
-      <div className="detail-actions ion-padding-horizontal">
-        {CAN_CREATE_INVOICES && (
+        {CAN_CREATE_INVOICES ? (
           <IonButton fill="outline" routerLink={`/tabs/invoices/new?customer=${c.id}`}>
             <IonIcon icon={addOutline} slot="start" /> {t('New bill')}
           </IonButton>
+        ) : (
+          <IonButton fill="outline" routerLink={`/tabs/estimates/new?customer=${c.id}`}>
+            <IonIcon icon={clipboardOutline} slot="start" /> {t('New estimate')}
+          </IonButton>
         )}
-        <IonButton fill="outline" routerLink={`/tabs/estimates/new?customer=${c.id}`}>
-          <IonIcon icon={clipboardOutline} slot="start" /> {t('New estimate')}
-        </IonButton>
+      </div>
+      <div className="party-links">
+        <a onClick={() => setStatement(true)}>{t('Statement')}</a>
+        {CAN_CREATE_INVOICES && <a onClick={() => router.push(`/tabs/estimates/new?customer=${c.id}`)}>{t('New estimate')}</a>}
+        <a onClick={() => router.push('/tabs/customers/visits')}>{t('Visits')}</a>
       </div>
 
       {(challans ?? []).length > 0 && CAN_CREATE_INVOICES && (

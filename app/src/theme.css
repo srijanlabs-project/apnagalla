@@ -1,28 +1,58 @@
-/* Brand colours (placeholder until the app name/brand is chosen) */
+/* ApnaGalla brand: green (main actions), yellow (attention), calm grey-green surfaces. */
 :root {
-  --ion-color-primary: #3b5bdb;
-  --ion-color-primary-rgb: 59, 91, 219;
+  --ion-color-primary: #1f7a4d;
+  --ion-color-primary-rgb: 31, 122, 77;
   --ion-color-primary-contrast: #ffffff;
   --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #3450c1;
-  --ion-color-primary-tint: #4f6bdf;
+  --ion-color-primary-shade: #1b6b44;
+  --ion-color-primary-tint: #35875f;
+
+  --ion-color-warning: #f2c230;
+  --ion-color-warning-rgb: 242, 194, 48;
+  --ion-color-warning-contrast: #2b2100;
+  --ion-color-warning-contrast-rgb: 43, 33, 0;
+  --ion-color-warning-shade: #d5ab2a;
+  --ion-color-warning-tint: #f3c845;
+
+  --ion-background-color: #f6f7f5;
+  --ion-toolbar-background: #ffffff;
+  --ion-item-background: #ffffff;
+  --ion-text-color: #17201b;
+  --ion-color-medium: #5b6660;
+  --ion-color-medium-rgb: 91, 102, 96;
 
   --app-surface: #ffffff;
-  --app-surface-2: #f4f5f8;
-  --app-border: #d7d9e0;
+  --app-surface-2: #eef2ef;
+  --app-border: #dce3de;
+  --app-radius: 12px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ion-color-primary: #748ffc;
-    --ion-color-primary-rgb: 116, 143, 252;
-    --ion-color-primary-shade: #6680e0;
-    --ion-color-primary-tint: #829afc;
-    --app-surface: #1e1f24;
-    --app-surface-2: #121316;
-    --app-border: #3a3c44;
+    --ion-color-primary: #4fb582;
+    --ion-color-primary-rgb: 79, 181, 130;
+    --ion-color-primary-contrast: #0b1a12;
+    --ion-color-primary-contrast-rgb: 11, 26, 18;
+    --ion-color-primary-shade: #46a072;
+    --ion-color-primary-tint: #61bc8f;
+    --ion-background-color: #111513;
+    --ion-toolbar-background: #181d1a;
+    --ion-item-background: #181d1a;
+    --ion-text-color: #e8ede9;
+    --ion-color-medium: #a3ada7;
+    --ion-color-medium-rgb: 163, 173, 167;
+    --app-surface: #181d1a;
+    --app-surface-2: #121614;
+    --app-border: #2c342f;
   }
 }
+
+/* One button system: 48 px touch targets, rounded, no shouting capitals. */
+ion-button { --border-radius: var(--app-radius); text-transform: none; letter-spacing: 0; font-weight: 600; min-height: 44px; }
+ion-button[size='small'] { min-height: 36px; --border-radius: 10px; }
+ion-button[fill='outline'] { --border-width: 1.5px; }
+ion-fab-button { --border-radius: 16px; }
+ion-segment-button { text-transform: none; letter-spacing: 0; }
 
 .center-fill {
   height: 100%;
@@ -351,3 +381,47 @@ ion-chip ion-label { white-space: normal; }
 .cash-help ul { padding-left: 18px; margin: 8px 0 0; color: var(--ion-color-medium-shade, #555); }
 .cash-help li { margin-bottom: 4px; }
 .cash-formula { font-family: ui-monospace, monospace; margin: 8px 0; line-height: 1.6; }
+
+/* Fixed bottom bar with a screen's main actions. */
+.action-footer ion-toolbar, .action-footer { --background: var(--app-surface); background: var(--app-surface); }
+.action-bar { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--app-border); }
+.action-bar ion-button { margin: 0; height: 52px; font-size: 0.95rem; }
+.action-bar ion-button.main { grid-column: span 2; }
+.action-bar .more-btn { --padding-start: 0; --padding-end: 0; }
+
+/* Grouped action sheet. */
+.action-menu-title { font-size: 1.05rem; font-weight: 700; margin: 18px 20px 4px; }
+.action-menu-group h3 { margin: 14px 20px 4px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ion-color-medium); }
+.action-menu-item { display: block; width: 100%; min-height: 48px; padding: 12px 20px; border: 0; background: transparent; text-align: left; font: inherit; font-size: 1rem; color: var(--ion-text-color); cursor: pointer; }
+.action-menu-item:active { background: var(--app-surface-2); }
+.action-menu-item.danger { color: var(--ion-color-danger); font-weight: 600; }
+.action-menu-close { padding: 12px 16px 24px; }
+
+/* Bill summary card. */
+.bill-card { margin: 12px; padding: 16px; border: 1px solid var(--app-border); border-radius: 14px; background: var(--app-surface); }
+.bill-figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.bill-figures span { display: block; font-size: 0.75rem; color: var(--ion-color-medium); }
+.bill-figures strong { font-size: 1.1rem; }
+.bill-next { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.bill-next ion-button { margin: 0; }
+
+/* New sale: extras appear as dashed "+" chips once an item is on the bill. */
+.sale-top { justify-content: space-between; }
+.sale-extras { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px; }
+.sale-extras:empty { display: none; }
+ion-chip.add-chip { --background: transparent; border: 1px dashed var(--ion-color-medium-tint, #b5c2ba); color: var(--ion-color-medium); }
+
+/* Customer page. */
+.party-card-big { display: flex; flex-direction: column; gap: 2px; }
+.party-due { font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+.party-contact { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.party-contact ion-button { margin: 0; }
+.party-main { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0 12px; }
+.party-main ion-button { margin: 0; height: 52px; }
+.party-links { display: flex; gap: 18px; padding: 10px 16px 6px; font-size: 0.9rem; }
+.party-links a { color: var(--ion-color-primary); cursor: pointer; font-weight: 600; }
+
+/* Items: filters wrap; the add button says what it does. */
+.item-filters { padding: 0 8px 4px; }
+ion-chip.chip-warn { --color: #7a5a00; }
+ion-button.fab-new { height: 56px; --border-radius: 16px; --box-shadow: 0 6px 16px rgba(31, 122, 77, 0.35); font-weight: 700; margin: 0; }

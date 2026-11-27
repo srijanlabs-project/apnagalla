@@ -2519,5 +2519,16 @@
   "How is this worked out?": "यह कैसे निकला?",
   "Opening cash: the cash counted at the last day-end (or, if a day was not closed, what the app expected then).": "शुरुआती कैश: पिछले दिन के अंत में गिना गया कैश (या, अगर दिन बंद नहीं हुआ, तो तब ऐप का अपेक्षित कैश)।",
   "UPI, card, bank and cheque money never enters the drawer; it is shown under “Not in the drawer”.": "UPI, कार्ड, बैंक और चेक का पैसा गल्ले में नहीं आता; यह “गल्ले में नहीं” में दिखता है।",
-  "Gift vouchers work only with the internet. Connect and try again.": "गिफ़्ट वाउचर सिर्फ़ इंटरनेट के साथ चलते हैं। कनेक्ट करके फिर कोशिश करें।"
+  "Gift vouchers work only with the internet. Connect and try again.": "गिफ़्ट वाउचर सिर्फ़ इंटरनेट के साथ चलते हैं। कनेक्ट करके फिर कोशिश करें।",
+  "Change this bill": "इस बिल में बदलाव",
+  "Charges {amount}": "चार्ज {amount}",
+  "Delivery and advance": "डिलीवरी और एडवांस",
+  "Discount / coupon": "छूट / कूपन",
+  "Discount {amount}": "छूट {amount}",
+  "Discount, coupon or charges": "छूट, कूपन या चार्ज",
+  "Low on stock ({n})": "कम स्टॉक ({n})",
+  "More for {number}": "{number} के लिए और",
+  "Other ways to pay": "भुगतान के दूसरे तरीके",
+  "Share and print": "शेयर और प्रिंट",
+  "Visits": "विज़िट"
 }

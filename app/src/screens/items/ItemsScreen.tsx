@@ -1,6 +1,6 @@
-import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar, IonThumbnail, useIonActionSheet, useIonRouter } from '@ionic/react';
+import { IonButton, IonChip, IonFab, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar, IonThumbnail, useIonActionSheet, useIonRouter } from '@ionic/react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { add, alertCircleOutline, chevronBackOutline, cubeOutline, ellipsisHorizontal } from 'ionicons/icons';
+import { add, chevronBackOutline, cubeOutline, chevronDownOutline } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
@@ -86,37 +86,43 @@ export default function ItemsScreen() {
   }, [items, q, catId, cats, negOnly, stock]);
 
   return (
-    <PageShell title={t('Items')} padded={false}>
-      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search name, code or barcode')} />
-      {lowCount > 0 && (
-        <IonItem routerLink="/tabs/items/low-stock" detail lines="full" color="warning">
-          <IonIcon icon={alertCircleOutline} slot="start" />
-          <IonLabel>{t('{count} items low on stock', { count: lowCount })}</IonLabel>
-        </IonItem>
-      )}
-      <div className="filter-chips">
-        <IonChip outline={!negOnly} color={negOnly ? 'danger' : undefined} onClick={() => setNegOnly(!negOnly)} disabled={!negCount && !negOnly}>
-          {t('Negative stock ({n})', { n: negCount })}
-        </IonChip>
-        <IonButton size="small" fill="clear" onClick={openTools}>
-          <IonIcon icon={ellipsisHorizontal} slot="start" /> {t('Tools')}
+    <PageShell
+      title={t('Items')}
+      padded={false}
+      headerEnd={
+        <IonButton onClick={openTools}>
+          {t('Tools')} <IonIcon icon={chevronDownOutline} slot="end" />
         </IonButton>
+      }
+    >
+      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search name, code or barcode')} />
+      {/* One row of filters that wraps: category, then the problems (negative, low) as filters too. */}
+      <div className="filter-chips wrap item-filters">
+        <IonChip outline={!!catId || negOnly} color={!catId && !negOnly ? 'primary' : undefined} onClick={() => (setCatId(null), setNegOnly(false))}>
+          {t('All')}
+        </IonChip>
+        {current && (
+          <IonChip color="primary" onClick={() => setCatId(current.parentId ?? null)}>
+            <IonIcon icon={chevronBackOutline} />
+            <IonLabel>{paths.get(current.id)}</IonLabel>
+          </IonChip>
+        )}
+        {children.map((c) => (
+          <IonChip key={c.id} outline onClick={() => setCatId(c.id)}>
+            {c.name}
+          </IonChip>
+        ))}
+        {(negCount > 0 || negOnly) && (
+          <IonChip outline={!negOnly} color="danger" onClick={() => setNegOnly(!negOnly)}>
+            {t('Negative stock ({n})', { n: negCount })}
+          </IonChip>
+        )}
+        {lowCount > 0 && (
+          <IonChip outline color="warning" className="chip-warn" onClick={() => router.push("/tabs/items/low-stock")}>
+            {t('Low on stock ({n})', { n: lowCount })}
+          </IonChip>
+        )}
       </div>
-      {children.length + (current ? 1 : 0) > 0 && (
-        <div className="filter-chips">
-          {current && (
-            <IonChip onClick={() => setCatId(current.parentId ?? null)}>
-              <IonIcon icon={chevronBackOutline} />
-              <IonLabel>{paths.get(current.id)}</IonLabel>
-            </IonChip>
-          )}
-          {children.map((c) => (
-            <IonChip key={c.id} outline onClick={() => setCatId(c.id)}>
-              {c.name}
-            </IonChip>
-          ))}
-        </div>
-      )}
       {items && items.length === 0 ? (
         <EmptyState icon={cubeOutline} title={t('No items yet')} text={t('Save your products and services with their price and tax, then pick them while billing.')} />
       ) : (
@@ -157,9 +163,9 @@ export default function ItemsScreen() {
         </IonList>
       )}
       <IonFab slot="fixed" vertical="bottom" horizontal="end">
-        <IonFabButton routerLink="/tabs/items/new" aria-label={t('Add item')}>
-          <IonIcon icon={add} />
-        </IonFabButton>
+        <IonButton routerLink="/tabs/items/new" className="fab-new">
+          <IonIcon icon={add} slot="start" /> {t('New item')}
+        </IonButton>
       </IonFab>
     </PageShell>
   );

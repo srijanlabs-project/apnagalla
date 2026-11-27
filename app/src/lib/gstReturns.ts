@@ -93,16 +93,16 @@ export async function gstr3b(businessId: string, p: Period): Promise<Gst3b> {
   // then CGST and SGST in equal parts, as the portal does).
   let igstCredit = r.itc.igst;
   const pay = { igst: r.outTaxable.igst, cgst: r.outTaxable.cgst, sgst: r.outTaxable.sgst };
-  const use = (head: 'igst' | 'cgst' | 'sgst', credit: number) => {
+  const spend = (head: 'igst' | 'cgst' | 'sgst', credit: number) => {
     const u = Math.min(Math.max(0, pay[head]), credit);
     pay[head] -= u;
     return credit - u;
   };
-  igstCredit = use('igst', igstCredit);
+  igstCredit = spend('igst', igstCredit);
   const half = Math.floor(igstCredit / 2);
-  let rest = use('cgst', half) + use('sgst', igstCredit - half);
-  rest = use('cgst', r.itc.cgst + rest);
-  use('sgst', r.itc.sgst);
+  let rest = spend('cgst', half) + spend('sgst', igstCredit - half);
+  rest = spend('cgst', r.itc.cgst + rest);
+  spend('sgst', r.itc.sgst);
   r.payable = { taxable: 0, igst: Math.max(0, pay.igst), cgst: Math.max(0, pay.cgst), sgst: Math.max(0, pay.sgst) };
   return r;
 }
