@@ -634,6 +634,6 @@ describe('crash reports and privacy page', () => {
     expect((await app.inject({ method: 'GET', url: '/v1/admin/client-errors' })).statusCode).toBe(401);
     const p = await app.inject({ method: 'GET', url: '/privacy' });
     expect(p.statusCode).toBe(200);
-    expect(p.body).toContain('Only the contact you pick is saved');
+    expect(p.body).toContain('Only that contact is saved as a customer');
   });
 });
