@@ -3,7 +3,7 @@ import { addDaysISO, formatIndianMobile, todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { loyaltyOf, pointsOf, tierFor, yearSpend } from '../../lib/loyalty';
 import { billChallans, crateBalances, siteTable, sitesOf, unbilledChallans } from '../../lib/shopKinds';
-import { callOutline, cashOutline, createOutline, documentTextOutline, logoWhatsapp, notificationsOutline } from 'ionicons/icons';
+import { callOutline, cashOutline, createOutline, documentTextOutline, logoWhatsapp, notificationsOutline, addOutline, clipboardOutline } from 'ionicons/icons';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import MoneyEntrySheet from '../../components/MoneyEntrySheet';
@@ -90,7 +90,7 @@ export default function CustomerDetailScreen() {
         </IonCardContent>
       </IonCard>
 
-      <div className="stat-grid">
+      <div className="stat-grid party-stats">
         <div className="mini-stat">
           <span>{khata.balance >= 0 ? t('To collect') : t('We owe them')}</span>
           <strong className={khata.balance > 0 ? 'text-danger' : ''}>{rupees(Math.abs(khata.balance))}</strong>
@@ -135,6 +135,16 @@ export default function CustomerDetailScreen() {
         )}
         <IonButton fill="outline" onClick={() => setStatement(true)}>
           <IonIcon icon={documentTextOutline} slot="start" /> {t('Statement')}
+        </IonButton>
+      </div>
+      <div className="detail-actions ion-padding-horizontal">
+        {CAN_CREATE_INVOICES && (
+          <IonButton fill="outline" routerLink={`/tabs/invoices/new?customer=${c.id}`}>
+            <IonIcon icon={addOutline} slot="start" /> {t('New bill')}
+          </IonButton>
+        )}
+        <IonButton fill="outline" routerLink={`/tabs/estimates/new?customer=${c.id}`}>
+          <IonIcon icon={clipboardOutline} slot="start" /> {t('New estimate')}
         </IonButton>
       </div>
 

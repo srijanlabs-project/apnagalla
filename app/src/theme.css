@@ -193,9 +193,13 @@
 
 /* ---------- counter sale (R1.4) ---------- */
 .sale-top { display: flex; align-items: center; gap: 8px; padding: 8px 12px 0; flex-wrap: wrap; }
-.sale-tax { width: auto; flex: 0 0 auto; }
+.sale-tax { display: flex; flex: 0 0 auto; }
+.sale-tax ion-chip { margin: 2px; }
 .sale-empty { padding: 16px; color: var(--ion-color-medium); }
 .sale-quick { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.sale-quick ion-button { text-transform: none; letter-spacing: 0; }
+.sale-quick-row { flex-wrap: nowrap; overflow-x: auto; padding: 0 12px 4px; margin-top: 4px; scrollbar-width: none; }
+.sale-quick-row ion-button { flex: 0 0 auto; }
 .qty-stepper { display: flex; align-items: center; gap: 4px; }
 .qty-stepper span { min-width: 28px; text-align: center; font-weight: 600; }
 .qty-stepper strong { min-width: 84px; text-align: right; }
@@ -304,13 +308,12 @@
 .filter-chips.wrap { flex-wrap: wrap; gap: 6px; }
 
 /* Fold: a closed section with a one-line header (long forms). */
-.fold { margin: 8px 16px 12px; border: 1px solid var(--ion-color-light-shade, #ddd); border-radius: 10px; background: var(--ion-item-background, var(--ion-background-color)); }
+.fold { margin: 8px 0 12px; border: 1px solid var(--ion-color-light-shade, #ddd); border-radius: 10px; background: var(--ion-item-background, var(--ion-background-color)); }
 .fold-head { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .fold-head span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .fold-head small { color: var(--ion-color-medium); font-size: 0.8rem; }
 .fold-head ion-icon { flex: 0 0 auto; font-size: 1.1rem; color: var(--ion-color-medium); }
 .fold-body { padding-bottom: 4px; }
-.fold-body > * { margin-left: -16px; margin-right: -16px; }
 .fold-open .fold-head { border-bottom: 1px solid var(--ion-color-light-shade, #ddd); }
 
 /* One-line setup prompt on Home (opens the full card when tapped). */
@@ -320,3 +323,13 @@
 .setup-banner .setup-banner-go { color: var(--ion-color-primary); font-weight: 600; flex: 0 0 auto; }
 .more-search ion-searchbar { padding: 4px 12px 0; }
 .fold-open { border-color: transparent; background: none; }
+.cash-quick { display: flex; flex-wrap: wrap; gap: 2px; margin: -4px 0 8px; }
+.report-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 4px 16px 8px; }
+.report-tile { display: flex; align-items: center; min-height: 52px; padding: 8px 12px; border-radius: 10px; background: var(--ion-color-step-50, #f3f4f8); color: var(--ion-text-color); font-size: 0.9rem; font-weight: 500; }
+.note-counter { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin: 4px 0 10px; }
+.note-counter label { display: flex; align-items: center; gap: 6px; }
+.note-counter span { flex: 0 0 64px; color: var(--ion-color-medium); font-size: 0.9rem; }
+.note-counter input { width: 100%; min-width: 0; padding: 8px; border: 1px solid var(--ion-color-medium-tint, #ccc); border-radius: 8px; font: inherit; background: transparent; color: inherit; }
+.party-stats { gap: 8px; padding: 0 16px 8px; }
+.party-stats .mini-stat:only-child, .party-stats .mini-stat:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.party-stats .mini-stat strong { font-size: 1.25rem; }

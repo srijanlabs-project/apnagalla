@@ -24,3 +24,12 @@ describe('Shop features', () => {
     expect(extraOn({ ...base, jewellery: { gold24: 1, silver999: 1, date: '2026-11-27' }, extras: { jewellery: false } }, 'jewellery')).toBe(false);
   });
 });
+
+describe('Cash quick amounts', () => {
+  it('offers exact, then the next round notes', async () => {
+    const { cashSteps } = await import('../components/PaySheet');
+    expect(cashSteps(542800)).toEqual([542800, 550000, 600000]);
+    expect(cashSteps(50000)).toEqual([50000, 200000]);
+    expect(cashSteps(12000)).toEqual([12000, 20000, 50000, 200000]);
+  });
+});

@@ -1,10 +1,10 @@
 import { remindersDue } from '../../lib/reminders';
 import { customerFromContact, pickPhoneContact } from '../../lib/phoneContacts';
-import { IonBadge, IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar, useIonRouter, useIonToast } from '@ionic/react';
+import { IonBadge, IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar, useIonRouter, useIonToast, useIonActionSheet } from '@ionic/react';
 import { groupsIn } from '../../components/GroupField';
 import { formatIndianMobile } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { add, cloudUploadOutline, locationOutline, notificationsOutline, peopleOutline } from 'ionicons/icons';
+import { add, notificationsOutline, peopleOutline, ellipsisHorizontal } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
@@ -15,6 +15,7 @@ import { t } from '../../lib/i18n';
 import { receivables } from '../../lib/khata';
 
 export default function CustomersScreen() {
+  const [moreSheet] = useIonActionSheet();
   const { actor, ledger, isOwner } = useBusiness();
   const [q, setQ] = useState('');
   const [group, setGroup] = useState<string | null>(null);
@@ -73,21 +74,26 @@ export default function CustomersScreen() {
         <IonButton size="small" fill="clear" onClick={() => void fromContacts()}>
           <IonIcon icon={peopleOutline} slot="start" /> {t('From phone contacts')}
         </IonButton>
-        <IonButton size="small" fill="clear" routerLink="/tabs/customers/visits">
-          <IonIcon icon={locationOutline} slot="start" /> {t('Field visits')}
-        </IonButton>
         <IonButton size="small" fill="clear" routerLink="/tabs/customers/reminders">
-          <IonIcon icon={notificationsOutline} slot="start" /> {t('Payment reminders')}
+          <IonIcon icon={notificationsOutline} slot="start" /> {t('Reminders')}
           {(dueCount ?? 0) > 0 && <IonBadge color="danger">{dueCount}</IonBadge>}
         </IonButton>
+        <IonButton
+          size="small"
+          fill="clear"
+          onClick={() =>
+            void moreSheet({
+              buttons: [
+                { text: t('Field visits'), handler: () => router.push('/tabs/customers/visits') },
+                ...(isOwner ? [{ text: t('Import from Excel'), handler: () => router.push('/tabs/items/import?kind=customers') }] : []),
+                { text: t('Cancel'), role: 'cancel' },
+              ],
+            })
+          }
+        >
+          <IonIcon icon={ellipsisHorizontal} slot="icon-only" aria-label={t('More')} />
+        </IonButton>
       </div>
-      {isOwner && (
-        <div className="filter-chips">
-          <IonButton size="small" fill="clear" routerLink="/tabs/items/import?kind=customers">
-            <IonIcon icon={cloudUploadOutline} slot="start" /> {t('Import from Excel')}
-          </IonButton>
-        </div>
-      )}
       {customers && customers.length === 0 ? (
         <EmptyState icon={peopleOutline} title={t('No customers yet')} text={t('Add customers here, or directly while creating an invoice.')} />
       ) : (

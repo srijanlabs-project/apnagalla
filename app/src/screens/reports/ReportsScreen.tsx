@@ -1,4 +1,4 @@
-import { IonButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonSegment, IonSegmentButton, IonSpinner, useIonToast, IonChip } from '@ionic/react';
+import { IonButton, IonIcon, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonSearchbar, IonSegment, IonSegmentButton, IonSpinner, useIonToast, IonChip, IonRouterLink } from '@ionic/react';
 import { financialYearLabel, formatPaise, todayISO } from '@invoice/shared';
 import { documentOutline, gridOutline } from 'ionicons/icons';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -32,13 +32,30 @@ function useAllowed() {
   return (r: ReportInfo) => perms.viewReports && (!r.ownerOnly || isOwner || perms.access === 'readonly') && (!r.cost || perms.seeCost) && (!r.extra || extraOn(settings, r.extra));
 }
 
+/** Shown as tiles at the top: the reports a shop opens most. */
+const MOST_USED = ['sales', 'collections', 'receivables', 'stock', 'pnl', 'gstr3b'] as const;
+
 export function ReportsScreen() {
   const allowed = useAllowed();
   const { isOwner, actor, perms } = useBusiness();
   const mine = useLiveQuery(() => db.savedReports.where('businessId').equals(actor.businessId).filter((r) => !r.deleted).toArray(), [actor.businessId]);
+  const [q, setQ] = useState('');
+  const needle = q.trim().toLowerCase();
+  const match = (title: string) => !needle || title.toLowerCase().includes(needle);
+  const top = MOST_USED.map((id) => REPORTS.find((r) => r.id === id)).filter((r): r is ReportInfo => !!r && allowed(r));
   return (
     <PageShell title={t('Reports')} backHref="/tabs/more" padded={false}>
-      {isOwner && (
+      <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search reports')} />
+      {!needle && top.length > 0 && (
+        <div className="report-tiles">
+          {top.map((r) => (
+            <IonRouterLink key={r.id} routerLink={`/tabs/reports/${r.id}`} className="report-tile">
+              {r.title()}
+            </IonRouterLink>
+          ))}
+        </div>
+      )}
+      {isOwner && !needle && (
         <IonList inset>
           <IonListHeader>
             <IonLabel>{t('My reports')}</IonLabel>
@@ -52,7 +69,7 @@ export function ReportsScreen() {
         </IonList>
       )}
       {GROUPS.map((g) => {
-        const list = REPORTS.filter((r) => r.group === g.id && allowed(r));
+        const list = REPORTS.filter((r) => r.group === g.id && allowed(r) && match(r.title()));
         if (!list.length) return null;
         return (
           <IonList inset key={g.id}>
@@ -64,12 +81,12 @@ export function ReportsScreen() {
                 <IonLabel>{r.title()}</IonLabel>
               </IonItem>
             ))}
-            {g.id === 'gst' && (isOwner || perms.access === 'readonly') && (
+            {g.id === 'gst' && (isOwner || perms.access === 'readonly') && match('GSTR-1') && (
               <IonItem routerLink="/tabs/reports/gstr1" detail>
                 <IonLabel>{t('GSTR-1 (JSON for the GST portal)')}</IonLabel>
               </IonItem>
             )}
-            {g.id === 'gst' && (isOwner || perms.access === 'readonly') && (
+            {g.id === 'gst' && (isOwner || perms.access === 'readonly') && match('GSTR-2B') && (
               <IonItem routerLink="/tabs/reports/gstr2b" detail>
                 <IonLabel>{t('GSTR-2B match (purchase bills vs the portal)')}</IonLabel>
               </IonItem>

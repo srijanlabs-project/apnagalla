@@ -5,7 +5,7 @@ import { NetworkError, api } from '../../lib/api';
 import { fileToResizedDataUrl } from '../../lib/format';
 import { draftFromPaperBill } from '../../lib/paperBill';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { add, calendarOutline, closeCircle, documentTextOutline, personOutline } from 'ionicons/icons';
+import { add, calendarOutline, closeCircle, documentTextOutline, personOutline, layersOutline, chevronDownOutline } from 'ionicons/icons';
 import { useMemo } from 'react';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
@@ -154,7 +154,10 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
   const shown = filtered.slice(page * PAGE, page * PAGE + PAGE);
   const totalShown = filtered.reduce((a, d) => a + (d.status === 'cancelled' ? 0 : d.totals.grandTotal), 0);
 
+  const [kindSheet] = useIonActionSheet();
   const base = DOC_BASE[kind];
+  const estTypeLabel = (f: (typeof ESTIMATE_TYPES)[number]) =>
+    f === 'online' ? t('New online orders') : f === 'all' ? t('All kinds') : f === 'quote' ? t('Quotations') : f === 'order' ? t('Sales orders') : f === 'proforma' ? t('Proforma') : f === 'work' ? t('Work orders') : t('Challans');
 
   return (
     <PageShell title={kind === 'invoice' ? t('Invoices') : kind === 'estimate' ? t('Estimates') : t('Credit notes')} padded={false}>
@@ -166,19 +169,10 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
           <IonLabel>{t('Estimates')}</IonLabel>
         </IonSegmentButton>
         <IonSegmentButton value="credit">
-          <IonLabel>{t('Credit notes')}</IonLabel>
+          <IonLabel>{t('Returns')}</IonLabel>
         </IonSegmentButton>
       </IonSegment>
       <IonSearchbar value={q} onIonInput={(e) => setQ(String(e.detail.value ?? ''))} placeholder={t('Search number or customer')} />
-      {kind === 'estimate' && (
-        <div className="filter-chips">
-          {ESTIMATE_TYPES.filter((f) => f !== 'online' || onlineNew > 0).map((f) => (
-            <IonChip key={f} outline={estType !== f} color={estType === f ? 'primary' : undefined} onClick={() => setEstType(f)}>
-              {f === 'online' ? `${t('New online orders')}${onlineNew ? ` (${onlineNew})` : ''}` : f === 'all' ? t('All kinds') : f === 'quote' ? t('Quotations') : f === 'order' ? t('Sales orders') : f === 'proforma' ? t('Proforma') : f === 'work' ? t('Work orders') : t('Challans')}
-            </IonChip>
-          ))}
-        </div>
-      )}
       {kind !== 'credit' && (
         <div className="filter-chips">
           {(kind === 'invoice' ? INVOICE_FILTERS : ESTIMATE_FILTERS).map((f) => (
@@ -190,6 +184,30 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
         </div>
       )}
       <div className="filter-chips">
+        {kind === 'estimate' && onlineNew > 0 && (
+          <IonChip color={estType === 'online' ? 'primary' : 'success'} outline={estType !== 'online'} onClick={() => setEstType(estType === 'online' ? 'all' : 'online')}>
+            {t('New online orders')} ({onlineNew})
+          </IonChip>
+        )}
+        {kind === 'estimate' && (
+          <IonChip
+            outline={estType === 'all'}
+            color={estType !== 'all' ? 'primary' : undefined}
+            onClick={() =>
+              void kindSheet({
+                header: t('Kind'),
+                buttons: [
+                  ...ESTIMATE_TYPES.filter((f) => f !== 'online').map((f) => ({ text: estTypeLabel(f), handler: () => setEstType(f) })),
+                  { text: t('Cancel'), role: 'cancel' },
+                ],
+              })
+            }
+          >
+            <IonIcon icon={layersOutline} />
+            <IonLabel>{estTypeLabel(estType)}</IonLabel>
+            <IonIcon icon={chevronDownOutline} />
+          </IonChip>
+        )}
         <IonChip outline={datePick === 'all'} color={datePick !== 'all' ? 'primary' : undefined} onClick={chooseDates}>
           <IonIcon icon={calendarOutline} />
           <IonLabel>{datePick === 'custom' ? `${dateIN(custom.from)} – ${dateIN(custom.to)}` : DATE_LABEL[datePick]()}</IonLabel>

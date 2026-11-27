@@ -1,6 +1,6 @@
-import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar, IonThumbnail, useIonActionSheet } from '@ionic/react';
+import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar, IonThumbnail, useIonActionSheet, useIonRouter } from '@ionic/react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { add, alertCircleOutline, chevronBackOutline, cloudUploadOutline, cubeOutline, folderOpenOutline, shareSocialOutline } from 'ionicons/icons';
+import { add, alertCircleOutline, chevronBackOutline, cubeOutline, ellipsisHorizontal } from 'ionicons/icons';
 import { useMemo, useState } from 'react';
 import EmptyState from '../../components/EmptyState';
 import PageShell from '../../components/PageShell';
@@ -15,6 +15,7 @@ import { flattenCategories, useCategories, withDescendants } from '../../lib/cat
 import { isLow, qtyText, stockLevels, tracksStock } from '../../lib/stock';
 
 export default function ItemsScreen() {
+  const router = useIonRouter();
   const { actor, isOwner, profile } = useBusiness();
   const [sheet] = useIonActionSheet();
   const sharePriceList = () =>
@@ -48,16 +49,41 @@ export default function ItemsScreen() {
   const stock = useLiveQuery(() => stockLevels(actor.businessId), [actor.businessId]);
   const hasSerials = (items ?? []).some((i) => i.trackSerial);
   const lowCount = useMemo(() => (items ?? []).filter((i) => isLow(i, stock?.get(i.id) ?? 0)).length, [items, stock]);
+  const [negOnly, setNegOnly] = useState(false);
+  const negCount = useMemo(() => (items ?? []).filter((i) => tracksStock(i) && (stock?.get(i.id) ?? 0) < 0).length, [items, stock]);
+  // Less-used item pages in one sheet, so the row above the list never runs off the screen.
+  const openTools = () =>
+    void sheet({
+      header: t('Tools'),
+      buttons: [
+        { text: t('Labels'), handler: () => router.push('/tabs/items/labels') },
+        ...(hasSerials ? [{ text: t('Find serial / IMEI'), handler: () => router.push('/tabs/items/serials') }] : []),
+        ...(isOwner
+          ? [
+              { text: t('Categories'), handler: () => router.push('/tabs/items/categories') },
+              { text: t('Import'), handler: () => router.push('/tabs/items/import') },
+              { text: t('Change prices'), handler: () => router.push('/tabs/items/bulk-price') },
+              { text: t('Price list'), handler: () => sharePriceList() },
+              { text: t('Offers'), handler: () => router.push('/tabs/items/offers') },
+              { text: t('Today’s rates'), handler: () => router.push('/tabs/items/rates') },
+              { text: t('Wastage'), handler: () => router.push('/tabs/items/wastage') },
+              { text: t('Recipes'), handler: () => router.push('/tabs/items/recipes') },
+            ]
+          : []),
+        { text: t('Cancel'), role: 'cancel' },
+      ],
+    });
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     const inCat = catId ? withDescendants(catId, cats) : null;
     // Variants show under their group, unless searched for.
     return (items ?? []).filter(
       (i) =>
+        (!negOnly || (tracksStock(i) && (stock?.get(i.id) ?? 0) < 0)) &&
         (!inCat || (i.categoryId && inCat.has(i.categoryId))) &&
         (s ? i.name.toLowerCase().includes(s) || i.code?.toLowerCase() === s || i.barcode === s : !i.variantOf),
     );
-  }, [items, q, catId, cats]);
+  }, [items, q, catId, cats, negOnly, stock]);
 
   return (
     <PageShell title={t('Items')} padded={false}>
@@ -68,7 +94,15 @@ export default function ItemsScreen() {
           <IonLabel>{t('{count} items low on stock', { count: lowCount })}</IonLabel>
         </IonItem>
       )}
-      {(cats.length > 0 || isOwner) && (
+      <div className="filter-chips">
+        <IonChip outline={!negOnly} color={negOnly ? 'danger' : undefined} onClick={() => setNegOnly(!negOnly)} disabled={!negCount && !negOnly}>
+          {t('Negative stock ({n})', { n: negCount })}
+        </IonChip>
+        <IonButton size="small" fill="clear" onClick={openTools}>
+          <IonIcon icon={ellipsisHorizontal} slot="start" /> {t('Tools')}
+        </IonButton>
+      </div>
+      {children.length + (current ? 1 : 0) > 0 && (
         <div className="filter-chips">
           {current && (
             <IonChip onClick={() => setCatId(current.parentId ?? null)}>
@@ -81,42 +115,6 @@ export default function ItemsScreen() {
               {c.name}
             </IonChip>
           ))}
-          <IonButton size="small" fill="clear" routerLink="/tabs/items/labels">
-            {t('Labels')}
-          </IonButton>
-          {hasSerials && (
-            <IonButton size="small" fill="clear" routerLink="/tabs/items/serials">
-              {t('Find serial / IMEI')}
-            </IonButton>
-          )}
-          {isOwner && (
-            <>
-              <IonButton size="small" fill="clear" routerLink="/tabs/items/categories">
-                <IonIcon icon={folderOpenOutline} slot="start" /> {t('Categories')}
-              </IonButton>
-              <IonButton size="small" fill="clear" routerLink="/tabs/items/import">
-                <IonIcon icon={cloudUploadOutline} slot="start" /> {t('Import')}
-              </IonButton>
-              <IonButton size="small" fill="clear" routerLink="/tabs/items/rates">
-                {t('Today’s rates')}
-              </IonButton>
-              <IonButton size="small" fill="clear" routerLink="/tabs/items/wastage">
-                {t('Wastage')}
-              </IonButton>
-              <IonButton size="small" fill="clear" routerLink="/tabs/items/recipes">
-                {t('Recipes')}
-              </IonButton>
-              <IonButton size="small" fill="clear" onClick={sharePriceList}>
-                <IonIcon icon={shareSocialOutline} slot="start" /> {t('Price list')}
-              </IonButton>
-              <IonButton size="small" fill="clear" routerLink="/tabs/items/offers">
-                {t('Offers')}
-              </IonButton>
-              <IonButton size="small" fill="clear" routerLink="/tabs/items/bulk-price">
-                {t('Change prices')}
-              </IonButton>
-            </>
-          )}
         </div>
       )}
       {items && items.length === 0 ? (

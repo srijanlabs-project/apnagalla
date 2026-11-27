@@ -13,8 +13,6 @@ import {
   IonNote,
   IonPage,
   IonSearchbar,
-  IonSegment,
-  IonSegmentButton,
   IonSpinner,
   IonTitle,
   IonToolbar,
@@ -41,7 +39,6 @@ import { t } from '../../lib/i18n';
 import { pdfFileName, pdfInputFor, renderPdf, sharePdf } from '../../lib/pdf';
 import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
 import { computeTotals, deleteDraft, effectiveGstType, newId, newInvoiceDraft, recordPayments, saveInvoice, type NewPayment } from '../../lib/repo';
-import { sync } from '../../lib/sync';
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
 import CouponField from '../../components/CouponField';
@@ -90,6 +87,7 @@ export default function SaleScreen() {
   const [creditUse, setCreditUse] = useState<{ noteId: string; number: string; left: number } | null>(null);
   const [usePoints, setUsePoints] = useState(false);
   const [creditPick, setCreditPick] = useState(false);
+  const [couponOpen, setCouponOpen] = useState(false);
   // Exchange: goods returned on an old bill (credit note made) pay for this one.
   const exchangeFrom = new URLSearchParams(location.search).get('exchange');
   const exchange = useLiveQuery(async () => {
@@ -386,6 +384,7 @@ export default function SaleScreen() {
             )}
             {!walkIn && <CreditLimitNote businessId={actor.businessId} customerId={bill.billTo?.customerId} billAmount={totals?.grandTotal ?? 0} />}
             {bill.lines.length > 0 &&
+              (!walkIn || !!creditUse) &&
               (creditUse ? (
                 <IonChip color="success" onClick={() => setCreditUse(null)}>
                   <IonLabel>{t('Credit note {number}: {amount}', { number: creditUse.number, amount: rupees(Math.min(creditUse.left, totals?.grandTotal ?? 0)) })} ✕</IonLabel>
@@ -403,16 +402,20 @@ export default function SaleScreen() {
                 </IonLabel>
               </IonChip>
             )}
-            {bill.lines.length > 0 && <CouponField businessId={actor.businessId} value={bill.coupon} date={bill.date} invoiceId={bill.id} onChange={(coupon) => patch({ coupon })} />}
+            {bill.lines.length > 0 && !couponOpen && !bill.coupon && (
+              <IonChip outline onClick={() => setCouponOpen(true)}>
+                <IonLabel>{t('Coupon')}</IonLabel>
+              </IonChip>
+            )}
+            {bill.lines.length > 0 && (couponOpen || !!bill.coupon) && <CouponField businessId={actor.businessId} value={bill.coupon} date={bill.date} invoiceId={bill.id} onChange={(coupon) => patch({ coupon })} />}
             {regular && (
-              <IonSegment value={bill.taxMode ?? 'gst'} onIonChange={sync((e) => patch({ taxMode: e.detail.value as 'gst' | 'none' }))} className="sale-tax">
-                <IonSegmentButton value="gst">
-                  <IonLabel>{t('GST')}</IonLabel>
-                </IonSegmentButton>
-                <IonSegmentButton value="none">
-                  <IonLabel>{t('No GST')}</IonLabel>
-                </IonSegmentButton>
-              </IonSegment>
+              <div className="sale-tax">
+                {(['gst', 'none'] as const).map((m) => (
+                  <IonChip key={m} color={(bill.taxMode ?? 'gst') === m ? 'primary' : undefined} outline={(bill.taxMode ?? 'gst') !== m} onClick={() => patch({ taxMode: m })}>
+                    <IonLabel>{m === 'gst' ? t('GST bill') : t('No GST')}</IonLabel>
+                  </IonChip>
+                ))}
+              </div>
             )}
           </div>
           <div className="search-row">
@@ -490,12 +493,25 @@ export default function SaleScreen() {
               )}
             </div>
           ) : (
+            <>
+            {(items ?? []).length > 0 && (
+              <div className="sale-quick sale-quick-row">
+                {(items ?? []).slice(0, 12).map((it) => (
+                  <IonButton key={it.id} fill="outline" size="small" onClick={() => addItem(it)}>
+                    {it.name}
+                  </IonButton>
+                ))}
+              </div>
+            )}
             <IonList className="cart">
               {bill.lines.map((l, i) => (
                 <IonItem key={l.id} lines="full">
                   <IonLabel onClick={() => setEditing({ line: l, isNew: false })}>
                     <h2>{l.name}</h2>
-                    <p>{isAreaLine(l) ? lineSize(l) : `${rupees(l.rate)} / ${l.unit}`}</p>
+                    <p>
+                      {isAreaLine(l) ? lineSize(l) : `${rupees(l.rate)} / ${l.unit}`}
+                      {(bill.taxMode ?? 'gst') !== 'none' && !l.rateIncludesTax && l.taxPct > 0 ? ` ${t('+ {pct}% GST', { pct: l.taxPct })}` : ''}
+                    </p>
                   </IonLabel>
                   <div slot="end" className="qty-stepper">
                     {isAreaLine(l) ? (
@@ -518,6 +534,7 @@ export default function SaleScreen() {
                 </IonItem>
               ))}
             </IonList>
+            </>
           )}
         </IonContent>
       )}

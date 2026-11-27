@@ -79,8 +79,14 @@ export default function CashBookScreen() {
         </div>
       </div>
 
-      <Lines title={t('Cash in')} lines={day.cashIn} sign="+" />
-      <Lines title={t('Cash out')} lines={day.cashOut} sign="−" />
+      {day.cashIn.length + day.cashOut.length === 0 ? (
+        <p className="section-note ion-padding-horizontal">{t('No cash in or out on this day.')}</p>
+      ) : (
+        <>
+          {day.cashIn.length > 0 && <Lines title={t('Cash in')} lines={day.cashIn} sign="+" />}
+          {day.cashOut.length > 0 && <Lines title={t('Cash out')} lines={day.cashOut} sign="−" />}
+        </>
+      )}
 
       {others.length > 0 && (
         <IonList inset className="flush-list">
@@ -109,6 +115,7 @@ export default function CashBookScreen() {
         {canClose && (
           <>
             <MoneyField label={t('Cash counted in the drawer')} value={counted} onChange={setCounted} />
+            <NoteCounter onTotal={setCounted} />
             {counted != null && counted !== day.expected && (
               <p className={counted < day.expected ? 'text-danger' : 'text-success'}>
                 {counted < day.expected ? t('Short {amount}', { amount: rupees(day.expected - counted) }) : t('Extra {amount}', { amount: rupees(counted - day.expected) })}
@@ -133,5 +140,39 @@ export default function CashBookScreen() {
         <p className="section-note">{t('Tomorrow starts with the counted cash.')}</p>
       </FormSection>
     </PageShell>
+  );
+}
+
+const NOTES = [500, 200, 100, 50, 20, 10] as const;
+
+/** Count by notes: type how many of each note, the total goes into "Cash counted". Coins go in "Coins ₹". */
+function NoteCounter({ onTotal }: { onTotal: (paise: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [n, setN] = useState<Record<string, number>>({});
+  if (!open)
+    return (
+      <IonButton fill="clear" size="small" onClick={() => setOpen(true)}>
+        {t('Count by notes')}
+      </IonButton>
+    );
+  const update = (k: string, v: number) => {
+    const next = { ...n, [k]: v };
+    setN(next);
+    const total = NOTES.reduce((a, note) => a + note * (next[note] ?? 0), 0) + (next.coins ?? 0);
+    onTotal(total * 100);
+  };
+  return (
+    <div className="note-counter">
+      {NOTES.map((note) => (
+        <label key={note}>
+          <span>₹{note} ×</span>
+          <input type="number" inputMode="numeric" min={0} value={n[note] ?? ''} onChange={(e) => update(String(note), Math.max(0, Math.floor(Number(e.target.value) || 0)))} />
+        </label>
+      ))}
+      <label>
+        <span>{t('Coins ₹')}</span>
+        <input type="number" inputMode="numeric" min={0} value={n.coins ?? ''} onChange={(e) => update('coins', Math.max(0, Math.floor(Number(e.target.value) || 0)))} />
+      </label>
+    </div>
   );
 }

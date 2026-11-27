@@ -74,6 +74,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   const [toast] = useIonToast();
   const [alert] = useIonAlert();
   const [menu, setMenu] = useState(false);
+  const [showVoided, setShowVoided] = useState(false);
   const [payOpen, setPayOpen] = useState<'payment' | 'refund' | null>(null);
   const [creditPay, setCreditPay] = useState(false);
   const [advanceOpen, setAdvanceOpen] = useState<'take' | 'refund' | null>(null);
@@ -664,7 +665,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
           <IonListHeader>
             <IonLabel>{t('Payments')}</IonLabel>
           </IonListHeader>
-          {money.entries.map((e) => (
+          {money.entries.filter((e) => showVoided || !e.voidedAt).map((e) => (
             <IonItem key={e.id} lines="full">
               <IonLabel className={e.voidedAt ? 'voided' : undefined}>
                 <h3>
@@ -714,6 +715,11 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
               )}
             </IonItem>
           ))}
+          {money.entries.some((e) => e.voidedAt) && (
+            <IonButton fill="clear" size="small" color="medium" onClick={() => setShowVoided(!showVoided)}>
+              {showVoided ? t('Hide voided entries') : t('Show voided entries ({n})', { n: money.entries.filter((e) => e.voidedAt).length })}
+            </IonButton>
+          )}
         </IonList>
       )}
 
@@ -764,7 +770,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
           <IonItem key={i} lines="none">
             <IonLabel>
               <p>
-                <strong>{h.action}</strong>
+                <strong>{historyLabel(h.action)}</strong>
                 {h.detail ? ` — ${h.detail}` : ''}
               </p>
               <p>
@@ -818,4 +824,23 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
       )}
     </PageShell>
   );
+}
+
+/** History words as the shop reads them (older bills stored plain English words). */
+function historyLabel(action: string): string {
+  const known: Record<string, () => string> = {
+    created: () => t('Created'),
+    draft: () => t('Saved as draft'),
+    saved: () => t('Saved'),
+    edited: () => t('Edited'),
+    cancelled: () => t('Cancelled'),
+    converted: () => t('Converted to invoice'),
+    delivered: () => t('Delivered'),
+    accepted: () => t('Accepted'),
+    declined: () => t('Declined'),
+    sent: () => t('Sent'),
+    payment: () => t('Payment'),
+    'credit note': () => t('Credit note'),
+  };
+  return known[action]?.() ?? action.charAt(0).toUpperCase() + action.slice(1);
 }

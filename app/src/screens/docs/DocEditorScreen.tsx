@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
+import Fold from '../../components/Fold';
 import { isAreaPricing } from '@invoice/shared';
 import {
   IonBackButton,
@@ -32,7 +33,7 @@ import { api } from '../../lib/api';
 import { db, type CreditNote, type DocBase, type DocLine, type Estimate, type Invoice } from '../../lib/db';
 import { gstViewOf, taxRows } from '../../lib/gstView';
 import { t } from '../../lib/i18n';
-import { addressLines, lineSize, rupees } from '../../lib/format';
+import { addressLines, dateIN, lineSize, rupees } from '../../lib/format';
 import {
   computeTotals,
   creditableAmount,
@@ -396,52 +397,11 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         )}
 
         {/* ---------- header ---------- */}
-        {kind === 'estimate' && (doc as Estimate).challan && (
-          <FormSection>
-            <ToggleRow
-              label={t('Sale or return (consignment)')}
-              note={t('The party pays for what sells and sends back the rest. Bill and take back from the challan.')}
-              checked={!!(doc as Estimate).consignment}
-              onChange={(consignment) => patch({ consignment } as Partial<Estimate>)}
-              disabled={locked}
-            />
-          </FormSection>
-        )}
-        {kind !== 'credit' && (
-          <FormSection>
-            {godownsOf(settings).length > 0 && (
-          <SelectField
-            label={t('Goods leave from')}
-            value={doc.godownId ?? ''}
-            options={[{ value: '', label: t('Shop') }, ...godownsOf(settings).map((g) => ({ value: g.id, label: g.name }))]}
-            onChange={(v) => patch({ godownId: v || undefined })}
-            disabled={locked}
-          />
-        )}
-          </FormSection>
-        )}
-        {kind === 'estimate' && !(doc as Estimate).challan && !(doc as Estimate).order && !(doc as Estimate).proforma && (
-          <FormSection>
-            <ToggleRow
-              label={t('This is a work order')}
-              note={t('Track it from measurement to delivery, with photos and an advance.')}
-              checked={!!(doc as Estimate).job}
-              onChange={(on) => patch({ job: on ? ((doc as Estimate).job ?? blankJob('work', actor.userName)) : null } as Partial<Estimate>)}
-              disabled={locked}
-            />
-            {(doc as Estimate).job && (
-              <>
-                <TextField label={t('What work')} value={(doc as Estimate).job!.title} onChange={(title) => patch({ job: { ...(doc as Estimate).job!, title } } as Partial<Estimate>)} disabled={locked} />
-                <TextArea label={t('Measurements and notes')} value={(doc as Estimate).job!.measurements} onChange={(measurements) => patch({ job: { ...(doc as Estimate).job!, measurements } } as Partial<Estimate>)} disabled={locked} />
-                {!wasDraft || doc.number ? (
-                  <IonButton size="small" fill="clear" routerLink={`/tabs/jobs/${doc.id}`}>
-                    {t('Open the work order (stages, photos, advance)')}
-                  </IonButton>
-                ) : null}
-              </>
-            )}
-          </FormSection>
-        )}
+        <Fold
+          title={byKind(t('Invoice no., date and terms'), t('Estimate no. and date'), t('Credit note no. and date'))}
+          note={[doc.number || nextNumber || t('Number given when you save'), dateIN(doc.date), kind === 'invoice' && doc.dueDate && doc.dueDate !== doc.date ? t('due {date}', { date: dateIN(doc.dueDate) }) : null, doc.reference || null].filter(Boolean).join(' · ')}
+          open={!!credit || doc.customFields.length > 0}
+        >
         <FormSection title={byKind(t('Invoice details'), t('Estimate details'), t('Credit note details'))}>
           <div className="field-row">
             <TextField
@@ -494,7 +454,54 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
             />
           ))}
         </FormSection>
+        </Fold>
 
+        {kind === 'estimate' && (doc as Estimate).challan && (
+          <FormSection>
+            <ToggleRow
+              label={t('Sale or return (consignment)')}
+              note={t('The party pays for what sells and sends back the rest. Bill and take back from the challan.')}
+              checked={!!(doc as Estimate).consignment}
+              onChange={(consignment) => patch({ consignment } as Partial<Estimate>)}
+              disabled={locked}
+            />
+          </FormSection>
+        )}
+        {kind !== 'credit' && (
+          <FormSection>
+            {godownsOf(settings).length > 0 && (
+          <SelectField
+            label={t('Goods leave from')}
+            value={doc.godownId ?? ''}
+            options={[{ value: '', label: t('Shop') }, ...godownsOf(settings).map((g) => ({ value: g.id, label: g.name }))]}
+            onChange={(v) => patch({ godownId: v || undefined })}
+            disabled={locked}
+          />
+        )}
+          </FormSection>
+        )}
+        {kind === 'estimate' && !(doc as Estimate).challan && !(doc as Estimate).order && !(doc as Estimate).proforma && (
+          <FormSection>
+            <ToggleRow
+              label={t('This is a work order')}
+              note={t('Track it from measurement to delivery, with photos and an advance.')}
+              checked={!!(doc as Estimate).job}
+              onChange={(on) => patch({ job: on ? ((doc as Estimate).job ?? blankJob('work', actor.userName)) : null } as Partial<Estimate>)}
+              disabled={locked}
+            />
+            {(doc as Estimate).job && (
+              <>
+                <TextField label={t('What work')} value={(doc as Estimate).job!.title} onChange={(title) => patch({ job: { ...(doc as Estimate).job!, title } } as Partial<Estimate>)} disabled={locked} />
+                <TextArea label={t('Measurements and notes')} value={(doc as Estimate).job!.measurements} onChange={(measurements) => patch({ job: { ...(doc as Estimate).job!, measurements } } as Partial<Estimate>)} disabled={locked} />
+                {!wasDraft || doc.number ? (
+                  <IonButton size="small" fill="clear" routerLink={`/tabs/jobs/${doc.id}`}>
+                    {t('Open the work order (stages, photos, advance)')}
+                  </IonButton>
+                ) : null}
+              </>
+            )}
+          </FormSection>
+        )}
         {/* ---------- lines ---------- */}
         <FormSection title={t('Items')}>
           <IonList className="line-list">
@@ -630,6 +637,11 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
         </div>
         <ToggleRow label={t('Round off to nearest ₹1')} checked={doc.roundOff} onChange={(roundOff) => patch({ roundOff })} disabled={locked || doc.targetTotal != null} />
 
+        <Fold
+          title={t('Delivery, notes and bank details')}
+          note={doc.deliveryDate ? t('Delivery {date}', { date: dateIN(doc.deliveryDate) }) : t('Optional')}
+          open={!!doc.deliveryDate || !!rxNeeded}
+        >
         {/* ---------- footer ---------- */}
         {!credit && (
         <FormSection title={t('Payment details on the PDF')}>
@@ -682,6 +694,7 @@ export default function DocEditorScreen({ kind }: { kind: DocKind }) {
           <TextArea label={t('Notes for us (not printed)')} value={doc.privateNotes} onChange={(privateNotes) => patch({ privateNotes })} helper={t('Only the shop sees these; never on the bill or WhatsApp.')} />
           <TextArea label={t('Terms & conditions')} value={doc.terms} onChange={(terms) => patch({ terms })} disabled={locked} rows={3} />
         </FormSection>
+        </Fold>
       </IonContent>
 
       {!locked && (

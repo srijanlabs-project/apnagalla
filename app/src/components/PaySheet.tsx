@@ -1,4 +1,4 @@
-import { IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonModal, IonSegment, IonSegmentButton, IonLabel, IonTitle, IonToolbar } from '@ionic/react';
+import { IonButton, IonButtons, IonChip, IonContent, IonHeader, IonIcon, IonModal, IonSegment, IonSegmentButton, IonLabel, IonTitle, IonToolbar } from '@ionic/react';
 import { todayISO, type PaymentMode } from '@invoice/shared';
 import { addOutline, closeCircle } from 'ionicons/icons';
 import QRCode from 'qrcode';
@@ -126,6 +126,15 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
                 </div>
               </div>
             )}
+            {r.mode === 'cash' && kind === 'payment' && r.amount > 0 && (
+              <div className="cash-quick">
+                {cashSteps(r.amount).map((v, k) => (
+                  <IonChip key={v} color={r.tendered === v ? 'primary' : undefined} outline={r.tendered !== v} onClick={() => set(i, { tendered: v })}>
+                    <IonLabel>{k === 0 ? t('Exact') : rupees(v).replace(/\.00$/, '')}</IonLabel>
+                  </IonChip>
+                ))}
+              </div>
+            )}
             {r.mode === 'cash' && kind === 'payment' && !!r.tendered && r.tendered < r.amount && (
               <p className="text-danger">{t('Only {got} received: {short} short.', { got: rupees(r.tendered), short: rupees(r.amount - r.tendered) })}</p>
             )}
@@ -204,4 +213,14 @@ function UpiQr({ upi, amount, note }: { upi: UpiId; amount: number; note: string
       <p className="section-note">{t('Tap “Received” only after the money shows in your UPI app.')}</p>
     </div>
   );
+}
+
+/** One-tap cash amounts: exact, then the next round notes a customer is likely to hand over (paise). */
+export function cashSteps(amount: number): number[] {
+  const out = [amount];
+  for (const step of [10000, 50000, 200000]) {
+    const v = Math.ceil(amount / step) * step;
+    if (v > amount && !out.includes(v)) out.push(v);
+  }
+  return out.slice(0, 4);
 }
