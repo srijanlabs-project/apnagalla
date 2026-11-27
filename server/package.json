@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sms:test": "tsx scripts/sms-test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
