@@ -10,7 +10,7 @@ import MoneyEntrySheet from '../../components/MoneyEntrySheet';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
 import { EXPENSE_CATEGORIES, db, type Expense } from '../../lib/db';
-import { dateIN, fileToResizedDataUrl, rupees } from '../../lib/format';
+import { dateIN, fileToResizedDataUrl, openPicture, rupees } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { modeLabel } from '../../lib/ledger';
 import { expenseLabel, saveExpense } from '../../lib/purchases';
@@ -142,7 +142,7 @@ export default function ExpensesScreen() {
                     void sheet({
                       header: `${expenseLabel(e.category)} · ${rupees(e.amount)}`,
                       buttons: [
-                        ...(e.photo ? [{ text: t('See the bill photo'), handler: () => void window.open(e.photo!, '_blank') }] : []),
+                        ...(e.photo ? [{ text: t('See the bill photo'), handler: () => openPicture(e.photo) }] : []),
                         ...(isOwner ? [{ text: t('Delete'), role: 'destructive', handler: () => void deleteRecord('expenses', actor, e.id) }] : []),
                         { text: t('Cancel'), role: 'cancel' },
                       ],

@@ -89,3 +89,21 @@ export function cashSteps(amount: number): number[] {
   }
   return out.slice(0, 4);
 }
+
+/**
+ * Opens a stored picture in a new tab only if it really is image data or an https link (never a
+ * "javascript:" link someone could have saved in its place).
+ */
+export function openPicture(src: string | null | undefined): void {
+  if (!src) return;
+  if (/^https:\/\//i.test(src)) {
+    window.open(src, '_blank', 'noopener');
+    return;
+  }
+  const m = /^data:(image\/(?:png|jpe?g|webp|gif));base64,(.+)$/i.exec(src);
+  if (!m) return;
+  const bytes = Uint8Array.from(atob(m[2]!), (c) => c.charCodeAt(0));
+  const url = URL.createObjectURL(new Blob([bytes], { type: m[1] }));
+  window.open(url, '_blank', 'noopener');
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}

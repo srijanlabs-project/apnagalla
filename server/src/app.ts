@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { voucherState } from './services/vouchers';
 import { privacyPage } from './legal/privacy';
 import { existsSync } from 'node:fs';
@@ -12,8 +11,8 @@ import fastifyStatic from '@fastify/static';
 import { OnlineStoreService, onlineOrderBody } from './services/store';
 import { eInvoiceProviderFromEnv, type EInvoiceProvider } from './gst/einvoice';
 import { renderStorePage, storeNotFound } from './services/storePage';
-import { and, desc, eq, lt, sql } from 'drizzle-orm';
-import { auditLog, users } from './db/schema';
+import { and, count, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
+import { auditLog, businesses, syncRecords, users } from './db/schema';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { z, ZodError, type ZodType } from 'zod';
 import {
@@ -103,7 +102,8 @@ function appVersionOf(req: { headers: Record<string, string | string[] | undefin
 export async function buildApp({ env, database, otpSender, gstProvider, billScanner, eInvoiceProvider, logger = true }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger ? { redact: ['req.headers.authorization'] } : false,
-    trustProxy: true, // Railway sits behind a proxy; needed for the real client IP
+    // Railway's edge is the one proxy in front: trust only the address it adds, never ones a client writes.
+    trustProxy: (_address: string, hop: number) => hop < env.TRUSTED_PROXY_HOPS,
     bodyLimit: 1_000_000,
   });
 
@@ -116,7 +116,7 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
 
   const db = database.db;
   const tokens = new TokenService(db, env.JWT_SECRET);
-  const otp = new OtpService(db, otpSender ?? createOtpSender(env, app.log), env.JWT_SECRET, env.OTP_PROVIDER === 'console' ? env.OTP_FIXED_CODE : undefined);
+  const otp = new OtpService(db, otpSender ?? createOtpSender(env, app.log), env.JWT_SECRET, env.OTP_PROVIDER === 'console' ? env.OTP_FIXED_CODE : undefined, env.OTP_DAILY_BUDGET);
   const adminPhones = new Set(
     env.ADMIN_PHONES.split(',')
       .map((p) => normalizeIndianMobile(p.trim()))
@@ -138,9 +138,15 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     // Signed-in requests count per login (many phones share one mobile-network IP); others per IP.
     // OTP has its own stricter limits.
     max: env.RATE_LIMIT_PER_MINUTE,
-    keyGenerator: (req) => {
+    // Only a genuine login counts per person (and per person, not per token, so getting a new token
+    // doesn't reset it); anything else counts per real IP address.
+    keyGenerator: async (req) => {
       const auth = req.headers.authorization;
-      return auth?.startsWith('Bearer ') ? `t:${createHash('sha256').update(auth).digest('base64url').slice(0, 22)}` : `ip:${req.ip}`;
+      if (auth?.startsWith('Bearer ')) {
+        const claims = await tokens.verifyAccess(auth.slice(7)).catch(() => null);
+        if (claims) return `u:${claims.userId}`;
+      }
+      return `ip:${req.ip}`;
     },
     timeWindow: '1 minute',
     // Only the API counts; the web app's files (scripts, images) do not.
@@ -497,14 +503,37 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     }
   });
 
+  /** The store's own GSTIN, from its synced business profile (upper case), or null. */
+  async function storeGstin(businessId: string): Promise<string | null> {
+    const [p] = await db
+      .select({ data: syncRecords.data })
+      .from(syncRecords)
+      .where(and(eq(syncRecords.businessId, businessId), eq(syncRecords.tableName, 'profiles'), eq(syncRecords.id, businessId)))
+      .limit(1);
+    const g = (p?.data as { gstin?: unknown } | undefined)?.gstin;
+    return typeof g === 'string' && /^\d{2}[A-Z0-9]{13}$/i.test(g.trim()) ? g.trim().toUpperCase() : null;
+  }
+
   /* ---------- R10 e-invoice (owner) ---------- */
   const eInvoiceBody = z.object({ gstin: z.string().regex(/^\d{2}[A-Z0-9]{13}$/), payload: z.record(z.string(), z.unknown()) });
   app.post<{ Params: BizParams }>('/v1/businesses/:businessId/einvoice', { ...authed, config: { rateLimit: { max: 60, timeWindow: '1 hour' } } }, async (req) => {
     await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
     if (!eInvoice) throw badRequest('einvoice_off', 'E-invoicing is not set up yet (the store’s GST provider details are needed)');
     const b = parse(eInvoiceBody, req.body);
+    // Only for this store's own GSTIN (as the seller too): the server's GST provider login must never
+    // act for someone else's GSTIN.
+    const own = await storeGstin(req.params.businessId);
+    const seller = String(((b.payload.SellerDtls ?? {}) as { Gstin?: unknown }).Gstin ?? '').toUpperCase();
+    if (!own || b.gstin.toUpperCase() !== own || seller !== own) throw forbidden("E-invoices can be made only for this store's own GSTIN");
+    const [today] = await db
+      .select({ n: count() })
+      .from(auditLog)
+      .where(and(eq(auditLog.businessId, req.params.businessId), eq(auditLog.action, 'einvoice.generated'), gt(auditLog.at, new Date(Date.now() - 86_400_000))));
+    if ((today?.n ?? 0) >= 500) throw tooMany('Daily e-invoice limit reached for this store. Try again tomorrow.', 3600);
     try {
-      return await eInvoice.generate(b.gstin, b.payload);
+      const r = await eInvoice.generate(own, b.payload);
+      await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: 'einvoice.generated', detail: { irn: (r as { irn?: string }).irn ?? null } });
+      return r;
     } catch (e) {
       throw badRequest('einvoice_failed', (e as Error).message);
     }
@@ -514,8 +543,11 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     await accounts.requireRole(uid(req), req.params.businessId, ['owner']);
     if (!eInvoice) throw badRequest('einvoice_off', 'E-invoicing is not set up yet');
     const b = parse(eInvoiceCancelBody, req.body);
+    const own = await storeGstin(req.params.businessId);
+    if (!own || b.gstin.toUpperCase() !== own) throw forbidden("E-invoices can be cancelled only for this store's own GSTIN");
     try {
-      await eInvoice.cancel(b.gstin, b.irn, b.reason, b.remark);
+      await eInvoice.cancel(own, b.irn, b.reason, b.remark);
+      await audit(db, { businessId: req.params.businessId, actorUserId: uid(req), action: 'einvoice.cancelled', detail: { irn: b.irn, reason: b.reason } });
       return { cancelled: true };
     } catch (e) {
       throw badRequest('einvoice_failed', (e as Error).message);
@@ -530,11 +562,49 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     fileName: z.string().regex(/^[\w .()-]{1,100}\.pdf$/),
     pdfBase64: z.string().min(10).max(7_000_000),
   });
-  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/email-doc', { ...authed, bodyLimit: 8_000_000, config: { rateLimit: { max: 30, timeWindow: '1 hour' } } }, async (req) => {
-    await accounts.requireRole(uid(req), req.params.businessId);
+  // Emailing a bill: only a real PDF, only in the store's own words, only to the store's own customers
+  // and suppliers (the owner may send anywhere), a daily cap per store, and every send recorded.
+  app.post<{ Params: BizParams }>('/v1/businesses/:businessId/email-doc', { ...authed, bodyLimit: 5_000_000, config: { rateLimit: { max: 30, timeWindow: '1 hour' } } }, async (req) => {
+    const businessId = req.params.businessId;
+    const role = await accounts.requireRole(uid(req), businessId);
     const b = parse(emailDocBody, req.body);
     if (!emailReady(env)) throw badRequest('email_off', 'Email is not set up on the server yet');
-    await sendEmail(env, b.to, b.subject, b.body, { fileName: b.fileName, buffer: Buffer.from(b.pdfBase64, 'base64') });
+    const pdf = Buffer.from(b.pdfBase64, 'base64');
+    if (pdf.length > 3_500_000 || pdf.subarray(0, 5).toString('latin1') !== '%PDF-') throw badRequest('not_pdf', 'Only a PDF of a bill can be emailed');
+    const to = b.to.toLowerCase();
+    if (role !== 'owner') {
+      const [known] = await db
+        .select({ id: syncRecords.id })
+        .from(syncRecords)
+        .where(
+          and(
+            eq(syncRecords.businessId, businessId),
+            inArray(syncRecords.tableName, ['customers', 'suppliers']),
+            eq(syncRecords.deleted, false),
+            sql`lower(${syncRecords.data}->>'email') = ${to}`,
+          ),
+        )
+        .limit(1);
+      if (!known) throw forbidden('Staff can email bills only to a customer or supplier saved with that email');
+    }
+    const [sentToday] = await db
+      .select({ n: count() })
+      .from(auditLog)
+      .where(and(eq(auditLog.businessId, businessId), eq(auditLog.action, 'email.sent'), gt(auditLog.at, new Date(Date.now() - 86_400_000))));
+    if ((sentToday?.n ?? 0) >= 50) throw tooMany('This store has sent 50 emails today. Try again tomorrow.', 3600);
+    const [prof] = await db
+      .select({ data: syncRecords.data })
+      .from(syncRecords)
+      .where(and(eq(syncRecords.businessId, businessId), eq(syncRecords.tableName, 'profiles'), eq(syncRecords.id, businessId)))
+      .limit(1);
+    const oneLine = (v: string) => v.replace(/[\r\n<>]/g, ' ').replace(/\s+/g, ' ').trim();
+    const [registered] = await db.select({ name: businesses.name }).from(businesses).where(eq(businesses.id, businessId)).limit(1);
+    const store = oneLine(String((prof?.data as { name?: string } | undefined)?.name || registered?.name || 'Your store')).slice(0, 80);
+    let what = oneLine(b.subject);
+    if (what.toLowerCase().startsWith(`${store.toLowerCase()}:`)) what = what.slice(store.length + 1).trim();
+    what = what.slice(0, 80) || 'your bill';
+    await sendEmail(env, to, `${store}: ${what}`, `Please find ${what} from ${store} attached.\n\nSent through ApnaGalla on behalf of ${store}.`, { fileName: b.fileName, buffer: pdf });
+    await audit(db, { businessId, actorUserId: uid(req), action: 'email.sent', detail: { to, file: b.fileName } });
     return { sent: true };
   });
 

@@ -177,6 +177,10 @@ export class SyncService {
     }
     const clash = await this.numberClash(tx, actor.businessId, table, id, data, existing);
     if (clash) return reject(clash);
+    // Pictures are image data or https links only: a "javascript:" link in a photo field could run code
+    // in whoever opens it.
+    const badPhoto = unsafeImageField(data);
+    if (badPhoto) return reject(`Not a picture: ${badPhoto}`);
     // The server works the totals out again: a phone can't save a bill whose amounts don't add up.
     if ((table === 'invoices' || table === 'estimates' || table === 'creditNotes') && data.deleted !== true && data.status !== 'draft') {
       const wrong = totalsProblem(data);
@@ -515,6 +519,10 @@ function auditEvent(table: SyncTable, data: Data, existing: Data | undefined): {
   if (table === 'items' && existing && (existing.rate !== data.rate || (data.purchasePrice !== undefined && existing.purchasePrice !== data.purchasePrice))) {
     return { action: 'item.price_changed', detail: { name: data.name, from: existing.rate, to: data.rate } };
   }
+  if (table === 'vouchers') {
+    if (!existing) return { action: 'voucher.sold', detail: { code: data.code, amount: data.amount } };
+    if (existing.amount !== data.amount || existing.voidedAt !== data.voidedAt) return { action: 'voucher.changed', detail: { code: data.code, from: existing.amount, to: data.amount, voided: !!data.voidedAt } };
+  }
   // R7 activity log: bills saved, anything deleted or brought back from the recycle bin.
   if (table === 'invoices' && data.status === 'saved' && existing?.status !== 'saved') {
     return { action: 'invoice.saved', detail: { number: num(data), total: (data.totals as Data | undefined)?.grandTotal } };
@@ -522,5 +530,15 @@ function auditEvent(table: SyncTable, data: Data, existing: Data | undefined): {
   const label = (d: Data | undefined) => num(d) ?? (typeof d?.name === 'string' ? d.name : typeof d?.supplierBillNo === 'string' ? d.supplierBillNo : undefined);
   if (existing && data.deleted === true && existing.deleted !== true) return { action: 'record.deleted', detail: { table, name: label(existing) } };
   if (existing && data.deleted !== true && existing.deleted === true) return { action: 'record.restored', detail: { table, name: label(data) } };
+  return null;
+}
+
+const IMAGE_FIELDS = ['photo', 'logo', 'signature', 'deliveryPhoto', 'stamp', 'qrImage'];
+const safeImage = (v: unknown) => v == null || v === '' || (typeof v === 'string' && (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(v) || /^https:\/\//i.test(v)));
+
+/** The name of an image field holding something other than image data or an https link, if any. */
+export function unsafeImageField(data: Record<string, unknown>): string | null {
+  for (const f of IMAGE_FIELDS) if (!safeImage(data[f])) return f;
+  if (Array.isArray(data.photos)) for (const p of data.photos) if (!safeImage(typeof p === 'string' ? p : (p as { src?: unknown; dataUrl?: unknown })?.src ?? (p as { dataUrl?: unknown })?.dataUrl)) return 'photos';
   return null;
 }

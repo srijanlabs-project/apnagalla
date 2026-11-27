@@ -89,7 +89,8 @@ export const TABLE_RULES: Record<SyncTable, Rule> = {
   visits: { since: 7 },
   crates: { since: 8 },
   schemes: { since: 8, cost: true },
-  vouchers: { since: 8 },
+  // Gift vouchers are money: only the owner sells or changes them (staff still take them as payment).
+  vouchers: { since: 8, owner: true },
   rentals: { since: 8 },
   recipes: { since: 8 },
 };

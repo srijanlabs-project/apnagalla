@@ -30,6 +30,10 @@ const schema = z.object({
     .transform((v) => v === 'true'),
   MSG91_AUTH_KEY: z.string().optional(),
   MSG91_OTP_TEMPLATE_ID: z.string().optional(),
+  /** Ceiling on sign-in SMS sent per day (all numbers together). */
+  OTP_DAILY_BUDGET: z.coerce.number().int().positive().default(2000),
+  /** How many proxies sit in front of the server (Railway: 1). Only their X-Forwarded-For entries are trusted. */
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
   /** GSTIN lookup through the client's GST API. Unset = lookups answer "not set up". */
   GST_API_PROVIDER: z.string().optional().transform((v) => (v ? v : undefined)),
   GST_API_URL: z.string().optional().transform((v) => (v ? v : undefined)),

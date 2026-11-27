@@ -81,7 +81,7 @@ export function SchemesScreen() {
 /* ---------- gift vouchers ---------- */
 
 export function VouchersScreen() {
-  const { actor, profile } = useBusiness();
+  const { actor, profile, isOwner } = useBusiness();
   const [toast] = useIonToast();
   const [alert] = useIonAlert();
   const vouchers = useLiveQuery(async () => {
@@ -95,6 +95,7 @@ export function VouchersScreen() {
   const [singleUse, setSingleUse] = useState(false);
   return (
     <PageShell title={t('Gift vouchers')} backHref="/tabs/more" padded={false}>
+      {isOwner && (
       <div className="ion-padding">
         <FormSection title={t('Sell a voucher')} note={t('Anyone with the code can pay with it in New sale (Gift voucher) or on a bill. It never pays more than its amount.')}>
           <MoneyField label={t('Amount')} value={amount} onChange={setAmount} />
@@ -131,6 +132,7 @@ export function VouchersScreen() {
           </IonButton>
         </FormSection>
       </div>
+      )}
       <IonList>
         {(vouchers ?? []).map(({ v, left }) => (
           <IonItem key={v.id}>
