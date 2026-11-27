@@ -29,7 +29,7 @@ import { qtyForAmount } from '../../lib/fresh';
 import { unitsForArea } from '../../lib/retailExtras';
 import { jewelPrice } from '../../lib/modules';
 import { bookedQty } from '../../lib/orders';
-import { stockLevels } from '../../lib/stock';
+import { stockLevels, tracksStock } from '../../lib/stock';
 import { OFF } from '../../lib/offers';
 import { t } from '../../lib/i18n';
 import { isAreaLine, lineSize, rupees } from '../../lib/format';
@@ -107,7 +107,7 @@ export default function LineEditor({ line, isNew, noTax, onClose, onSave, onDele
   const [coverArea, setCoverArea] = useState<number | null>(null);
   const [coats, setCoats] = useState(1);
   const free = useLiveQuery(async () => {
-    if (!lineItem) return null;
+    if (!lineItem || !tracksStock(lineItem)) return null;
     const [levels, booked] = await Promise.all([stockLevels(actor.businessId), bookedQty(actor.businessId)]);
     const b = booked.get(lineItem.id) ?? 0;
     return b ? { free: (levels.get(lineItem.id) ?? 0) - b, booked: b } : null;

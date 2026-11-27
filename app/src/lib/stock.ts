@@ -9,9 +9,16 @@ import { newId, putRecord, type Actor } from './repo';
  * and customer returns. Cancelled and draft documents don't count.
  */
 
-/** Does this item keep count of stock? Services and area-priced items don't. */
+/** Whether the open store counts stock at all (a store setting; set when the store opens). */
+let storeManagesStock = true;
+export const setStoreManagesStock = (on: boolean) => {
+  storeManagesStock = on;
+};
+export const storeCountsStock = () => storeManagesStock;
+
+/** Does this item keep count of stock? Services and area-priced items don't, nor any item of a store that doesn't manage stock. */
 export const tracksStock = (item: Pick<Item, 'trackStock' | 'pricing' | 'deleted' | 'hasVariants'>): boolean =>
-  !item.deleted && !item.hasVariants && item.trackStock !== false && (item.pricing ?? 'unit') === 'unit';
+  storeManagesStock && !item.deleted && !item.hasVariants && item.trackStock !== false && (item.pricing ?? 'unit') === 'unit';
 
 const round = (n: number) => Math.round(n * 1000) / 1000;
 

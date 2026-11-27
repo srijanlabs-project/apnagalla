@@ -96,7 +96,10 @@
 .amount-note small { font-weight: 400; color: var(--ion-color-medium); }
 .list-end { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
 .status-badge { font-size: 0.7rem; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
-.filter-chips { display: flex; gap: 2px; padding: 0 8px; overflow-x: auto; }
+.filter-chips { display: flex; gap: 2px; padding: 0 8px; overflow-x: auto; scrollbar-width: none; }
+.filter-chips::-webkit-scrollbar { display: none; }
+/* Chips keep their full label and the row scrolls sideways (never squeezed or wrapped). */
+.filter-chips > ion-chip, .filter-chips > ion-button { flex: 0 0 auto; white-space: nowrap; }
 .text-danger { color: var(--ion-color-danger); }
 .text-primary { color: var(--ion-color-primary); }
 

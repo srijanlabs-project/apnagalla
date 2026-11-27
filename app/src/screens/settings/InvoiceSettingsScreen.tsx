@@ -341,6 +341,13 @@ export default function InvoiceSettingsScreen() {
 
       <FormSection title={t('Shop features')}>
         <ToggleRow
+          label={t('Manage stock')}
+          note={t('Count stock in and out with purchases and sales. Off: the app doesn’t track stock (no stock counts, low-stock lists or stock warnings); bills and purchases work as usual.')}
+          checked={s.manageStock !== false}
+          onChange={(manageStock) => patch({ manageStock })}
+          disabled={ro}
+        />
+        <ToggleRow
           label={t('Area / job-work billing')}
           note={t('Price items per sq ft or running foot and enter sizes on the bill (painting, glass, acrylic, carpentry, flex).')}
           checked={s.areaBilling}

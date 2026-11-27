@@ -4,7 +4,10 @@ import { db } from './db';
 import { qtyForAmount, rateCardText, saveRates, saveWastage, wastageTable } from './fresh';
 import { ensureBusinessRecords, newEstimateDraft, newInvoiceDraft, putRecord, saveEstimate, saveInvoice, type Actor } from './repo';
 import { addMonthsISO, billChallans, crateBalances, instalmentSchedule, saveCrates, unbilledChallans } from './shopKinds';
-import { stockLevels } from './stock';
+import { setStoreManagesStock, stockLevels, tracksStock } from './stock';
+import { transferStock } from './transfers';
+import { stockByPlace } from './godowns';
+import { indianMobile } from './phoneContacts';
 import { bookedQty } from './orders';
 import { trialBalance } from './books';
 import { billMoney, recordPayments } from './repo';
@@ -163,5 +166,26 @@ describe('R11.4 trade modules', () => {
     const d = await newInvoiceDraft(owner);
     await saveInvoice(owner, { ...d, date: D, rx: { patient: 'R. Kumar', doctor: 'Dr Mehta', number: 'RX-9' }, lines: [line('a', 'Azithromycin 500', 1, 12000, { itemId: 'az', unit: 'strip', batch: 'B7' }), line('b', 'Tomato', 1, 3600, { itemId: 'tom' })] }, { finalize: true });
     expect((await scheduleRegister('b1', D, D)).rows.map((r) => [r[2], r[3], r[4], r[6], r[7]])).toEqual([['H1', 'Azithromycin 500', 'B7', 'R. Kumar', 'Dr Mehta']]);
+  });
+});
+
+describe('27 Nov fixes', () => {
+  it('stock moves from a godown of one store to a godown of another', async () => {
+    const d = await newInvoiceDraft(owner);
+    void d;
+    await putRecord('stockMoves', owner, { id: 'o1', itemId: 'tom', itemName: 'Tomato', qty: 50, kind: 'opening', reason: 'opening', date: D, godownId: 'g1' } as never);
+    await transferStock(owner, { businessId: 'b2', name: 'Branch', isOwner: true }, 'Test Co', [{ itemId: 'tom', qty: 20 }], { fromGodown: 'g1', toGodown: 'g9' });
+    expect((await stockByPlace('b1')).get('tom')!.get('g1')).toBe(30);
+    const there = (await db.items.where('businessId').equals('b2').toArray())[0]!;
+    expect((await stockByPlace('b2')).get(there.id)!.get('g9')).toBe(20);
+  });
+
+  it('a store that does not manage stock tracks no item; phone numbers read in any form', () => {
+    const item = { trackStock: true, pricing: 'unit' as const };
+    expect(tracksStock(item)).toBe(true);
+    setStoreManagesStock(false);
+    expect(tracksStock(item)).toBe(false);
+    setStoreManagesStock(true);
+    expect([indianMobile('+91 98765-43210'), indianMobile('098765 43210'), indianMobile('022 2345 6789')]).toEqual(['+919876543210', '+919876543210', null]);
   });
 });

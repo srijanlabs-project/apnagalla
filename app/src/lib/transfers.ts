@@ -31,7 +31,7 @@ export async function transferStock(
   to: { businessId: string; name: string; isOwner: boolean },
   fromName: string,
   lines: TransferLine[],
-  opts: { note?: string; date?: string } = {},
+  opts: { note?: string; date?: string; fromGodown?: string; toGodown?: string } = {},
 ): Promise<string> {
   if (from.role !== 'owner' || !to.isOwner) throw new PermissionError(t('Only the owner of both stores can move stock between them'));
   if (to.businessId === from.businessId) throw new Error(t('Pick the other store'));
@@ -53,6 +53,7 @@ export async function transferStock(
       qty: -l.qty,
       note: t('To {store}', { store: to.name }) + (note ? ` · ${note}` : ''),
       otherBusinessId: to.businessId,
+      godownId: opts.fromGodown || undefined,
     } as StockMove);
     await putRecord('stockMoves', toActor, {
       ...base,
@@ -62,6 +63,7 @@ export async function transferStock(
       qty: l.qty,
       note: t('From {store}', { store: fromName }) + (note ? ` · ${note}` : ''),
       otherBusinessId: from.businessId,
+      godownId: opts.toGodown || undefined,
     } as StockMove);
     moved++;
   }

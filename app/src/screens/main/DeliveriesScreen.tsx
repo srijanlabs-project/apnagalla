@@ -1,5 +1,6 @@
-import { IonButton, IonItem, IonLabel, IonList, IonNote, IonSegment, IonSegmentButton, useIonToast } from '@ionic/react';
+import { IonButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSegment, IonSegmentButton, useIonToast } from '@ionic/react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { cameraOutline } from 'ionicons/icons';
 import { useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { ToggleRow } from '../../components/Fields';
@@ -76,6 +77,8 @@ export default function DeliveriesScreen() {
               <IonButton
                 slot="end"
                 color="success"
+                fill="outline"
+                size="small"
                 disabled={!!busy}
                 onClick={(e) => {
                   e.preventDefault();
@@ -84,14 +87,15 @@ export default function DeliveriesScreen() {
                   camera.current?.click();
                 }}
               >
-                {busy === r.doc.id ? '…' : t('Delivered')}
+                <IonIcon icon={cameraOutline} slot="start" />
+                {busy === r.doc.id ? '…' : t('Mark delivered')}
               </IonButton>
             )}
           </IonItem>
         ))}
       </IonList>
       {rows && rows.length === 0 && <IonNote className="ion-padding">{tab === 'todo' ? t('Nothing waiting to go out.') : t('Nothing delivered in the last 30 days.')}</IonNote>}
-      <p className="section-note">{t('Tap Delivered and take a photo of the goods being handed over; the photo is kept on the bill.')}</p>
+      <p className="section-note">{t('Tap Mark delivered and take a photo of the goods being handed over; the photo is kept on the bill.')}</p>
       <input
         ref={camera}
         type="file"

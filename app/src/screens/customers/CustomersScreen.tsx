@@ -1,5 +1,6 @@
 import { remindersDue } from '../../lib/reminders';
-import { IonBadge, IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar } from '@ionic/react';
+import { customerFromContact, pickPhoneContact } from '../../lib/phoneContacts';
+import { IonBadge, IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar, useIonRouter, useIonToast } from '@ionic/react';
 import { groupsIn } from '../../components/GroupField';
 import { formatIndianMobile } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -17,6 +18,21 @@ export default function CustomersScreen() {
   const { actor, ledger, isOwner } = useBusiness();
   const [q, setQ] = useState('');
   const [group, setGroup] = useState<string | null>(null);
+  const router = useIonRouter();
+  const [toastC] = useIonToast();
+  /** One contact from the phone's picker becomes a customer; without a picker, the .vcf import screen. */
+  async function fromContacts() {
+    try {
+      const c = await pickPhoneContact();
+      if (!c) return;
+      const { customer, existed } = await customerFromContact(actor, c);
+      void toastC({ message: existed ? t('{name} is already a customer', { name: customer.name }) : t('{name} added as a customer', { name: customer.name }), duration: 2000, position: 'top', color: existed ? 'medium' : 'success' });
+      router.push(`/tabs/customers/${customer.id}`);
+    } catch (e) {
+      if ((e as Error).message === 'no-picker') router.push('/tabs/customers/import-contacts');
+      else void toastC({ message: (e as Error).message, duration: 3000, color: 'danger' });
+    }
+  }
   const { settings } = useBusiness();
   const dueCount = useLiveQuery(async () => (await remindersDue(actor.businessId, settings)).length, [actor.businessId, settings, ledger]);
   const customers = useLiveQuery(
@@ -54,8 +70,8 @@ export default function CustomersScreen() {
         </div>
       )}
       <div className="filter-chips">
-        <IonButton size="small" fill="clear" routerLink="/tabs/customers/crates">
-          {t('Crates')}
+        <IonButton size="small" fill="clear" onClick={() => void fromContacts()}>
+          <IonIcon icon={peopleOutline} slot="start" /> {t('From phone contacts')}
         </IonButton>
         <IonButton size="small" fill="clear" routerLink="/tabs/customers/visits">
           <IonIcon icon={locationOutline} slot="start" /> {t('Field visits')}
@@ -67,9 +83,6 @@ export default function CustomersScreen() {
       </div>
       {isOwner && (
         <div className="filter-chips">
-          <IonButton size="small" fill="clear" routerLink="/tabs/customers/import-contacts">
-            <IonIcon icon={peopleOutline} slot="start" /> {t('From phone contacts')}
-          </IonButton>
           <IonButton size="small" fill="clear" routerLink="/tabs/items/import?kind=customers">
             <IonIcon icon={cloudUploadOutline} slot="start" /> {t('Import from Excel')}
           </IonButton>

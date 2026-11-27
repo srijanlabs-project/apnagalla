@@ -287,13 +287,6 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
           </IonChip>
         </div>
       )}
-      {kind === 'estimate' && CAN_CREATE_INVOICES && (
-        <div className="ion-padding-horizontal">
-          <IonChip onClick={() => router.push(`${base}/new?challan=1`)}>
-            <IonLabel>{t('New delivery challan')}</IonLabel>
-          </IonChip>
-        </div>
-      )}
       {(kind === 'estimate' || (kind === 'invoice' && CAN_CREATE_INVOICES)) && (
         <IonFab slot="fixed" vertical="bottom" horizontal="end">
           <IonFabButton

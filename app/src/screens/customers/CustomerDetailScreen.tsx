@@ -163,7 +163,7 @@ export default function CustomerDetailScreen() {
         </div>
       )}
       {(crates ?? []).length > 0 && (
-        <IonRouterLink routerLink="/tabs/customers/crates">
+        <IonRouterLink routerLink="/tabs/assets/crates">
           <p className="section-note">{crates!.map((b) => t('{n} {kind} with them', { n: b.out, kind: b.kind })).join(' · ')}</p>
         </IonRouterLink>
       )}

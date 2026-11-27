@@ -27,7 +27,7 @@ export default function CratesScreen() {
   const parties = (type === 'customer' ? customers : suppliers) ?? [];
 
   return (
-    <PageShell title={t('Crates and containers')} backHref="/tabs/customers" padded={false}>
+    <PageShell title={t('Crates and containers')} backHref="/tabs/assets" padded={false}>
       <IonList inset className="flush-list">
         {(balances ?? []).length === 0 && (
           <IonItem lines="none">

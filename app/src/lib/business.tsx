@@ -1,4 +1,5 @@
 import { IonSpinner } from '@ionic/react';
+import { setStoreManagesStock } from './stock';
 import { refreshCatalog } from './catalog';
 import { scheduleShopAlerts } from './alerts';
 import { DEFAULT_STAFF_PERMISSIONS, type StaffAccess } from '@invoice/shared';
@@ -78,6 +79,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const value = useMemo<BusinessValue | null>(() => {
     if (!ready || !profile || !actor || !membership || !ledger) return null;
     const merged = withDefaults(businessId, settings);
+    setStoreManagesStock(merged.manageStock !== false);
     const p = membership.permissions ?? {};
     const perms: Perms =
       membership.role === 'owner'

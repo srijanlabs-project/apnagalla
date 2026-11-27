@@ -42,6 +42,7 @@ import {
   saveOutline,
   pricetagOutline,
   diamondOutline,
+  cubeOutline,
   repeatOutline,
 } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
@@ -190,6 +191,10 @@ export default function MoreScreen() {
           <IonIcon icon={settingsOutline} slot="start" />
           <IonLabel>{t('Invoice settings')}</IonLabel>
         </IonItem>
+        <IonItem routerLink="/tabs/assets" detail lines="full">
+          <IonIcon icon={cubeOutline} slot="start" />
+          <IonLabel>{t('Store assets')}</IonLabel>
+        </IonItem>
         <IonItem routerLink="/tabs/more/jewellery" detail lines="full">
           <IonIcon icon={diamondOutline} slot="start" />
           <IonLabel>{t('Gold and silver rates')}</IonLabel>
@@ -264,7 +269,7 @@ export default function MoreScreen() {
             <IonLabel>{t('Godowns')}</IonLabel>
           </IonItem>
         )}
-        {isOwner && ownedCount > 1 && (
+        {isOwner && (
           <IonItem routerLink="/tabs/items/transfer" detail lines="none">
             <IonIcon icon={swapHorizontalOutline} slot="start" />
             <IonLabel>{t('Stock transfer')}</IonLabel>
