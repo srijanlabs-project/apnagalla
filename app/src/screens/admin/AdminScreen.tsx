@@ -19,6 +19,7 @@ import {
 } from '@ionic/react';
 import AdminBilling from './AdminBilling';
 import AdminCatalog from './AdminCatalog';
+import AdminCrashes from './AdminCrashes';
 import { formatIndianMobile, type AdminStoreDto, type AuditEntryDto } from '@invoice/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { TextField } from '../../components/Fields';
@@ -34,6 +35,7 @@ const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('en-IN'
 export default function AdminScreen() {
   const [billing, setBilling] = useState(false);
   const [catalog, setCatalog] = useState(false);
+  const [crashes, setCrashes] = useState(false);
   const [planFor, setPlanFor] = useState<AdminStoreDto | null>(null);
   const [planForm, setPlanForm] = useState({ planId: 'basic', days: 30 });
   const [toast] = useIonToast();
@@ -98,6 +100,7 @@ export default function AdminScreen() {
             <IonButton onClick={() => setCreating(true)}>{t('New store')}</IonButton>
             <IonButton onClick={() => setBilling(true)}>{t('Plans and codes')}</IonButton>
             <IonButton onClick={() => setCatalog(true)}>{t('Product list')}</IonButton>
+            <IonButton onClick={() => setCrashes(true)}>{t('Crashes')}</IonButton>
             <IonButton href="/">{t('Back to app')}</IonButton>
           </IonButtons>
         </IonToolbar>
@@ -160,6 +163,7 @@ export default function AdminScreen() {
 
         <AdminBilling isOpen={billing} onClose={() => setBilling(false)} />
         <AdminCatalog isOpen={catalog} onClose={() => setCatalog(false)} />
+        <AdminCrashes isOpen={crashes} onClose={() => setCrashes(false)} />
         <IonModal isOpen={!!planFor} onDidDismiss={() => setPlanFor(null)} initialBreakpoint={0.6} breakpoints={[0, 0.6, 1]}>
           <IonContent className="ion-padding">
             <h2>{planFor?.name}</h2>

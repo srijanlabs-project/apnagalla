@@ -293,12 +293,25 @@ export default function InvoiceSettingsScreen() {
 
       <FormSection title={t('Day-end closing')}>
         <ToggleRow
-          label={t('Day-end closing is compulsory')}
-          note={t('Before the first bill of a new day, the last day with sales must be closed with a cash count.')}
+          label={t('Day-end closing')}
+          note={t('Count the cash and close each day with sales. Choose below whether an unclosed day stops billing.')}
           checked={s.dayEndRequired !== false}
           onChange={(on) => patch({ dayEndRequired: on, ...(on ? { dayEndFrom: todayISO() } : {}) })}
           disabled={ro}
         />
+        {s.dayEndRequired !== false && (
+          <SelectField
+            label={t('If a day is not closed')}
+            value={s.dayEndMode ?? 'after2'}
+            options={[
+              { value: 'remind' as const, label: t('Only remind; billing goes on') },
+              { value: 'after2' as const, label: t('Stop billing after 2 unclosed days') },
+              { value: 'next' as const, label: t('Stop billing the next day') },
+            ]}
+            onChange={(dayEndMode) => patch({ dayEndMode })}
+            disabled={ro}
+          />
+        )}
         <TextField label={t('Store opening time')} type="time" value={s.openingTime ?? '09:00'} onChange={(openingTime) => patch({ openingTime: openingTime || '09:00' })} disabled={ro} helper={t('At this time the phone reminds you to open the store and count the cash in the counter.')} />
         <TextField label={t('Store closing time')} type="time" value={s.closingTime ?? '21:00'} onChange={(closingTime) => patch({ closingTime: closingTime || '21:00' })} disabled={ro} helper={t('After this time, Home reminds you to close the day.')} />
       </FormSection>

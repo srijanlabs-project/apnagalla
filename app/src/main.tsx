@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { requestPersistentStorage } from './lib/db';
 import { loadAppLanguage } from './lib/i18n';
+import { installCrashReports } from './lib/crashReport';
 
 /* Ionic core + utility CSS */
 import '@ionic/react/css/core.css';
@@ -18,6 +19,7 @@ import '@ionic/react/css/palettes/dark.system.css';
 import './theme.css';
 
 setupIonicReact({ mode: 'md' });
+installCrashReports();
 void requestPersistentStorage();
 
 // The language must be known before anything is drawn.

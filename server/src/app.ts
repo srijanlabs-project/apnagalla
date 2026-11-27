@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { voucherState } from './services/vouchers';
+import { privacyPage } from './legal/privacy';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -311,6 +312,38 @@ export async function buildApp({ env, database, otpSender, gstProvider, billScan
     if (!(await accounts.isAdmin(uid(req)))) throw forbidden('Admins only', 'not_admin');
   }
   const adminOnly = { preHandler: requireAdmin };
+
+  /* ---------- public privacy policy (Play Store, contacts permission) ---------- */
+  app.get('/privacy', async (_req, reply) => reply.header('Cache-Control', 'public, max-age=3600').type('text/html; charset=utf-8').send(privacyPage()));
+
+  /* ---------- crash reports from the app (no outside service) ---------- */
+  // Sent before or after sign-in, so no login is needed; size and rate are limited, and only text is kept.
+  app.post('/v1/client-errors', { bodyLimit: 64_000, config: { rateLimit: { max: 30, timeWindow: '10 minutes' } } }, async (req, reply) => {
+    const body = (req.body ?? {}) as { reports?: unknown };
+    const list = Array.isArray(body.reports) ? body.reports.slice(0, 20) : [];
+    const str = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : undefined);
+    for (const r of list as Record<string, unknown>[]) {
+      const message = str(r?.message, 500);
+      if (!message) continue;
+      const biz = str(r.businessId, 40);
+      await db.insert(auditLog).values({
+        businessId: biz && /^[0-9a-f-]{36}$/.test(biz) ? biz : null,
+        action: 'client.error',
+        detail: { message, stack: str(r.stack, 4000), where: str(r.where, 200), url: str(r.url, 200), version: str(r.version, 40), client: str(r.client, 10), at: str(r.at, 40) },
+      }).catch(() => undefined);
+    }
+    return reply.status(204).send();
+  });
+  app.get<{ Querystring: { before?: string } }>('/v1/admin/client-errors', adminOnly, async (req) => {
+    const before = req.query.before && !Number.isNaN(Date.parse(req.query.before)) ? new Date(req.query.before) : new Date(Date.now() + 60_000);
+    const rows = await db
+      .select({ at: auditLog.at, businessId: auditLog.businessId, detail: auditLog.detail })
+      .from(auditLog)
+      .where(and(eq(auditLog.action, 'client.error'), lt(auditLog.at, before)))
+      .orderBy(desc(auditLog.at))
+      .limit(200);
+    return { rows: rows.map((r) => ({ at: r.at.toISOString(), businessId: r.businessId, ...(r.detail ?? {}) })) };
+  });
 
   /* ---------- shared product list (R5) ---------- */
   const sectionOf = (s: string): CatalogSection => {

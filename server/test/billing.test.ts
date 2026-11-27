@@ -107,7 +107,7 @@ describe('plans and billing', () => {
     // Bills: Free allows 300 a month; set it to 1 for the test.
     await app.inject({ method: 'PUT', url: '/v1/admin/plans', headers: admin, payload: { id: 'free', name: 'Free', priceMonthly: 0, priceYearly: 0, limits: { stores: 1, staff: 1, billsPerMonth: 1, scansPerDay: 5 }, active: true, sort: 0 } });
     const date = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
-    const bill = (id: string) => ({ table: 'invoices', id, data: { id, status: 'saved', number: `INV/${id}`, date, lines: [], totals: { grandTotal: 100 }, updatedAt: new Date().toISOString() } });
+    const bill = (id: string) => ({ table: 'invoices', id, data: { id, status: 'saved', number: `INV/${id}`, date, lines: [{ id: 'l', name: 'x', qty: 1, rate: 100 }], totals: { grandTotal: 100 }, updatedAt: new Date().toISOString() } });
     const pushed = (await app.inject({ method: 'POST', url: `/v1/businesses/${biz.id}/sync/push`, headers: oH, payload: { changes: [bill('a'), bill('b')] } })).json().results;
     expect(pushed.map((r: { status: string }) => r.status)).toEqual(['ok', 'rejected']);
 

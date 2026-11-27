@@ -12,7 +12,8 @@
     "android:sync": "node scripts/stamp-version.mjs && npm run build && cap sync android",
     "android:open": "cap open android",
     "test": "vitest run",
-    "i18n": "node scripts/i18n.mjs"
+    "i18n": "node scripts/i18n.mjs",
+    "android:release": "npm run android:sync && cd android && gradlew.bat bundleRelease assembleRelease"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",

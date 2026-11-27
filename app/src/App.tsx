@@ -1,3 +1,4 @@
+import CrashBoundary from './components/CrashBoundary';
 import { IonApp, IonContent, IonPage, IonRouterOutlet, IonSpinner } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { Navigate, Route } from 'react-router-dom';
@@ -64,9 +65,11 @@ function Screens() {
 export default function App() {
   return (
     <IonApp>
+      <CrashBoundary>
       <SessionProvider>
         <Gate />
       </SessionProvider>
+      </CrashBoundary>
     </IonApp>
   );
 }

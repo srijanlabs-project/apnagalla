@@ -1,4 +1,5 @@
 import { remindersDue } from '../../lib/reminders';
+import { extraOn } from '../../lib/shopExtras';
 import { customerFromContact, pickPhoneContact } from '../../lib/phoneContacts';
 import { IonBadge, IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSearchbar, useIonRouter, useIonToast, useIonActionSheet } from '@ionic/react';
 import { groupsIn } from '../../components/GroupField';
@@ -24,7 +25,20 @@ export default function CustomersScreen() {
   /** One contact from the phone's picker becomes a customer; without a picker, the .vcf import screen. */
   async function fromContacts() {
     try {
-      const c = await pickPhoneContact();
+      const c = await pickPhoneContact(
+        () =>
+          new Promise<boolean>((resolve) =>
+            void moreSheet({
+              header: t('Pick a customer from your contacts'),
+              subHeader: t('ApnaGalla opens your phone’s contact list so you can pick one person. Only the contact you pick is saved as a customer; nothing else is read or uploaded.'),
+              buttons: [
+                { text: t('Continue'), handler: () => resolve(true) },
+                { text: t('Not now'), role: 'cancel', handler: () => resolve(false) },
+              ],
+              onDidDismiss: () => resolve(false),
+            }),
+          ),
+      );
       if (!c) return;
       const { customer, existed } = await customerFromContact(actor, c);
       void toastC({ message: existed ? t('{name} is already a customer', { name: customer.name }) : t('{name} added as a customer', { name: customer.name }), duration: 2000, position: 'top', color: existed ? 'medium' : 'success' });
@@ -84,7 +98,7 @@ export default function CustomersScreen() {
           onClick={() =>
             void moreSheet({
               buttons: [
-                { text: t('Field visits'), handler: () => router.push('/tabs/customers/visits') },
+                ...(extraOn(settings, 'visits') ? [{ text: t('Field visits'), handler: () => router.push('/tabs/customers/visits') }] : []),
                 ...(isOwner ? [{ text: t('Import from Excel'), handler: () => router.push('/tabs/items/import?kind=customers') }] : []),
                 { text: t('Cancel'), role: 'cancel' },
               ],

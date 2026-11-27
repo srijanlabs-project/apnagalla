@@ -5,7 +5,7 @@ import type { BillingStatusDto } from '@invoice/shared';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { closingDue, dayToClose, openingDue } from '../../lib/dayEnd';
+import { billingBlocked, closingDue, dayToClose, openingDue } from '../../lib/dayEnd';
 import { addOutline, cartOutline, clipboardOutline, walletOutline } from 'ionicons/icons';
 import { useHomeCards, type HomeCard } from '../../lib/homeCards';
 import PageShell from '../../components/PageShell';
@@ -48,8 +48,10 @@ export function HomeScreen() {
   // Day-end: a past day still open blocks billing; after closing time, a reminder for today.
   const dayEnd = useLiveQuery(async () => {
     if (!billsHere) return null;
+    const blocked = await billingBlocked(actor.businessId, settings);
+    if (blocked) return { date: blocked.date, block: true };
     const pending = await dayToClose(actor.businessId, settings);
-    if (pending) return { date: pending, block: true };
+    if (pending) return { date: pending, block: false, remind: true };
     if (await closingDue(actor.businessId, settings)) return { date: todayISO(), block: false };
     return (await openingDue(actor.businessId, settings)) ? { date: todayISO(), block: false, open: true } : null;
   }, [actor.businessId, settings, ledger, billsHere]);
@@ -103,7 +105,9 @@ export function HomeScreen() {
           <p className={dayEnd.block ? 'renew-banner' : 'day-end-banner'}>
             {dayEnd.block
               ? t('{date} is not closed. Close it to start billing today.', { date: dateIN(dayEnd.date) })
-              : 'open' in dayEnd
+              : 'remind' in dayEnd
+                ? t('{date} is not closed: count the cash and close it.', { date: dateIN(dayEnd.date) })
+                : 'open' in dayEnd
                 ? t('Open the store: count the cash in the counter.')
                 : t('Closing time: count the cash and close today.')}
           </p>

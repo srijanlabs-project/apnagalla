@@ -1,4 +1,5 @@
 import { IonSpinner } from '@ionic/react';
+import { setCrashContext } from './crashReport';
 import { setStoreManagesStock } from './stock';
 import { refreshCatalog } from './catalog';
 import { scheduleShopAlerts } from './alerts';
@@ -43,6 +44,7 @@ const Ctx = createContext<BusinessValue | null>(null);
 export function BusinessProvider({ children }: { children: ReactNode }) {
   const { me, membership } = useSession();
   const businessId = membership!.businessId;
+  setCrashContext({ businessId });
   const [ready, setReady] = useState(false);
 
   useEffect(() => {

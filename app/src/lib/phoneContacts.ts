@@ -17,12 +17,16 @@ export interface PickedContact {
   email?: string;
 }
 
-/** Opens the phone's own contact picker (Android app) and returns the chosen contact, or null if cancelled. */
-export async function pickPhoneContact(): Promise<PickedContact | null> {
+/**
+ * Opens the phone's own contact picker (Android app) and returns the chosen contact, or null if cancelled.
+ * Before Android asks for the contacts permission the first time, `explain` says why (and may cancel).
+ */
+export async function pickPhoneContact(explain?: () => Promise<boolean>): Promise<PickedContact | null> {
   if (Capacitor.isNativePlatform()) {
     const { Contacts } = await import('@capacitor-community/contacts');
     const perm = await Contacts.checkPermissions().catch(() => null);
     if (perm?.contacts !== 'granted') {
+      if (explain && !(await explain())) return null;
       const asked = await Contacts.requestPermissions();
       if (asked.contacts !== 'granted' && asked.contacts !== 'limited') throw new Error(t('Allow ApnaGalla to read contacts in the phone settings to pick one.'));
     }

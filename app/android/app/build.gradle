@@ -3,6 +3,12 @@ apply plugin: 'com.android.application'
 // Version from app/version.json (stamped by scripts/stamp-version.mjs on each build).
 def appVersion = new groovy.json.JsonSlurper().parse(file('../../version.json'))
 
+// Release signing: the key stays on the owner's computer. app/android/keystore.properties (never committed)
+// says where it is: storeFile=, storePassword=, keyAlias=, keyPassword=. Without it, release builds stay unsigned.
+def signingProps = new Properties()
+def signingFile = rootProject.file('keystore.properties')
+if (signingFile.exists()) signingFile.withInputStream { signingProps.load(it) }
+
 android {
     namespace = "in.apnagalla.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -19,8 +25,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (signingProps['storeFile']) {
+                storeFile file(signingProps['storeFile'])
+                storePassword signingProps['storePassword']
+                keyAlias signingProps['keyAlias']
+                keyPassword signingProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (signingProps['storeFile']) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

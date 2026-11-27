@@ -43,5 +43,5 @@ export function useSyncTriggers(businessIds: string[], current: string) {
 export function useSyncState(): SyncState {
   const [s, setS] = useState<SyncState | null>(null);
   useEffect(() => subscribeSyncState(setS), []);
-  return s ?? { running: false, lastSyncAt: null, lastError: null, rejected: [] };
+  return s ?? { running: false, lastSyncAt: null, lastError: null, rejected: [], conflicts: [] };
 }

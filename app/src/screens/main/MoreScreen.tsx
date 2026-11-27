@@ -46,12 +46,14 @@ import {
   diamondOutline,
   cubeOutline,
   repeatOutline,
+  locationOutline,
 } from 'ionicons/icons';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
 import { useSession } from '../../lib/session';
 import { lockSupported } from '../../lib/appLock';
 import { CLIENT_KIND } from '../../lib/platform';
+import { API_URL } from '../../config';
 import { appLanguage, setAppLanguage, t } from '../../lib/i18n';
 
 export default function MoreScreen() {
@@ -71,7 +73,9 @@ export default function MoreScreen() {
     {
       title: t('Sell'),
       rows: [
-        { label: t('Estimates, work orders and challans'), icon: clipboardOutline, link: '/tabs/estimates' },
+        { label: on('orders') ? t('Estimates, work orders and challans') : t('Estimates'), icon: clipboardOutline, link: '/tabs/estimates' },
+        { label: t('Field visits'), icon: locationOutline, link: '/tabs/customers/visits', show: on('visits') },
+        { label: t('Turn on more features'), icon: settingsOutline, link: '/tabs/more/invoice-settings', note: t('Orders, books, staff, visits, rentals, jewellery…') },
         { label: t('Deliveries'), icon: carOutline, link: '/tabs/deliveries' },
         { label: t('Jobs and repairs'), icon: constructOutline, link: '/tabs/jobs', show: on('jobs') },
         { label: t('Gift vouchers'), icon: pricetagOutline, link: '/tabs/vouchers', show: on('vouchers') },
@@ -87,10 +91,10 @@ export default function MoreScreen() {
         { label: t('Cash book'), icon: cashOutline, link: '/tabs/cash-book' },
         { label: t('Expenses'), icon: walletOutline, link: '/tabs/expenses' },
         { label: t('Bank and cash'), icon: libraryOutline, link: '/tabs/bank', show: money },
-        { label: t('Cheques'), icon: documentTextOutline, link: '/tabs/cheques' },
+        { label: t('Cheques'), icon: documentTextOutline, link: '/tabs/cheques', show: on('books') },
         { label: t('Other income'), icon: trendingUpOutline, link: '/tabs/income', show: money },
-        { label: t('Books (ledgers, balance sheet)'), icon: bookOutline, link: '/tabs/books', show: money },
-        { label: t('Loans'), icon: receiptOutline, link: '/tabs/loans', show: money },
+        { label: t('Books (ledgers, balance sheet)'), icon: bookOutline, link: '/tabs/books', show: money && on('books') },
+        { label: t('Loans'), icon: receiptOutline, link: '/tabs/loans', show: money && on('books') },
       ],
     },
     {
@@ -116,7 +120,7 @@ export default function MoreScreen() {
         { label: t('Printer'), icon: printOutline, link: '/tabs/more/printer' },
         { label: t('Phone alerts'), icon: notificationsOutline, link: '/tabs/more/alerts' },
         { label: t('Team'), icon: peopleOutline, link: '/tabs/more/team', show: isOwner },
-        { label: t('Staff & salary'), icon: idCardOutline, link: '/tabs/more/staff', show: isOwner },
+        { label: t('Staff & salary'), icon: idCardOutline, link: '/tabs/more/staff', show: isOwner && on('staff') },
         { label: t('All stores'), icon: gridOutline, link: '/tabs/more/dashboard', show: ownedCount > 1 },
       ],
     },
@@ -131,6 +135,7 @@ export default function MoreScreen() {
         { label: t('App lock'), icon: lockClosedOutline, link: '/tabs/more/lock', show: lockSupported() },
         { label: t('Devices'), icon: phonePortraitOutline, link: '/tabs/more/devices' },
         { label: t('ApnaGalla admin'), icon: shieldCheckmarkOutline, href: '/admin', show: !!me?.isAdmin && CLIENT_KIND === 'web' },
+        { label: t('Privacy policy'), icon: documentTextOutline, href: `${API_URL}/privacy` },
       ],
     },
   ];

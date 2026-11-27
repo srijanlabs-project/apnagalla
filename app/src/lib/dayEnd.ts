@@ -57,6 +57,30 @@ export async function dayToClose(businessId: string, settings: BusinessSettings,
   return (await isClosed(businessId, last)) ? null : last;
 }
 
+export type DayEndMode = 'remind' | 'after2' | 'next';
+export const dayEndModeOf = (s: Pick<BusinessSettings, 'dayEndMode'>): DayEndMode => s.dayEndMode ?? 'after2';
+
+/** Past business days that are still not closed, newest first. */
+export async function unclosedDays(businessId: string, settings: BusinessSettings, now = new Date()): Promise<string[]> {
+  if (!dayEndOn(settings)) return [];
+  const from = settings.dayEndFrom || DAY_END_START;
+  const out: string[] = [];
+  for (const d of await activeDays(businessId, from, todayISO(now))) if (!(await isClosed(businessId, d))) out.push(d);
+  return out;
+}
+
+/**
+ * Billing is stopped only when the store's rule says so: the next day, or (default) once two business
+ * days are left unclosed. "Remind only" never stops billing. Returns the day to close, or null.
+ */
+export async function billingBlocked(businessId: string, settings: BusinessSettings, now = new Date()): Promise<{ date: string; count: number } | null> {
+  const mode = dayEndModeOf(settings);
+  if (mode === 'remind') return null;
+  const days = await unclosedDays(businessId, settings, now);
+  if (days.length >= (mode === 'next' ? 1 : 2)) return { date: days[days.length - 1]!, count: days.length };
+  return null;
+}
+
 /** After closing time: today had business and isn't closed yet (a reminder, not a block). */
 export async function closingDue(businessId: string, settings: BusinessSettings, now = new Date()): Promise<boolean> {
   if (!dayEndOn(settings)) return false;

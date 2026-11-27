@@ -168,6 +168,19 @@ export default function CashBookScreen() {
           <>
             <MoneyField label={t('Cash counted in the drawer')} value={counted} onChange={setCounted} />
             <NoteCounter onTotal={setCounted} />
+            {isOwner && counted == null && (
+              <IonButton
+                fill="clear"
+                size="small"
+                onClick={() =>
+                  void closeDay(actor, day, day.expected, t('Closed at the expected amount')).then(() =>
+                    toast({ message: t('Day closed'), duration: 1500, position: 'top', color: 'success' }),
+                  )
+                }
+              >
+                {t('Close with expected amount ({amount})', { amount: rupees(day.expected) })}
+              </IonButton>
+            )}
             {counted != null && counted !== day.expected && (
               <p className={counted < day.expected ? 'text-danger' : 'text-success'}>
                 {counted < day.expected ? t('Short {amount}', { amount: rupees(day.expected - counted) }) : t('Extra {amount}', { amount: rupees(counted - day.expected) })}

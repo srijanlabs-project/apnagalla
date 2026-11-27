@@ -1,4 +1,5 @@
 import { IonButton, IonCard, IonCardContent, IonCheckbox, IonItem, IonLabel, IonList, IonNote, IonSpinner, useIonToast } from '@ionic/react';
+import { presetFor } from '../../lib/shopExtras';
 import { CATALOG_SECTIONS, type CatalogSection } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
@@ -12,7 +13,8 @@ import { putRecord } from '../../lib/repo';
 
 /** Saves the store's product-list choice and downloads it. */
 export async function chooseSections(actor: Parameters<typeof putRecord>[1], settings: BusinessSettings, sections: CatalogSection[], suggest = settings.catalogSuggest !== false) {
-  await putRecord('settings', actor, { ...settings, catalogSections: sections, catalogSuggest: suggest });
+  // The shop type also switches on the features that kind of shop usually needs.
+  await putRecord('settings', actor, { ...settings, ...presetFor(settings, sections), catalogSections: sections, catalogSuggest: suggest });
   await refreshCatalog(true);
 }
 

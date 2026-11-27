@@ -43,10 +43,55 @@ export const mapLink = (v: Pick<Visit, 'lat' | 'lng'>) => (v.lat != null && v.ln
 export const outcomeLabel = (o?: Visit['outcome']) =>
   o ? { order: () => t('Order taken'), payment: () => t('Money collected'), no_order: () => t('No order'), closed: () => t('Shop closed') }[o]() : t('Visited');
 
-/** Visits in a period, newest first; staff see their own. */
+/** Visits made in a period (planned ones once checked in), newest first; staff see their own. */
 export async function visitsIn(businessId: string, from: string, to: string, byUserId?: string | null): Promise<Visit[]> {
-  const list = await db.visits.where('[businessId+date]').between([businessId, from], [businessId, to], true, true).filter((v) => !v.deleted && (!byUserId || v.byUserId === byUserId)).toArray();
+  const list = await db.visits.where('[businessId+date]').between([businessId, from], [businessId, to], true, true).filter((v) => !v.deleted && !!v.at && (!byUserId || v.byUserId === byUserId)).toArray();
   return list.sort((a, b) => b.at.localeCompare(a.at));
+}
+
+/* ---------- planned visits ---------- */
+
+/** The owner puts customers on a salesperson's list for a day. A customer already planned for them that day is skipped. */
+export async function planVisits(actor: Actor, date: string, person: { userId: string; name: string }, customers: Pick<Customer, 'id' | 'name'>[]): Promise<number> {
+  const already = new Set((await plannedFor(actor.businessId, date, person.userId)).map((v) => v.customerId));
+  let n = 0;
+  for (const c of customers) {
+    if (already.has(c.id)) continue;
+    await putRecord('visits', actor, { id: newId(), customerId: c.id, customerName: c.name, date, at: '', planned: true, plannedByName: actor.userName, byUserId: person.userId, byName: person.name } as Visit);
+    n++;
+  }
+  return n;
+}
+
+/** A person's planned visits for a day (done and not yet), in the order they were planned. */
+export async function plannedFor(businessId: string, date: string, userId?: string | null): Promise<Visit[]> {
+  return db.visits
+    .where('[businessId+date]')
+    .equals([businessId, date])
+    .filter((v) => !v.deleted && !!v.planned && (!userId || v.byUserId === userId))
+    .sortBy('createdAt');
+}
+
+/** Checking in at a planned customer fills in that plan (time and place) instead of making a new visit. */
+export async function checkInPlanned(actor: Actor, plan: Visit, place: { lat: number; lng: number; accuracy: number } | null): Promise<Visit> {
+  return putRecord('visits', actor, { ...plan, at: new Date().toISOString(), ...(place ?? {}), byUserId: actor.userId, byName: actor.userName });
+}
+
+export const removePlan = (actor: Actor, plan: Visit) => putRecord('visits', actor, { ...plan, deleted: true });
+
+/** Planned vs done per person over a period: planned, visited, missed (a past day not visited), still to do. */
+export async function planSummary(businessId: string, from: string, to: string, today = todayISO()) {
+  const plans = await db.visits.where('[businessId+date]').between([businessId, from], [businessId, to], true, true).filter((v) => !v.deleted && !!v.planned).toArray();
+  const by = new Map<string, { name: string; planned: number; done: number; missed: number; open: number }>();
+  for (const p of plans) {
+    const r = by.get(p.byUserId) ?? { name: p.byName, planned: 0, done: 0, missed: 0, open: 0 };
+    r.planned++;
+    if (p.at) r.done++;
+    else if (p.date < today) r.missed++;
+    else r.open++;
+    by.set(p.byUserId, r);
+  }
+  return [...by.entries()].map(([userId, r]) => ({ userId, ...r }));
 }
 
 /** Visits report: per person per day — visits, orders, value ordered. */

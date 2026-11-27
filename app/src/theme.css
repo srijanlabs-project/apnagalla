@@ -327,7 +327,7 @@ ion-segment-button { text-transform: none; letter-spacing: 0; }
 .pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px 16px 88px; font-size: 14px; }
 .scanner-zoom { margin: 8px 16px 0; width: auto; }
 .scanner-tools { display: flex; gap: 8px; justify-content: center; padding: 0 16px 16px; }
-.day-end-banner { margin: 8px 16px; padding: 10px 12px; border-radius: 8px; background: var(--ion-color-warning-tint); color: var(--ion-color-warning-contrast); font-weight: 600; }
+.day-end-banner { margin: 8px 0; padding: 12px 14px; border-radius: 12px; background: var(--ion-color-warning-tint); color: var(--ion-color-warning-contrast); font-weight: 600; }
 .day-end-gate { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding-top: 32px; }
 .day-end-gate > ion-icon { font-size: 48px; color: var(--ion-color-warning); }
 .day-end-gate h2 { margin: 0; }
@@ -425,3 +425,10 @@ ion-chip.add-chip { --background: transparent; border: 1px dashed var(--ion-colo
 .item-filters { padding: 0 8px 4px; }
 ion-chip.chip-warn { --color: #7a5a00; }
 ion-button.fab-new { height: 56px; --border-radius: 16px; --box-shadow: 0 6px 16px rgba(31, 122, 77, 0.35); font-weight: 700; margin: 0; }
+
+.crash-screen { padding: 48px 24px; text-align: center; font-family: inherit; }
+.crash-screen button { margin-top: 16px; height: 48px; padding: 0 24px; border: 0; border-radius: 12px; background: var(--ion-color-primary); color: #fff; font-weight: 700; font-size: 1rem; }
+.crash-stack { white-space: pre-wrap; font-size: 0.72rem; background: var(--app-surface-2); padding: 8px; border-radius: 8px; max-height: 260px; overflow: auto; }
+/* Labels sit above the box: long translated labels wrap without overlapping the value. */
+ion-input.sc-ion-input-md-h.input-label-placement-stacked .label-text-wrapper,
+ion-select.select-label-placement-stacked .label-text-wrapper { transform: none; margin-bottom: 4px; }

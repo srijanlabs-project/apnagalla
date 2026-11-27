@@ -1,4 +1,5 @@
 import { IonButton, IonChip, IonFab, IonFabButton, IonIcon, IonItem, IonLabel, IonList, IonSearchbar, IonSegment, IonSegmentButton, useIonAlert, useIonRouter } from '@ionic/react';
+import { extraOn } from '../../lib/shopExtras';
 import { useIonActionSheet, useIonToast } from '@ionic/react';
 import { useEffect, useState } from 'react';
 import { NetworkError, api } from '../../lib/api';
@@ -41,7 +42,7 @@ const DATE_LABEL: Record<DatePick, () => string> = {
 };
 
 export default function DocListScreen({ kind }: { kind: DocKind }) {
-  const { actor, ledger } = useBusiness();
+  const { actor, ledger, settings } = useBusiness();
   const router = useIonRouter();
   const [toast] = useIonToast();
   const [sheet] = useIonActionSheet();
@@ -197,7 +198,7 @@ export default function DocListScreen({ kind }: { kind: DocKind }) {
               void kindSheet({
                 header: t('Kind'),
                 buttons: [
-                  ...ESTIMATE_TYPES.filter((f) => f !== 'online').map((f) => ({ text: estTypeLabel(f), handler: () => setEstType(f) })),
+                  ...ESTIMATE_TYPES.filter((f) => f !== 'online' && (extraOn(settings, 'orders') || !['order', 'challan', 'proforma'].includes(f)) && (extraOn(settings, 'jobs') || f !== 'work')).map((f) => ({ text: estTypeLabel(f), handler: () => setEstType(f) })),
                   { text: t('Cancel'), role: 'cancel' },
                 ],
               })

@@ -250,7 +250,7 @@ describe('credit notes', () => {
     numberSeries: 'credit:26-27',
     numberSeq: 1,
     invoiceId: 'inv1',
-    lines: [],
+    lines: [{ id: 'l1', name: 'Rice', qty: 1, rate: 5000 }],
     totals: { grandTotal: 5000 },
     history: [],
     createdBy: 'x',
@@ -493,9 +493,9 @@ describe('R4 logins and locks', () => {
     ]);
     const paid = { payment: { status: 'paid', amountPaid: 10000 }, updatedAt: at(-4) };
     expect((await pushOk(biz.id, oH, [{ table: 'invoices', id: 'old', data: invoice('old', { date: '2026-10-05', ...paid }) }]))[0]!.status).toBe('ok');
-    const edit = await pushOk(biz.id, oH, [{ table: 'invoices', id: 'old', data: invoice('old', { date: '2026-10-05', ...paid, lines: [], updatedAt: at(-3) }) }]);
+    const edit = await pushOk(biz.id, oH, [{ table: 'invoices', id: 'old', data: invoice('old', { date: '2026-10-05', ...paid, lines: [], totals: { grandTotal: 0 }, updatedAt: at(-3) }) }]);
     expect(edit[0]).toMatchObject({ status: 'rejected', reason: 'This bill is locked (its period is closed). Make a credit note instead.' });
-    expect((await pushOk(biz.id, oH, [{ table: 'invoices', id: 'new', data: invoice('new', { number: 'INV/26-27/0002', date: '2026-11-20', lines: [], updatedAt: at(-3) }) }]))[0]!.status).toBe('ok');
+    expect((await pushOk(biz.id, oH, [{ table: 'invoices', id: 'new', data: invoice('new', { number: 'INV/26-27/0002', date: '2026-11-20', lines: [], totals: { grandTotal: 0 }, updatedAt: at(-3) }) }]))[0]!.status).toBe('ok');
   });
 });
 
@@ -609,5 +609,31 @@ describe('gift vouchers across phones', () => {
     expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'vq2', data: vpay('vq2', 10000, { reference: 'GV222222' }) }]))[0]).toMatchObject({ status: 'rejected', reason: 'This voucher was for one use and is already used' });
     // Unknown codes are refused too.
     expect((await pushOk(biz.id, sH, [{ table: 'payments', id: 'vx', data: vpay('vx', 100, { reference: 'GV000000' }) }]))[0]).toMatchObject({ status: 'rejected' });
+  });
+});
+
+describe('server checks bill totals', () => {
+  it('refuses a saved bill whose total does not match its items; drafts are not checked', async () => {
+    const { biz, oH } = await setupStore('987041002');
+    const lines = [{ id: 'l1', name: 'Rice', qty: 2, rate: 5000, taxPct: 0 }];
+    const good = await pushOk(biz.id, oH, [{ table: 'invoices', id: 'tg', data: invoice('tg', { number: 'INV/26-27/0101', lines, totals: { grandTotal: 10000 } }) }]);
+    expect(good[0], JSON.stringify(good[0])).toMatchObject({ status: 'ok' });
+    const bad = await pushOk(biz.id, oH, [{ table: 'invoices', id: 'tb', data: invoice('tb', { number: 'INV/26-27/0102', lines, totals: { grandTotal: 100 } }) }]);
+    expect(bad[0]).toMatchObject({ status: 'rejected' });
+    expect(bad[0]!.reason).toMatch(/don't add up/);
+    const draft = await pushOk(biz.id, oH, [{ table: 'invoices', id: 'td', data: invoice('td', { status: 'draft', number: '', lines, totals: { grandTotal: 1 } }) }]);
+    expect(draft[0]!.status).toBe('ok');
+  });
+});
+
+describe('crash reports and privacy page', () => {
+  it('stores crash reports without a login, only text, and serves the privacy policy', async () => {
+    const r = await app.inject({ method: 'POST', url: '/v1/client-errors', payload: { reports: [{ message: 'Boom on bill screen', stack: 'Error: Boom\n at x', url: '/tabs/invoices/1', version: '11.26.27.10', client: 'mobile' }, { nope: 1 }] } });
+    expect(r.statusCode).toBe(204);
+    // Admin-only list: a signed-out call is refused.
+    expect((await app.inject({ method: 'GET', url: '/v1/admin/client-errors' })).statusCode).toBe(401);
+    const p = await app.inject({ method: 'GET', url: '/privacy' });
+    expect(p.statusCode).toBe(200);
+    expect(p.body).toContain('Only the contact you pick is saved');
   });
 });

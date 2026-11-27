@@ -113,6 +113,8 @@ export interface BusinessSettings extends SyncedRecord {
   confirmRepeatScan?: boolean;
   /** Day-end closing is compulsory (default on): billing waits until the last business day is closed. */
   dayEndRequired?: boolean;
+  /** When an unclosed day stops billing: never (remind only), after 2 unclosed days (default), or the next day. */
+  dayEndMode?: 'remind' | 'after2' | 'next';
   /** "HH:MM": the store closes; after it Home asks to close the day. */
   closingTime?: string;
   /** "HH:MM": the store opens; the phone reminds to count the cash in the counter. */
@@ -886,6 +888,9 @@ export interface Visit extends SyncedRecord {
   orderId?: string;
   byUserId: string;
   byName: string;
+  /** A planned visit: the owner put it on this person's list for `date`; `at` stays empty until they check in. */
+  planned?: boolean;
+  plannedByName?: string;
 }
 
 /* ---------- R11: features for kinds of shop ---------- */

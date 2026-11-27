@@ -4,14 +4,8 @@ import {
   CHEQUE_FIELDS,
   COST_TABLES,
   OWNER_ONLY_TABLES,
-  R2_TABLES,
-  R3_TABLES,
-  R4_TABLES,
-  R6_TABLES,
-  R7_TABLES,
-  R10_TABLES,
-  R11_TABLES,
   MONEY_TABLES,
+  tablesNewerThan,
   OWNER_PRIVATE_TABLES,
   PAYMENT_MODES,
   PAYMENT_VOID_FIELDS,
@@ -33,6 +27,7 @@ import {
 } from '@invoice/shared';
 import type { DB } from '../db/client';
 import { voucherPaymentProblem } from './vouchers';
+import { totalsProblem } from './totals';
 import { numberCounters, returnedNumbers, syncRecords } from '../db/schema';
 import { audit } from './audit';
 
@@ -182,6 +177,11 @@ export class SyncService {
     }
     const clash = await this.numberClash(tx, actor.businessId, table, id, data, existing);
     if (clash) return reject(clash);
+    // The server works the totals out again: a phone can't save a bill whose amounts don't add up.
+    if ((table === 'invoices' || table === 'estimates' || table === 'creditNotes') && data.deleted !== true && data.status !== 'draft') {
+      const wrong = totalsProblem(data);
+      if (wrong) return reject(wrong);
+    }
     // Gift vouchers: never more than is left, a one-use voucher only once, across every phone.
     if (table === 'payments' && !existing) {
       const problem = await voucherPaymentProblem(tx, actor.businessId, data, id, actor.today ?? istToday());
@@ -347,7 +347,7 @@ export class SyncService {
    */
   async pull(businessId: string, since: number, limit = SYNC_PULL_MAX, opts: { hideCost?: boolean; schema?: number; notOwner?: boolean; seesMoney?: boolean } = {}): Promise<SyncPullResponse> {
     const schema = opts.schema ?? 1;
-    const skip = [...(schema < 2 ? R2_TABLES : []), ...(schema < 3 ? R3_TABLES : []), ...(schema < 4 ? R4_TABLES : []), ...(schema < 5 ? R6_TABLES : []), ...(schema < 6 ? R7_TABLES : []), ...(schema < 7 ? R10_TABLES : []), ...(schema < 8 ? R11_TABLES : []), ...(opts.notOwner && !opts.seesMoney ? MONEY_TABLES : []), ...(opts.hideCost ? COST_TABLES : []), ...(opts.notOwner ? OWNER_PRIVATE_TABLES : [])];
+    const skip = [...tablesNewerThan(schema), ...(opts.notOwner && !opts.seesMoney ? MONEY_TABLES : []), ...(opts.hideCost ? COST_TABLES : []), ...(opts.notOwner ? OWNER_PRIVATE_TABLES : [])];
     const rows = await this.db
       .select({ table: syncRecords.tableName, id: syncRecords.id, data: syncRecords.data, seq: syncRecords.seq })
       .from(syncRecords)

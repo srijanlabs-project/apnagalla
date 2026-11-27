@@ -48,47 +48,72 @@ export const SYNC_TABLES = [
 ] as const;
 export type SyncTable = (typeof SYNC_TABLES)[number];
 
-/** Tables added in R2. Phones on an older app version don't have them, so they aren't sent there. */
-export const R2_TABLES: readonly SyncTable[] = ['stockMoves', 'suppliers', 'purchaseOrders', 'purchases', 'supplierPayments', 'expenses', 'dayCloses'];
+/**
+ * One rule per table, read top to bottom:
+ * - since: the data layout (SYNC_SCHEMA) an app must have to receive it; older apps don't know the table.
+ * - owner: only the owner may change it (store details, books). private: only the owner even sees it.
+ * - money: money records the owner and the accountant login see. cost: purchase prices, hidden from staff
+ *   of a store that hides costs. append: only ever added; a mistake is voided by the owner.
+ */
+type Rule = { since: number; owner?: true; private?: true; money?: true; cost?: true; append?: true };
+export const TABLE_RULES: Record<SyncTable, Rule> = {
+  profiles: { since: 1, owner: true },
+  settings: { since: 1, owner: true },
+  bankAccounts: { since: 1, owner: true },
+  upiIds: { since: 1, owner: true },
+  customers: { since: 1 },
+  items: { since: 1 },
+  invoices: { since: 1 },
+  estimates: { since: 1 },
+  creditNotes: { since: 1 },
+  payments: { since: 1, append: true },
+  categories: { since: 1, owner: true },
+  stockMoves: { since: 2, append: true },
+  suppliers: { since: 2, cost: true },
+  purchaseOrders: { since: 2, cost: true },
+  purchases: { since: 2, cost: true },
+  supplierPayments: { since: 2, cost: true, append: true },
+  expenses: { since: 2 },
+  dayCloses: { since: 2 },
+  offers: { since: 3, owner: true },
+  savedReports: { since: 3, owner: true },
+  employees: { since: 4, owner: true, private: true },
+  attendance: { since: 4, owner: true, private: true },
+  moneyMoves: { since: 5, owner: true, money: true },
+  incomes: { since: 5, owner: true, money: true },
+  loans: { since: 5, owner: true, money: true },
+  loanEntries: { since: 5, owner: true, money: true },
+  recurringExpenses: { since: 5, owner: true, money: true },
+  ledgers: { since: 6, owner: true, money: true },
+  journals: { since: 6, owner: true, money: true },
+  visits: { since: 7 },
+  crates: { since: 8 },
+  schemes: { since: 8, cost: true },
+  vouchers: { since: 8 },
+  rentals: { since: 8 },
+  recipes: { since: 8 },
+};
+const where = (test: (r: Rule) => boolean | undefined): readonly SyncTable[] => SYNC_TABLES.filter((t) => test(TABLE_RULES[t]));
 
-/** Tables added in R3 (sent to apps of schema 3 or later). */
-export const R3_TABLES: readonly SyncTable[] = ['offers', 'savedReports'];
+/** Tables an app of this data layout doesn't know yet (left out of what it receives). */
+export const tablesNewerThan = (schema: number): readonly SyncTable[] => where((r) => r.since > schema);
 
-/** Tables added in R4 (sent to apps of schema 4 or later). */
-export const R4_TABLES: readonly SyncTable[] = ['employees', 'attendance'];
-
-/** Tables added in R6 (sent to apps of schema 5 or later). */
-export const R6_TABLES: readonly SyncTable[] = ['moneyMoves', 'incomes', 'loans', 'loanEntries', 'recurringExpenses'];
-
-/** Tables added in R7 (sent to apps of schema 6 or later): own ledgers and journal entries. */
-export const R7_TABLES: readonly SyncTable[] = ['ledgers', 'journals'];
-
-/** Tables added in R10 (sent to apps of schema 7 or later): field sales visits. */
-export const R10_TABLES: readonly SyncTable[] = ['visits'];
-
-/** Tables added in R11 (sent to apps of schema 8 or later): crates, supplier schemes, gift vouchers, rentals, recipes. */
-export const R11_TABLES: readonly SyncTable[] = ['crates', 'schemes', 'vouchers', 'rentals', 'recipes'];
-
-/** Bank moves, other income, loans, repeating expenses and the books: the owner and the accountant login see them. */
-export const MONEY_TABLES: readonly SyncTable[] = [...R6_TABLES, ...R7_TABLES];
-
-/** Staff pay and attendance: only the owner sees or changes them. */
-export const OWNER_PRIVATE_TABLES: readonly SyncTable[] = ['employees', 'attendance'];
+// The lists below are read from TABLE_RULES; the release names are kept for older code and tests.
+export const R2_TABLES = where((r) => r.since === 2);
+export const R3_TABLES = where((r) => r.since === 3);
+export const R4_TABLES = where((r) => r.since === 4);
+export const R6_TABLES = where((r) => r.since === 5);
+export const R7_TABLES = where((r) => r.since === 6);
+export const R10_TABLES = where((r) => r.since === 7);
+export const R11_TABLES = where((r) => r.since === 8);
+export const MONEY_TABLES = where((r) => r.money);
+export const OWNER_PRIVATE_TABLES = where((r) => r.private);
+export const COST_TABLES = where((r) => r.cost);
+export const APPEND_ONLY_TABLES = where((r) => r.append);
+export const OWNER_ONLY_TABLES = where((r) => r.owner);
 
 /** The data layout the phone understands; sent on pull. Older apps send none (= 1). */
 export const SYNC_SCHEMA = 8;
-
-/**
- * Purchase prices live in these tables: staff of a store that hides costs from staff never
- * receive them and can't add to them.
- */
-export const COST_TABLES: readonly SyncTable[] = ['suppliers', 'purchaseOrders', 'purchases', 'supplierPayments', 'schemes'];
-
-/** Records that are only ever added (a mistake is voided by the owner, never edited or deleted). */
-export const APPEND_ONLY_TABLES: readonly SyncTable[] = ['payments', 'supplierPayments', 'stockMoves'];
-
-/** Store details: only the owner may change them. */
-export const OWNER_ONLY_TABLES: readonly SyncTable[] = ['profiles', 'settings', 'bankAccounts', 'upiIds', 'categories', 'offers', 'savedReports', 'employees', 'attendance', ...R6_TABLES, ...R7_TABLES];
 
 /** Payment modes for a payment or refund entry. `advance` = paid from money the customer left on account. */
 export const PAYMENT_MODES = ['cash', 'upi', 'card', 'bank', 'cheque', 'other', 'advance', 'finance', 'creditnote', 'points', 'buyback', 'voucher'] as const;

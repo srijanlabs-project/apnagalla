@@ -164,6 +164,8 @@ export const api = {
     request<ReserveNumbersResponse>('POST', `/v1/businesses/${id}/numbers/reserve`, body, { timeoutMs }),
   returnNumbers: (id: string, body: ReturnNumbersBody) => request<void>('POST', `/v1/businesses/${id}/numbers/return`, body),
   gstinLookup: (id: string, gstin: string) => request<{ found: boolean; info: GstinInfo | null }>('GET', `/v1/businesses/${id}/gstin/${encodeURIComponent(gstin)}`, undefined, { timeoutMs: 15_000 }),
+  adminCrashes: () =>
+    request<{ rows: { at: string; businessId: string | null; message?: string; stack?: string; where?: string; url?: string; version?: string; client?: string }[] }>('GET', '/v1/admin/client-errors'),
   adminStores: (q?: string) => request<{ stores: AdminStoreDto[]; activeDevices: number }>('GET', `/v1/admin/stores${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   adminCreateStore: (body: AdminCreateStoreBody) => request<{ id: string }>('POST', '/v1/admin/stores', body),
   adminSuspend: (id: string, reason: string) => request<void>('POST', `/v1/admin/stores/${id}/suspend`, { reason }),

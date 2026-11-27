@@ -25,7 +25,7 @@ export function TextField(p: TextProps) {
   return (
     <IonInput
       fill="outline"
-      labelPlacement="floating"
+      labelPlacement="stacked"
       label={p.required ? `${p.label} *` : p.label}
       value={p.value ?? ''}
       type={p.type ?? 'text'}
@@ -47,7 +47,7 @@ export function TextArea(p: { label: string; value: string | undefined; onChange
     <IonTextarea
       className="field"
       fill="outline"
-      labelPlacement="floating"
+      labelPlacement="stacked"
       label={p.label}
       value={p.value ?? ''}
       autoGrow
@@ -78,7 +78,7 @@ export function MoneyField(p: { label: string; value: number | null | undefined;
     <IonInput
       className={invalid ? 'field ion-invalid ion-touched' : 'field'}
       fill="outline"
-      labelPlacement="floating"
+      labelPlacement="stacked"
       label={p.required ? `${p.label} *` : p.label}
       inputmode="decimal"
       value={text}
@@ -115,7 +115,7 @@ export function NumberField(p: { label: string; value: number | null | undefined
     <IonInput
       className="field"
       fill="outline"
-      labelPlacement="floating"
+      labelPlacement="stacked"
       label={p.label}
       inputmode="decimal"
       value={text}
@@ -150,7 +150,7 @@ export function SelectField<T extends string | number>(p: { label: string; value
     <IonSelect
       className="field"
       fill="outline"
-      labelPlacement="floating"
+      labelPlacement="stacked"
       label={p.label}
       value={p.value}
       disabled={p.disabled}

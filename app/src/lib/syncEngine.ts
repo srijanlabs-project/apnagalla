@@ -23,11 +23,20 @@ export interface SyncState {
   lastError: string | null;
   /** Changes the server refused (e.g. staff editing a saved invoice), most recent first. */
   rejected: { table: SyncTable; id: string; reason: string; at: string }[];
+  /** A change of ours lost to a newer edit made on another phone (theirs is kept), most recent first. */
+  conflicts: { table: SyncTable; id: string; label: string; byName?: string; at: string }[];
 }
 
 const NUMBERED: readonly SyncTable[] = ['invoices', 'estimates', 'creditNotes'];
+/** Records people edit by hand, where losing an edit to another phone must be told. */
+const CONFLICT_TABLES: readonly SyncTable[] = ['invoices', 'estimates', 'creditNotes', 'customers', 'items', 'suppliers', 'purchases'];
 
-let state: SyncState = { running: false, lastSyncAt: null, lastError: null, rejected: [] };
+/** The notice was seen: clear it. */
+export function dismissSyncNotice(kind: 'conflicts' | 'rejected', id: string) {
+  setState({ [kind]: (state[kind] as { id: string }[]).filter((x) => x.id !== id) } as Partial<SyncState>);
+}
+
+let state: SyncState = { running: false, lastSyncAt: null, lastError: null, rejected: [], conflicts: [] };
 const listeners = new Set<(s: SyncState) => void>();
 let inFlight: Promise<void> | null = null;
 let again = false;
@@ -132,6 +141,7 @@ async function pushStore(businessId: string) {
 
     const bySeq = new Map(entries.map((e) => [`${e.table}:${e.recordId}`, e.seq!]));
     const rejected: SyncState['rejected'] = [];
+    const conflicts: SyncState['conflicts'] = [];
     await db.transaction('rw', [db.outbox, ...changes.map((c) => table(c.table))], async () => {
       for (const r of results) {
         const seq = bySeq.get(`${r.table}:${r.id}`);
@@ -140,9 +150,16 @@ async function pushStore(businessId: string) {
         // edited again while we were syncing, in which case that new edit goes out next round.
         if (r.current && !(await hasPending(r.table, r.id))) await table(r.table).put(r.current as unknown as SyncedRecord);
         if (r.status === 'rejected') rejected.push({ table: r.table, id: r.id, reason: r.reason ?? t('Not allowed'), at: new Date().toISOString() });
+        // Someone else's newer edit won: tell this person their change was not kept.
+        if (r.status === 'stale' && r.current && CONFLICT_TABLES.includes(r.table)) {
+          const cur = r.current as Record<string, unknown>;
+          const label = String(cur.number || (cur.billTo as { name?: string } | undefined)?.name || cur.name || '');
+          conflicts.push({ table: r.table, id: r.id, label, byName: typeof cur.updatedByName === 'string' ? cur.updatedByName : undefined, at: new Date().toISOString() });
+        }
       }
     });
     if (rejected.length) setState({ rejected: [...rejected, ...state.rejected].slice(0, 50) });
+    if (conflicts.length) setState({ conflicts: [...conflicts, ...state.conflicts].slice(0, 20) });
     if (!cut && entries.length < SYNC_PUSH_MAX) return;
   }
 }
