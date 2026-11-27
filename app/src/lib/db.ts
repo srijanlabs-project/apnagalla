@@ -115,6 +115,8 @@ export interface BusinessSettings extends SyncedRecord {
   dayEndRequired?: boolean;
   /** "HH:MM": the store closes; after it Home asks to close the day. */
   closingTime?: string;
+  /** "HH:MM": the store opens; the phone reminds to count the cash in the counter. */
+  openingTime?: string;
   /** Days before this are never asked to be closed (set when the rule is turned on). */
   dayEndFrom?: string;
   /** Store assets: equipment the store owns (fridge, scale, counter…). Owner keeps the list. */
@@ -437,6 +439,8 @@ export interface PaymentEntry extends SyncedRecord {
   /** UPI reference, cheque number… */
   reference?: string;
   note?: string;
+  /** Cash: what the customer handed over when it was more than the amount (the rest was given back). */
+  cashGot?: number;
   receivedBy: string;
   receivedByName?: string;
   voidedAt?: string | null;
@@ -926,6 +930,8 @@ export interface Voucher extends SyncedRecord {
   soldTo?: string;
   date: string;
   validTill?: string;
+  /** Use once: whatever is not spent on the first bill is gone. Otherwise it can be used on many bills until the amount runs out. */
+  singleUse?: boolean;
   /** Sale of the voucher: how it was paid. */
   mode: 'cash' | 'upi' | 'card' | 'bank' | 'other';
   voidedAt?: string | null;

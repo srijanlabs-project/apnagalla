@@ -146,7 +146,7 @@ export function ItemForm({
         </div>
         <div className="field-row">
           <MoneyField label={t('MRP (incl. tax)')} value={it.mrp ?? null} onChange={(mrp) => patch({ mrp: mrp || undefined })} disabled={priceLocked} />
-          {showCost && <MoneyField label={t('Purchase price (cost)')} value={it.purchasePrice ?? null} onChange={(purchasePrice) => patch({ purchasePrice: purchasePrice || undefined })} disabled={priceLocked} />}
+          {showCost && <MoneyField label={t('Cost price')} value={it.purchasePrice ?? null} onChange={(purchasePrice) => patch({ purchasePrice: purchasePrice || undefined })} disabled={priceLocked} />}
         </div>
         {aboveMrp && <p className="section-note text-danger">{t('Selling price {price} is above the MRP {mrp}. Selling above MRP is not allowed.', { price: rupees(finalPrice), mrp: rupees(it.mrp!) })}</p>}
         {margin != null && <p className="section-note">{t('Margin before tax: {margin} per {unit}', { margin: rupees(Math.round(margin)), unit: it.unit })}</p>}
@@ -178,7 +178,7 @@ export function ItemForm({
           {it.trackStock !== false && (
             <div className="field-row">
               <NumberField label={t('Low stock at')} value={it.lowStock ?? null} onChange={(lowStock) => patch({ lowStock })} suffix={it.unit} min={0} disabled={priceLocked} />
-              <NumberField label={t('Usual order quantity')} value={it.reorderQty ?? null} onChange={(reorderQty) => patch({ reorderQty })} suffix={it.unit} min={0} disabled={priceLocked} />
+              <NumberField label={t('Reorder qty')} value={it.reorderQty ?? null} onChange={(reorderQty) => patch({ reorderQty })} suffix={it.unit} min={0} disabled={priceLocked} />
             </div>
           )}
         </FormSection>

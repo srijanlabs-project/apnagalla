@@ -3,11 +3,12 @@ import { todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 import { useState } from 'react';
+import { dayOpened } from '../../lib/dayEnd';
 import { useLocation } from 'react-router-dom';
 import { FormSection, MoneyField, TextField } from '../../components/Fields';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
-import { cashDay, closeDay, type CashLine } from '../../lib/cashbook';
+import { cashDay, closeDay, type CashLine, openDay } from '../../lib/cashbook';
 import { dateIN, rupees } from '../../lib/format';
 import { t } from '../../lib/i18n';
 import { modeLabel } from '../../lib/ledger';
@@ -50,6 +51,8 @@ export default function CashBookScreen() {
   const asked = new URLSearchParams(useLocation().search).get('date');
   const [date, setDate] = useState(asked && /^\d{4}-\d{2}-\d{2}$/.test(asked) ? asked : todayISO());
   const day = useLiveQuery(() => cashDay(actor.businessId, date), [actor.businessId, date]);
+  const opened = useLiveQuery(async () => (await dayOpened(actor.businessId, date)) ?? false, [actor.businessId, date]);
+  const [openCount, setOpenCount] = useState<number | null>(null);
   const [counted, setCounted] = useState<number | null>(null);
   const [note, setNote] = useState('');
   if (!day) return null;
@@ -78,6 +81,38 @@ export default function CashBookScreen() {
           <strong>{rupees(day.expected)}</strong>
         </div>
       </div>
+
+      {opened ? (
+        <p className="section-note ion-padding-horizontal">
+          {t('Opened by {name}: {amount} counted in the counter', { name: opened.closedByName ?? '', amount: rupees(opened.counted) })}
+          {opened.counted !== opened.expected ? ` (${opened.counted < opened.expected ? t('short {amount}', { amount: rupees(opened.expected - opened.counted) }) : t('extra {amount}', { amount: rupees(opened.counted - opened.expected) })})` : ''}
+        </p>
+      ) : (
+        opened === false &&
+        date === todayISO() && (
+          <FormSection title={t('Day start')} note={t('Count the cash in the counter before the first sale.')}>
+            <MoneyField label={t('Cash in the counter now')} value={openCount} onChange={setOpenCount} />
+            <NoteCounter onTotal={setOpenCount} />
+            {openCount != null && openCount !== day.opening && (
+              <p className={openCount < day.opening ? 'text-danger' : 'text-success'}>
+                {openCount < day.opening ? t('Short {amount}', { amount: rupees(day.opening - openCount) }) : t('Extra {amount}', { amount: rupees(openCount - day.opening) })}
+              </p>
+            )}
+            <IonButton
+              expand="block"
+              disabled={openCount == null}
+              onClick={() =>
+                void openDay(actor, date, day.opening, openCount!).then(() => {
+                  setOpenCount(null);
+                  void toast({ message: t('Store opened'), duration: 1500, position: 'top', color: 'success' });
+                })
+              }
+            >
+              {t('Open the day')}
+            </IonButton>
+          </FormSection>
+        )
+      )}
 
       {day.cashIn.length + day.cashOut.length === 0 ? (
         <p className="section-note ion-padding-horizontal">{t('No cash in or out on this day.')}</p>

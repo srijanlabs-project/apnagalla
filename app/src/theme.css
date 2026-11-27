@@ -333,3 +333,16 @@
 .party-stats { gap: 8px; padding: 0 16px 8px; }
 .party-stats .mini-stat:only-child, .party-stats .mini-stat:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .party-stats .mini-stat strong { font-size: 1.25rem; }
+/* Home: four equal buttons, one line of text each. */
+.quick-actions ion-button { margin: 0; height: 48px; --padding-start: 8px; --padding-end: 8px; font-size: 0.85rem; letter-spacing: 0; text-transform: none; font-weight: 600; }
+.quick-actions ion-button ion-icon { font-size: 1.1rem; margin-right: 6px; }
+
+/* No cut-off text: tabs, buttons and field labels wrap onto a second line instead of "…". */
+ion-segment-button { min-width: 0; --padding-start: 4px; --padding-end: 4px; }
+ion-segment-button ion-label { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2; font-size: 0.8rem; }
+.detail-actions ion-button, .filter-chips ion-button { white-space: normal; height: auto; min-height: 36px; --padding-top: 6px; --padding-bottom: 6px; }
+ion-input .label-text-wrapper, ion-select .label-text-wrapper, ion-textarea .label-text-wrapper { max-width: 100% !important; }
+ion-input .label-text, ion-select .label-text, ion-textarea .label-text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; line-height: 1.15; }
+.field-row ion-input .label-text, .field-row ion-select .label-text { font-size: 0.85rem; }
+ion-input .native-input::placeholder { text-overflow: clip; }
+ion-chip ion-label { white-space: normal; }

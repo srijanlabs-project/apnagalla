@@ -10,6 +10,25 @@ import { db, type BusinessSettings } from './db';
 /** Stores that had the app before this rule start being asked from this day. */
 export const DAY_END_START = '2026-11-27';
 export const DEFAULT_CLOSING = '21:00';
+export const DEFAULT_OPENING = '09:00';
+
+/** The day-start count is kept next to the day-ends, under its own id (it never changes the cash book). */
+export const openId = (businessId: string, date: string) => `${businessId}:open:${date}`;
+
+/** Today's day-start count, if done. */
+export async function dayOpened(businessId: string, date = todayISO()) {
+  const c = await db.dayCloses.get(openId(businessId, date));
+  return c && !c.deleted ? c : null;
+}
+
+/** After opening time, today's cash count at the counter is not done yet. */
+export async function openingDue(businessId: string, settings: BusinessSettings, now = new Date()): Promise<boolean> {
+  if (!dayEndOn(settings)) return false;
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  if (hhmm < (settings.openingTime || DEFAULT_OPENING)) return false;
+  if (hhmm >= (settings.closingTime || DEFAULT_CLOSING)) return false;
+  return !(await dayOpened(businessId, todayISO(now)));
+}
 
 export const dayEndOn = (s: Pick<BusinessSettings, 'dayEndRequired'>) => s.dayEndRequired !== false;
 

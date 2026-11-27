@@ -27,7 +27,7 @@ describe('Shop features', () => {
 
 describe('Cash quick amounts', () => {
   it('offers exact, then the next round notes', async () => {
-    const { cashSteps } = await import('../components/PaySheet');
+    const { cashSteps } = await import('./format');
     expect(cashSteps(542800)).toEqual([542800, 550000, 600000]);
     expect(cashSteps(50000)).toEqual([50000, 200000]);
     expect(cashSteps(12000)).toEqual([12000, 20000, 50000, 200000]);

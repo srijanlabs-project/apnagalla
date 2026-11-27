@@ -505,6 +505,8 @@ export interface NewPayment {
   accountId?: string | null;
   reference?: string;
   note?: string;
+  /** Cash handed over when more than the amount; the difference was given back. */
+  cashGot?: number;
 }
 
 /** Money on one bill right now (from the local copy of its entries and credit notes). */
@@ -555,6 +557,7 @@ export async function recordPayments(
         date,
         reference: p.reference?.trim() || undefined,
         note: p.note?.trim() || undefined,
+        ...(p.mode === 'cash' && p.cashGot && p.cashGot > p.amount ? { cashGot: Math.round(p.cashGot) } : {}),
         receivedBy: actor.userId,
         receivedByName: actor.userName,
         ...(p.mode === 'cheque' && kind === 'payment' ? { chequeStatus: 'pending' as const } : {}),

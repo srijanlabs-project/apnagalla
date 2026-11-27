@@ -4,7 +4,7 @@ import { addOutline, closeCircle } from 'ionicons/icons';
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
 import type { UpiId } from '../lib/db';
-import { rupees } from '../lib/format';
+import { rupees, cashSteps } from '../lib/format';
 import { t } from '../lib/i18n';
 import { MODE_LABEL, modeLabel } from '../lib/ledger';
 import { upiLink } from '../lib/pdf/buildDoc';
@@ -73,7 +73,7 @@ export default function PaySheet({ isOpen, onClose, amount, kind = 'payment', up
     if (busy || (!payLater && (total <= 0 || tooMuch || short))) return;
     setBusy(true);
     try {
-      await onConfirm(payLater ? [] : rows.map((r) => ({ ...r, amount: paidOf(r) })).filter((r) => r.amount > 0).map(({ tendered: _t, ...r }) => r), date, payLater ? 0 : change);
+      await onConfirm(payLater ? [] : rows.map((r) => ({ ...r, amount: paidOf(r) })).filter((r) => r.amount > 0).map(({ tendered, ...r }) => (r.mode === 'cash' && tendered && tendered > r.amount ? { ...r, cashGot: tendered } : r)), date, payLater ? 0 : change);
     } finally {
       setBusy(false);
     }
@@ -215,12 +215,3 @@ function UpiQr({ upi, amount, note }: { upi: UpiId; amount: number; note: string
   );
 }
 
-/** One-tap cash amounts: exact, then the next round notes a customer is likely to hand over (paise). */
-export function cashSteps(amount: number): number[] {
-  const out = [amount];
-  for (const step of [10000, 50000, 200000]) {
-    const v = Math.ceil(amount / step) * step;
-    if (v > amount && !out.includes(v)) out.push(v);
-  }
-  return out.slice(0, 4);
-}

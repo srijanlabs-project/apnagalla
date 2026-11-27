@@ -3,6 +3,7 @@ import { supplierDues } from './purchases';
 import { remindersDue } from './reminders';
 import { todayISO } from '@invoice/shared';
 import { db } from './db';
+import { DEFAULT_OPENING, dayEndOn } from './dayEnd';
 import { rupees } from './format';
 import { t } from './i18n';
 import { receivables } from './khata';
@@ -31,7 +32,7 @@ export const DEFAULT_ALERTS: AlertSettings = { lowStock: true, overdue: true, su
 
 /** Shop alerts use ids below this; delivery alerts are above it. */
 export const SHOP_ALERT_MAX_ID = 0x10000;
-const ID = { lowStock: 101, overdue: 102, summary: 103, supplierDue: 104, reminders: 105 };
+const ID = { lowStock: 101, overdue: 102, summary: 103, supplierDue: 104, reminders: 105, open: 106 };
 
 export async function loadAlertSettings(): Promise<AlertSettings> {
   return { ...DEFAULT_ALERTS, ...((await kv.get<Partial<AlertSettings>>(KEYS.alerts)) ?? {}) };
@@ -105,6 +106,14 @@ export async function shopAlerts(actor: Actor, s: AlertSettings, opts: { canSeeM
           .join(', '),
         at,
       });
+    }
+  }
+  {
+    // Morning: open the store and count the cash in the counter (when day-end closing is on).
+    const st = await db.settings.get(actor.businessId);
+    if (st && dayEndOn(st)) {
+      const at = nextAt(st.openingTime || DEFAULT_OPENING, now);
+      out.push({ id: ID.open, title: prefix + t('Open the store'), body: t('Count the cash in the counter and enter it in ApnaGalla.'), at });
     }
   }
   if (s.summary && opts.canSeeMoney) {

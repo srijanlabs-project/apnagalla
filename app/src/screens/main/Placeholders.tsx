@@ -5,7 +5,7 @@ import type { BillingStatusDto } from '@invoice/shared';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { closingDue, dayToClose } from '../../lib/dayEnd';
+import { closingDue, dayToClose, openingDue } from '../../lib/dayEnd';
 import { addOutline, cartOutline, clipboardOutline, walletOutline } from 'ionicons/icons';
 import { useHomeCards, type HomeCard } from '../../lib/homeCards';
 import PageShell from '../../components/PageShell';
@@ -50,7 +50,8 @@ export function HomeScreen() {
     if (!billsHere) return null;
     const pending = await dayToClose(actor.businessId, settings);
     if (pending) return { date: pending, block: true };
-    return (await closingDue(actor.businessId, settings)) ? { date: todayISO(), block: false } : null;
+    if (await closingDue(actor.businessId, settings)) return { date: todayISO(), block: false };
+    return (await openingDue(actor.businessId, settings)) ? { date: todayISO(), block: false, open: true } : null;
   }, [actor.businessId, settings, ledger, billsHere]);
   const today = useLiveQuery(() => todaySummary(actor.businessId, canBuy, seesMoney && canBuy), [actor.businessId, canBuy, seesMoney, ledger]);
   const recent = useLiveQuery(
@@ -73,7 +74,7 @@ export function HomeScreen() {
       <h2 className="greeting">{first ? t('Hi, {name}', { name: first }) : t('Hi')} 👋</h2>
       <div className="quick-actions">
         {CAN_CREATE_INVOICES && (
-          <IonButton expand="block" size="large" routerLink="/tabs/sale">
+          <IonButton expand="block" routerLink="/tabs/sale">
             <IonIcon icon={cartOutline} slot="start" /> {t('New sale')}
           </IonButton>
         )}
@@ -100,7 +101,11 @@ export function HomeScreen() {
       {dayEnd && (
         <IonRouterLink routerLink={`/tabs/cash-book?date=${dayEnd.date}`}>
           <p className={dayEnd.block ? 'renew-banner' : 'day-end-banner'}>
-            {dayEnd.block ? t('{date} is not closed. Close it to start billing today.', { date: dateIN(dayEnd.date) }) : t('Closing time: count the cash and close today.')}
+            {dayEnd.block
+              ? t('{date} is not closed. Close it to start billing today.', { date: dateIN(dayEnd.date) })
+              : 'open' in dayEnd
+                ? t('Open the store: count the cash in the counter.')
+                : t('Closing time: count the cash and close today.')}
           </p>
         </IonRouterLink>
       )}

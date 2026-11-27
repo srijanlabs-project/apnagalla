@@ -299,6 +299,7 @@ export default function InvoiceSettingsScreen() {
           onChange={(on) => patch({ dayEndRequired: on, ...(on ? { dayEndFrom: todayISO() } : {}) })}
           disabled={ro}
         />
+        <TextField label={t('Store opening time')} type="time" value={s.openingTime ?? '09:00'} onChange={(openingTime) => patch({ openingTime: openingTime || '09:00' })} disabled={ro} helper={t('At this time the phone reminds you to open the store and count the cash in the counter.')} />
         <TextField label={t('Store closing time')} type="time" value={s.closingTime ?? '21:00'} onChange={(closingTime) => patch({ closingTime: closingTime || '21:00' })} disabled={ro} helper={t('After this time, Home reminds you to close the day.')} />
       </FormSection>
 

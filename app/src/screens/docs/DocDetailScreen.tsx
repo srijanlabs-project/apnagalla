@@ -298,6 +298,29 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
   // Everything that is not an everyday action lives in the "More" menu, so the bill shows 3–4 clear buttons.
   const canTakePayment = !!inv && inv.status === 'saved' && pending > 0 && CAN_CREATE_INVOICES;
   const extraButtons = [
+    {
+      text: t('WhatsApp to a number'),
+      handler: () =>
+        void alert({
+          header: t('WhatsApp to a number'),
+          message: t('Any mobile number: it need not be saved in your phone.'),
+          inputs: [{ name: 'phone', type: 'tel', placeholder: t('10-digit mobile number'), value: doc.billTo?.phone ?? '' }],
+          buttons: [
+            { text: t('Cancel'), role: 'cancel' },
+            {
+              text: t('Send'),
+              handler: (v: { phone: string }) => {
+                const digits = (v.phone ?? '').replace(/\D/g, '').replace(/^(91|0)(?=\d{10}$)/, '');
+                if (!/^[6-9]\d{9}$/.test(digits)) {
+                  void toast({ message: t('Enter a 10-digit mobile number'), duration: 2000, color: 'warning' });
+                  return false;
+                }
+                void onShare(`+91${digits}`);
+              },
+            },
+          ],
+        }),
+    },
     ...(doc.billTo?.phone ? [{ text: t('Share PDF'), handler: () => void onShare() }] : []),
     ...(emailOn && doc.status !== 'draft' ? [{ text: t('Email'), handler: onEmail }] : []),
     { text: t('Print A4'), handler: () => void makePdf().then((pdf) => printPdfFile(pdfFileName(kind, doc), pdf.blob, `${view.title} ${doc.number}`)).catch(fail) },
@@ -677,6 +700,7 @@ export default function DocDetailScreen({ kind }: { kind: DocKind }) {
                   {e.receivedByName ? ` · ${e.receivedByName}` : ''}
                   {e.note ? ` · ${e.note}` : ''}
                 </p>
+                {e.cashGot ? <p>{t('Got {got} · {back} given back', { got: rupees(e.cashGot), back: rupees(e.cashGot - e.amount) })}</p> : null}
                 {e.voidedAt && (
                   <p className="text-danger">
                     {e.voidedByName ? t('Voided by {name}: {reason}', { name: e.voidedByName, reason: e.voidReason ?? '' }) : t('Voided: {reason}', { reason: e.voidReason ?? '' })}

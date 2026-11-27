@@ -242,7 +242,8 @@ describe('R4.8 phone alerts', () => {
     expect(low?.body).toContain('Bulb');
     expect(list.find((a) => a.id === 103)?.title).toContain('Today');
     const late = await shopAlerts(owner, DEFAULT_ALERTS, { canSeeMoney: false, storeName: '', now: new Date(2026, 10, 25, 22, 0) });
-    expect(late.map((a) => a.id)).toEqual([101]);
+    // Low stock, and the morning reminder to open the store (day-end closing is on by default).
+    expect(late.map((a) => a.id)).toEqual([101, 106]);
   });
 });
 

@@ -79,3 +79,13 @@ export const isAreaLine = (l: SizedLine) => isAreaPricing(l.pricing) && !!l.dims
 
 /** Size of an area line, "4 ft × 6 ft × 2 = 48 sq ft"; '' for other lines. */
 export const lineSize = (l: SizedLine) => (isAreaLine(l) ? dimsLabel(l.dims!, l.pricing as AreaPricing) : '');
+
+/** One-tap cash amounts: exact, then the next round notes a customer is likely to hand over (paise). */
+export function cashSteps(amount: number): number[] {
+  const out = [amount];
+  for (const step of [10000, 50000, 200000]) {
+    const v = Math.ceil(amount / step) * step;
+    if (v > amount && !out.includes(v)) out.push(v);
+  }
+  return out.slice(0, 4);
+}

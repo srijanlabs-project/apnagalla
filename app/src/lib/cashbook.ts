@@ -1,3 +1,4 @@
+import { openId } from './dayEnd';
 import { db, type DayClose } from './db';
 import { t } from './i18n';
 import { moneyEvents } from './money';
@@ -101,6 +102,25 @@ export async function cashDay(businessId: string, date: string): Promise<CashDay
     close: closes.get(date),
     otherModes,
   };
+}
+
+/**
+ * Day start: the cash found in the counter in the morning, against what the last day-end left.
+ * Kept for the record (who opened, any gap); the cash book still runs from the day-end counts.
+ */
+export async function openDay(actor: Actor, date: string, expected: number, counted: number, note?: string): Promise<DayClose> {
+  const id = openId(actor.businessId, date);
+  const existing = await db.dayCloses.get(id);
+  return putRecord('dayCloses', actor, {
+    ...(existing ?? {}),
+    id,
+    date: `open:${date}`,
+    expected,
+    counted,
+    difference: 0,
+    note: [note?.trim(), counted !== expected ? `${counted > expected ? '+' : '−'}₹${(Math.abs(counted - expected) / 100).toFixed(2)}` : ''].filter(Boolean).join(' · ') || undefined,
+    closedByName: actor.userName,
+  } as DayClose);
 }
 
 export async function closeDay(actor: Actor, day: CashDay, counted: number, note?: string): Promise<DayClose> {

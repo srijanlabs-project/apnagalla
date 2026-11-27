@@ -3,7 +3,7 @@ import { addDaysISO, todayISO } from '@invoice/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { addOutline, closeCircle, logoWhatsapp } from 'ionicons/icons';
 import { useState } from 'react';
-import { FormSection, MoneyField, NumberField, SelectField, TextField } from '../../components/Fields';
+import { FormSection, MoneyField, NumberField, SelectField, TextField, ToggleRow } from '../../components/Fields';
 import ItemPicker from '../../components/ItemPicker';
 import PageShell from '../../components/PageShell';
 import { useBusiness } from '../../lib/business';
@@ -92,21 +92,28 @@ export function VouchersScreen() {
   const [soldTo, setSoldTo] = useState('');
   const [mode, setMode] = useState<'cash' | 'upi' | 'card'>('cash');
   const [validTill, setValidTill] = useState(addDaysISO(todayISO(), 365));
+  const [singleUse, setSingleUse] = useState(false);
   return (
     <PageShell title={t('Gift vouchers')} backHref="/tabs/more" padded={false}>
       <div className="ion-padding">
-        <FormSection title={t('Sell a voucher')} note={t('Anyone with the code can use it on a bill (Bill → Pay with gift voucher) until it runs out or expires.')}>
+        <FormSection title={t('Sell a voucher')} note={t('Anyone with the code can pay with it in New sale (Gift voucher) or on a bill. It never pays more than its amount.')}>
           <MoneyField label={t('Amount')} value={amount} onChange={setAmount} />
           <TextField label={t('For (name, optional)')} value={soldTo} onChange={setSoldTo} />
           <div className="field-row">
             <SelectField label={t('Paid by')} value={mode} options={[{ value: 'cash', label: t('Cash') }, { value: 'upi', label: 'UPI' }, { value: 'card', label: t('Card') }]} onChange={setMode} />
             <TextField label={t('Valid till')} type="date" value={validTill} onChange={setValidTill} />
           </div>
+          <ToggleRow
+            label={t('Use once')}
+            note={singleUse ? t('Works on one bill only; any amount not spent is lost.') : t('Can be used on many bills until the amount runs out.')}
+            checked={singleUse}
+            onChange={setSingleUse}
+          />
           <IonButton
             expand="block"
             disabled={!(amount! > 0)}
             onClick={async () => {
-              const v = await sellVoucher(actor, { amount: amount!, mode, soldTo: soldTo || undefined, validTill });
+              const v = await sellVoucher(actor, { amount: amount!, mode, soldTo: soldTo || undefined, validTill, ...(singleUse ? { singleUse: true } : {}) });
               setAmount(null);
               setSoldTo('');
               void alert({
@@ -133,6 +140,7 @@ export function VouchersScreen() {
                 {dateIN(v.date)}
                 {v.soldTo ? ` · ${v.soldTo}` : ''}
                 {v.validTill ? ` · ${t('till {date}', { date: dateIN(v.validTill) })}` : ''}
+                {` · ${v.singleUse ? t('one use') : t('many uses')}`}
               </p>
             </IonLabel>
             <IonNote slot="end">

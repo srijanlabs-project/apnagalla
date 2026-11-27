@@ -41,6 +41,9 @@ import { CAN_CREATE_INVOICES, webInvoiceNote } from '../../lib/platform';
 import { computeTotals, deleteDraft, effectiveGstType, newId, newInvoiceDraft, recordPayments, saveInvoice, type NewPayment } from '../../lib/repo';
 import CustomerPicker, { WALK_IN } from '../docs/CustomerPicker';
 import CreditLimitNote from '../../components/CreditLimitNote';
+import { qtyForAmount } from '../../lib/fresh';
+import { payWithVoucher, usableVoucher } from '../../lib/retailExtras';
+import { extraOn } from '../../lib/shopExtras';
 import CouponField from '../../components/CouponField';
 import CreditPaySheet from '../../components/CreditPaySheet';
 import { payWithCredit } from '../../lib/credit';
@@ -66,6 +69,9 @@ interface Done {
  * "Walk-in" unless one is picked; a walk-in customer pays in full, a named one may owe a balance.
  * A bill can be held (kept as a draft) to serve the next customer and resumed later.
  */
+/** Units sold whole: never offered as "₹20 of …". */
+const COUNTED_UNITS = new Set(['pcs', 'pc', 'nos', 'no', 'box', 'pack', 'packet', 'dozen', 'pair', 'set', 'bottle', 'can', 'piece', 'unit']);
+
 export default function SaleScreen() {
   const { actor, profile, settings, upiIds, ledger, perms } = useBusiness();
   const location = useLocation();
@@ -88,6 +94,7 @@ export default function SaleScreen() {
   const [usePoints, setUsePoints] = useState(false);
   const [creditPick, setCreditPick] = useState(false);
   const [couponOpen, setCouponOpen] = useState(false);
+  const [voucherUse, setVoucherUse] = useState<{ code: string; left: number } | null>(null);
   // Exchange: goods returned on an old bill (credit note made) pay for this one.
   const exchangeFrom = new URLSearchParams(location.search).get('exchange');
   const exchange = useLiveQuery(async () => {
@@ -137,6 +144,22 @@ export default function SaleScreen() {
     if (!s) return [];
     return (items ?? []).filter((i) => i.name.toLowerCase().includes(s) || i.barcode === q.trim()).slice(0, 30);
   }, [items, q]);
+
+  // "20 dhania" / "₹20 dhania": sell that many rupees' worth (loose goods), worked out from the item's price.
+  const byAmount = useMemo(() => {
+    const m = /^(?:₹|rs\.?)?\s*(\d+(?:\.\d+)?)\s+(.{2,})$/i.exec(q.trim());
+    if (!m) return null;
+    const amount = Math.round(Number(m[1]) * 100);
+    const name = m[2]!.toLowerCase();
+    const found = (items ?? []).filter((i) => i.rate > 0 && i.name.toLowerCase().includes(name) && !isAreaPricing(i.pricing) && !i.trackSerial && !COUNTED_UNITS.has(i.unit.toLowerCase())).slice(0, 3);
+    return amount > 0 && found.length ? { amount, found } : null;
+  }, [items, q]);
+
+  function addForAmount(it: Item, amount: number) {
+    const line = lineFromItem(it, level, custom);
+    patch((cur) => ({ lines: [...cur.lines, { ...line, qty: qtyForAmount(amount, line.rate, line.taxPct, line.rateIncludesTax) }] }));
+    setQ('');
+  }
 
   const totals = useMemo(() => (bill ? computeTotals(bill) : null), [bill]);
   useOffers(actor.businessId, bill?.lines, bill?.date, !!bill, (lines) => setBill((cur) => (cur ? { ...cur, lines } : cur)), bill?.coupon, bill?.taxMode === 'none');
@@ -190,6 +213,24 @@ export default function SaleScreen() {
   // Points pay what is left after an exchange / credit note, in whole points.
   const afterCredit = Math.max(0, totals.grandTotal - (exchange?.credit ?? 0) - Math.min(creditUse?.left ?? 0, Math.max(0, totals.grandTotal - (exchange?.credit ?? 0))));
   const pointsValue = usePoints ? Math.min(pointsLeft, Math.floor(afterCredit / loyaltyOf(settings).pointValue)) * loyaltyOf(settings).pointValue : 0;
+  // A gift voucher pays what is left after the credit note and points, never more than is on it.
+  const voucherValue = voucherUse ? Math.min(voucherUse.left, Math.max(0, afterCredit - pointsValue)) : 0;
+  const askVoucher = () =>
+    void alert({
+      header: t('Gift voucher'),
+      inputs: [{ name: 'code', placeholder: 'GV123456' }],
+      buttons: [
+        { text: t('Cancel'), role: 'cancel' },
+        {
+          text: t('Use'),
+          handler: (v: { code: string }) => {
+            void usableVoucher(actor.businessId, v.code)
+              .then((g) => setVoucherUse({ code: g.voucher.code, left: g.left }))
+              .catch(fail);
+          },
+        },
+      ],
+    });
   const patch = (p: Partial<Invoice> | ((cur: Invoice) => Partial<Invoice>)) => setBill((cur) => (cur ? { ...cur, ...(typeof p === 'function' ? p(cur) : p) } : cur));
   const fail = (e: unknown) => void toast({ message: e instanceof Error ? e.message : t('Something went wrong'), duration: 2500, color: 'danger' });
 
@@ -264,6 +305,8 @@ export default function SaleScreen() {
       setCreditUse(null);
       if (usePoints && pointsLeft >= loyaltyOf(settings).minRedeem) await redeemPoints(actor, saved, pointsLeft, settings);
       setUsePoints(false);
+      if (voucherUse && voucherValue > 0) await payWithVoucher(actor, saved, voucherUse.code, voucherValue);
+      setVoucherUse(null);
       const paid = parts.reduce((a, p) => a + p.amount, 0);
       if (paid > 0) await recordPayments(actor, saved.id, parts, { date });
       setPaying(false);
@@ -402,6 +445,11 @@ export default function SaleScreen() {
                 </IonLabel>
               </IonChip>
             )}
+            {bill.lines.length > 0 && extraOn(settings, 'vouchers') && (
+              <IonChip color={voucherUse ? 'success' : undefined} outline={!voucherUse} onClick={() => (voucherUse ? setVoucherUse(null) : askVoucher())}>
+                <IonLabel>{voucherUse ? `${t('Voucher {code}: {amount}', { code: voucherUse.code, amount: rupees(voucherValue) })} ✕` : t('Gift voucher')}</IonLabel>
+              </IonChip>
+            )}
             {bill.lines.length > 0 && !couponOpen && !bill.coupon && (
               <IonChip outline onClick={() => setCouponOpen(true)}>
                 <IonLabel>{t('Coupon')}</IonLabel>
@@ -440,6 +488,18 @@ export default function SaleScreen() {
 
           {q.trim() ? (
             <IonList>
+              {byAmount?.found.map((it) => {
+                const line = lineFromItem(it, level, custom);
+                const qty = qtyForAmount(byAmount.amount, line.rate, line.taxPct, line.rateIncludesTax);
+                return (
+                  <IonItem key={`amt-${it.id}`} button detail={false} onClick={() => addForAmount(it, byAmount.amount)}>
+                    <IonLabel>
+                      <h2>{t('{amount} of {item}', { amount: rupees(byAmount.amount), item: it.name })}</h2>
+                      <p>{t('{qty} {unit} at {rate} per {unit}', { qty, unit: it.unit, rate: rupees(line.rate) })}</p>
+                    </IonLabel>
+                  </IonItem>
+                );
+              })}
               {matches.map((it) => (
                 <IonItem key={it.id} button detail={false} onClick={() => addItem(it)}>
                   <IonLabel>
@@ -581,7 +641,7 @@ export default function SaleScreen() {
 
       <PaySheet
         isOpen={paying}
-        amount={Math.max(0, totals.grandTotal - (exchange?.credit ?? 0) - Math.min(creditUse?.left ?? 0, Math.max(0, totals.grandTotal - (exchange?.credit ?? 0))) - pointsValue)}
+        amount={Math.max(0, totals.grandTotal - (exchange?.credit ?? 0) - Math.min(creditUse?.left ?? 0, Math.max(0, totals.grandTotal - (exchange?.credit ?? 0))) - pointsValue - voucherValue)}
         upi={upi}
         qrNote={profile.name}
         requireFull={walkIn}

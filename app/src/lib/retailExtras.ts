@@ -47,25 +47,35 @@ export async function schemeProgress(businessId: string, today = todayISO()): Pr
 
 export const voucherCode = () => `GV${Math.floor(100000 + Math.random() * 900000)}`;
 
-export async function sellVoucher(actor: Actor, v: Pick<Voucher, 'amount' | 'mode' | 'soldTo' | 'validTill'>): Promise<Voucher> {
+export async function sellVoucher(actor: Actor, v: Pick<Voucher, 'amount' | 'mode' | 'soldTo' | 'validTill' | 'singleUse'>): Promise<Voucher> {
   canChange(actor);
   if (!(v.amount > 0)) throw new Error(t('Amount must be more than zero'));
   return putRecord('vouchers', actor, { id: newId(), code: voucherCode(), date: todayISO(), ...v } as Voucher);
 }
 
 /** What is left on a voucher (paid with as mode "voucher", reference = its code). */
-export async function voucherLeft(businessId: string, code: string): Promise<{ voucher: Voucher; left: number } | null> {
+export async function voucherLeft(businessId: string, code: string): Promise<{ voucher: Voucher; left: number; uses: number } | null> {
   const voucher = (await db.vouchers.where('code').equals(code.trim().toUpperCase()).toArray()).find((v) => v.businessId === businessId && !v.deleted && !v.voidedAt);
   if (!voucher) return null;
-  const used = (await db.payments.where('businessId').equals(businessId).filter((p) => p.mode === 'voucher' && p.reference === voucher.code && !p.voidedAt && !p.deleted).toArray()).reduce((a, p) => a + (p.kind === 'refund' ? -p.amount : p.amount), 0);
-  return { voucher, left: voucher.amount - used };
+  const uses = await db.payments.where('businessId').equals(businessId).filter((p) => p.mode === 'voucher' && p.reference === voucher.code && !p.voidedAt && !p.deleted).toArray();
+  const used = uses.reduce((a, p) => a + (p.kind === 'refund' ? -p.amount : p.amount), 0);
+  // Never more than its amount; a single-use voucher is finished after its first bill.
+  const spentOnce = voucher.singleUse && uses.some((p) => p.kind === 'payment');
+  return { voucher, left: spentOnce ? 0 : Math.max(0, voucher.amount - used), uses: uses.length };
+}
+
+/** A voucher that can pay today: its code, what is left on it. Throws a clear message otherwise. */
+export async function usableVoucher(businessId: string, code: string, today = todayISO()) {
+  const v = await voucherLeft(businessId, code);
+  if (!v) throw new Error(t('No gift voucher with this code'));
+  if (v.voucher.validTill && v.voucher.validTill < today) throw new Error(t('This voucher expired on {date}', { date: v.voucher.validTill.split('-').reverse().join('/') }));
+  if (v.left <= 0) throw new Error(v.voucher.singleUse && v.uses > 0 ? t('This voucher was for one use and is already used') : t('Nothing is left on this voucher'));
+  return v;
 }
 
 /** Pays a saved bill from a voucher (at most what is left, what is pending, and before it expires). */
 export async function payWithVoucher(actor: Actor, inv: Invoice, code: string, pending: number, today = todayISO()) {
-  const v = await voucherLeft(actor.businessId, code);
-  if (!v) throw new Error(t('No gift voucher with this code'));
-  if (v.voucher.validTill && v.voucher.validTill < today) throw new Error(t('This voucher expired on {date}', { date: v.voucher.validTill.split('-').reverse().join('/') }));
+  const v = await usableVoucher(actor.businessId, code, today);
   const amount = Math.min(v.left, pending);
   if (amount <= 0) throw new Error(t('Nothing is left on this voucher'));
   const { recordPayments } = await import('./repo');
