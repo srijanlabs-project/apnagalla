@@ -81,7 +81,7 @@ export default function LoginScreen() {
       <IonContent className="ion-padding auth">
         <div className="auth-wrap">
           <div className="auth-brand">
-            <div className="auth-logo">₹</div>
+            <img className="auth-logo" src="/icon-180.png" alt="" />
             <h1>ApnaGalla</h1>
             <p>{t('Create, share and track invoices — even without internet.')}</p>
           </div>

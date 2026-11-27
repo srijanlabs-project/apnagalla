@@ -2572,5 +2572,9 @@
   "{n} days are not closed yet": "{n} દિવસ હજી બંધ નથી થયા",
   "{n} missed": "{n} ચૂક્યા",
   "{n} visits planned for {name}": "{name} માટે {n} મુલાકાત નક્કી",
-  "{what} was changed on another phone at the same time. The newer version is kept; check it and edit again if needed.": "{what} એ જ સમયે બીજા ફોન પર બદલાયું. નવું વર્ઝન રાખ્યું છે; જુઓ અને જરૂર હોય તો ફરી બદલો."
+  "{what} was changed on another phone at the same time. The newer version is kept; check it and edit again if needed.": "{what} એ જ સમયે બીજા ફોન પર બદલાયું. નવું વર્ઝન રાખ્યું છે; જુઓ અને જરૂર હોય તો ફરી બદલો.",
+  "Note for this photo": "આ ફોટા માટે નોંધ",
+  "Sent to the customer: cannot be removed": "ગ્રાહકને મોકલેલ: દૂર કરી શકાતો નથી",
+  "+ Add note": "+ નોંધ ઉમેરો",
+  "Photos sent to the customer are locked. You can still add more.": "ગ્રાહકને મોકલેલા ફોટા લૉક છે. તમે વધુ ફોટા ઉમેરી શકો છો."
 }

@@ -321,6 +321,12 @@ export interface PartySnapshot {
   taxId?: string;
 }
 
+/** When a bill's photo was added, and a note about it. */
+export interface PhotoInfo {
+  at: string;
+  note?: string;
+}
+
 export interface HistoryEntry {
   at: string;
   by: string; // user id
@@ -379,6 +385,10 @@ export interface DocBase extends SyncedRecord {
   totals: InvoiceTotals;
   /** Photos attached (a paper bill, a delivery proof); small JPEGs. */
   photos?: string[];
+  /** For each photo (same order): when it was added and an optional note. */
+  photoInfo?: PhotoInfo[];
+  /** How many of the first photos were on the bill when it was sent to the customer: those stay. */
+  photosSent?: number;
   /** Coupon code typed at billing. */
   coupon?: string | null;
   /** Notes for the shop only: shown in the app, never printed or shared. */

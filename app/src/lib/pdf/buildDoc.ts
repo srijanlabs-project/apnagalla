@@ -1,4 +1,4 @@
-import { amountInWords, formatDateIN, formatPaise, roundHalfUp, stateCode, type InvoiceTotals } from '@invoice/shared';
+import { amountInWords, formatDateIN, formatPaise, roundHalfUp, stateCode, todayISO, type InvoiceTotals } from '@invoice/shared';
 import { serialText } from '../serials';
 import type { Content, ContentTable, TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import { batchText } from '../batches';
@@ -362,17 +362,22 @@ export function buildDocDefinition(input: PdfInput, totals: InvoiceTotals): TDoc
       { columns: [{ ...(leftColumn as object), width: '*' } as unknown as Content, { ...(summaryTable as object), width: a5 ? 170 : 220 } as unknown as Content], columnGap: 16, margin: [0, 4, 0, 0] },
       ...footerBlocks,
       signature,
-      ...photoPages(doc.photos, show.photos !== false, a5),
+      ...photoPages(doc.photos, show.photos !== false, a5, doc.photoInfo),
     ],
   };
 }
 
 /** Photos attached to the bill, two to a page after it, each fitted to half the page. */
-function photoPages(photos: string[] | undefined, show: boolean, a5: boolean): Content[] {
+function photoPages(photos: string[] | undefined, show: boolean, a5: boolean, info?: Array<{ at: string; note?: string }>): Content[] {
   if (!show || !photos?.length) return [];
-  const fit: [number, number] = a5 ? [370, 260] : [515, 360];
-  return photos.flatMap((p, i) => [
-    ...(i % 2 === 0 ? [{ text: i === 0 ? 'Photos' : '', pageBreak: 'before', bold: true, margin: [0, 0, 0, 6] } as Content] : []),
-    { image: p, fit, alignment: 'center', margin: [0, 4, 0, 10] } as Content,
-  ]);
+  const fit: [number, number] = a5 ? [370, 240] : [515, 340];
+  return photos.flatMap((p, i) => {
+    const meta = info?.[i];
+    const caption = [meta?.at ? formatDateIN(todayISO(new Date(meta.at))) : '', meta?.note ?? ''].filter(Boolean).join(' · ');
+    return [
+      ...(i % 2 === 0 ? [{ text: i === 0 ? 'Photos' : '', pageBreak: 'before', bold: true, margin: [0, 0, 0, 6] } as Content] : []),
+      { image: p, fit, alignment: 'center', margin: [0, 4, 0, caption ? 2 : 10] } as Content,
+      ...(caption ? [{ text: caption, alignment: 'center', fontSize: 9, color: '#555', margin: [0, 0, 0, 10] } as Content] : []),
+    ];
+  });
 }

@@ -138,8 +138,10 @@ export default function BillView(p: BillData) {
       {(kind !== 'credit' || (doc.photos?.length ?? 0) > 0) && perms.access !== 'warehouse' && perms.access !== 'readonly' && (
         <DocPhotos
           photos={doc.photos ?? []}
+          info={doc.photoInfo ?? []}
+          lockedCount={Math.min(doc.photosSent ?? 0, doc.photos?.length ?? 0)}
           canAdd={doc.status !== 'cancelled'}
-          onChange={(photos) => void putRecord(kind === 'invoice' ? 'invoices' : 'estimates', actor, { ...(doc as Invoice), photos }).catch(fail)}
+          onChange={(v) => void putRecord(kind === 'invoice' ? 'invoices' : 'estimates', actor, { ...(doc as Invoice), ...v }).catch(fail)}
         />
       )}
       <HistoryList doc={doc} />

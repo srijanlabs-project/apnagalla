@@ -60,7 +60,7 @@ a{color:var(--g)}footer{margin-top:40px;font-size:14px;color:var(--muted)}
 
 <h2 id="permissions">Phone permissions, used only when you tap</h2>
 <table>
-<tr><th>Contacts</th><td>When you tap "From phone contacts", your phone's contact list opens so you can pick one person. Only that contact is saved as a customer. We never read, copy or upload the rest of your contacts.</td></tr>
+<tr><th>Contacts</th><td>When you tap "From phone contacts", your phone's contact list opens so you can pick one person. Only that contact is saved as a customer. We never read, copy, upload or change the rest of your contacts. (Android groups reading and changing contacts into one permission; the app only reads the contact you pick.)</td></tr>
 <tr><th>Camera</th><td>To scan barcodes, and to take photos of bills or deliveries that you choose to attach.</td></tr>
 <tr><th>Location</th><td>Only when a salesperson taps "Check in" on a field visit, to note where the visit happened. Nothing is tracked in the background.</td></tr>
 <tr><th>Notifications</th><td>Reminders made by the phone itself (open the store, close the day, low stock). No outside notification service is used.</td></tr>

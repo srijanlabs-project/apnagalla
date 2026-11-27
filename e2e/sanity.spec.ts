@@ -209,6 +209,22 @@ test('14. More: search finds settings; Hindi screens render', async () => {
   await page.getByText('English').click().catch(() => undefined);
 });
 
-test('15. no screen threw an error', async () => {
+test('15. screens that load on demand open from inside the app (not a white page)', async () => {
+  const shown = () => page.locator('ion-router-outlet .ion-page:not(.ion-page-hidden)').last();
+  await go('/tabs/more');
+  await page.getByPlaceholder(/search settings and pages/i).fill('field visits');
+  await page.getByText(/^field visits$/i).first().click();
+  await expect(page).toHaveURL(/customers\/visits/);
+  await expect(shown()).not.toHaveClass(/ion-page-invisible/);
+  await expect(shown().getByText(/check in at a customer/i).first()).toBeVisible();
+  await go('/tabs/items');
+  await page.getByRole('button', { name: /tools/i }).first().click();
+  await page.getByText(/^import$/i).first().click();
+  await expect(page).toHaveURL(/items\/import/);
+  await expect(shown()).not.toHaveClass(/ion-page-invisible/);
+  await expect(shown().getByText(/import items/i).first()).toBeVisible();
+});
+
+test('16. no screen threw an error', async () => {
   expect(errors, errors.join('\n')).toEqual([]);
 });

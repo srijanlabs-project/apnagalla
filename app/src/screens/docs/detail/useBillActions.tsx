@@ -20,7 +20,7 @@ import { loyaltyOf, redeemPoints } from '../../../lib/loyalty';
 
 import { pdfFileName, pdfInputFor, renderPdf, sharePdf } from '../../../lib/pdf';
 import { CAN_CREATE_INVOICES } from '../../../lib/platform';
-import { cancelCreditNote, cancelInvoice, convertEstimate, deleteDraft, duplicateInvoice, newCreditNoteDraft, recordPayments, saveCreditNote, setEstimateStatus } from '../../../lib/repo';
+import { cancelCreditNote, cancelInvoice, convertEstimate, deleteDraft, duplicateInvoice, newCreditNoteDraft, putRecord, recordPayments, saveCreditNote, setEstimateStatus } from '../../../lib/repo';
 import { checkVoucherOnline, payWithVoucher } from '../../../lib/retailExtras';
 import { extraOn } from '../../../lib/shopExtras';
 import { printPdfFile, sendOnWhatsApp } from '../../../lib/shopTools';
@@ -75,6 +75,14 @@ export function useBillActions(p: BillData, d: Derived) {
   const done = (message: string) => void toast({ message, duration: 1500, position: 'top', color: 'success' });
   const makePdf = async () => renderPdf(await pdfInputFor(kind, doc, settings));
 
+  /** The photos on the bill now went to the customer: they can no longer be removed. */
+  async function markPhotosSent() {
+    const bill = inv ?? est;
+    const n = bill?.photos?.length ?? 0;
+    if (!bill || n === 0 || (bill.photosSent ?? 0) >= n) return;
+    await putRecord(kind === 'invoice' ? 'invoices' : 'estimates', actor, { ...(bill as Invoice), photosSent: n }).catch(() => undefined);
+  }
+
   /** With a phone number: straight into that WhatsApp chat with the PDF; else the share sheet. */
   async function onShare(to?: string) {
     setBusy(to ? 'wa' : 'share');
@@ -85,6 +93,7 @@ export function useBillActions(p: BillData, d: Derived) {
         : `${profile.name}: ${view.title} ${doc!.number}`;
       const r = to ? await sendOnWhatsApp(to, pdfFileName(kind, doc!), pdf.blob, text) : await sharePdf(pdfFileName(kind, doc!), pdf, text);
       if (r === 'downloaded') void toast({ message: t('PDF downloaded'), duration: 1500 });
+      else await markPhotosSent();
     } catch (e) {
       fail(e);
     } finally {
@@ -115,6 +124,7 @@ export function useBillActions(p: BillData, d: Derived) {
                   fileName: pdfFileName(kind, doc!).replace(/[^\w .()-]/g, '-'),
                   pdfBase64: pdf.base64,
                 });
+                await markPhotosSent();
                 done(t('Email sent to {to}', { to }));
               } catch (e) {
                 fail(e);

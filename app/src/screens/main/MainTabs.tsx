@@ -19,7 +19,8 @@ import MoreScreen from './MoreScreen';
 import DeliveriesScreen, { HomeOrDeliveries } from './DeliveriesScreen';
 import ExpensesScreen from '../expenses/ExpensesScreen';
 import CashBookScreen from '../cash/CashBookScreen';
-import { lazyScreen } from '../../components/lazyScreen';
+import { useEffect } from 'react';
+import { lazyScreen, preloadScreens } from '../../components/lazyScreen';
 
 // Less-used screens load when first opened, so the app starts faster on slow phones.
 const RecycleBinScreen = lazyScreen(() => import('./RecycleBinScreen'));
@@ -94,6 +95,7 @@ const SupplierEditScreen = lazyScreen(() => import('../suppliers/SupplierScreens
 const SuppliersScreen = lazyScreen(() => import('../suppliers/SupplierScreens').then((m) => ({ default: m.SuppliersScreen })));
 
 export default function MainTabs() {
+  useEffect(preloadScreens, []);
   return (
     <BusinessProvider>
       <SyncNotices />

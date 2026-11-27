@@ -48,6 +48,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Pick a phone contact to add as a customer -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- The contacts plugin asks for read and write together; the app only reads the one contact picked -->
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
     <!-- R10 field sales: where a visit was checked in -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
